@@ -8,12 +8,33 @@ export function appOrigin() {
   return url.origin;
 }
 
-export function emailConfigured() {
+export function isRealSmtpConfigured() {
   return !!(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASSWORD && process.env.SMTP_FROM);
 }
 
+export function emailConfigured() {
+  if (process.env.NODE_ENV === 'development') return true;
+  return isRealSmtpConfigured();
+}
+
 export async function sendAccountEmail(to: string, subject: string, message: string) {
-  if (!emailConfigured()) throw new Error('SMTP non configurato');
+  if (!isRealSmtpConfigured()) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('\n┌─────────────────────────────────────────────────────────────────────────────┐');
+      console.log('│ 📨 [SIMULATORE EMAIL LOCALE - SVILUPPO]                                     │');
+      console.log(`│ A: ${to.padEnd(73).slice(0, 73)}│`);
+      console.log(`│ Oggetto: ${subject.padEnd(67).slice(0, 67)}│`);
+      console.log('├─────────────────────────────────────────────────────────────────────────────┤');
+      const lines = message.split('\n');
+      for (const line of lines) {
+        console.log(`│ ${line.padEnd(75).slice(0, 75)} │`);
+      }
+      console.log('└─────────────────────────────────────────────────────────────────────────────┘\n');
+      return;
+    }
+    throw new Error('SMTP non configurato');
+  }
+
   const port = Number(process.env.SMTP_PORT);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('SMTP_PORT non valido');
   const transport = nodemailer.createTransport({
