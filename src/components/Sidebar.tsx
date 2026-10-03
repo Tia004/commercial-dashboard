@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import { useCRM } from '@/lib/store';
+import { BrandLogo } from './BrandLogo';
 export type ActiveTab = 'cockpit' | 'focus' | 'kanban' | 'opportunities' | 'calendar' | 'standby' | 'analytics';
 interface Props { activeTab: ActiveTab; setActiveTab: (tab: ActiveTab) => void; mobileOpen: boolean; onClose: () => void }
 const items: { tab: ActiveTab; icon: string; label: string }[] = [
@@ -20,7 +21,7 @@ export const Sidebar: React.FC<Props> = ({ activeTab, setActiveTab, mobileOpen, 
     <aside className={`app-sidebar ${mobileOpen ? 'is-open' : ''}`} aria-label="Navigazione principale">
       <div className="sidebar-brand">
         <button className="brand-link" onClick={() => { setActiveTab('cockpit'); onClose(); }}>
-          <span className="wordmark-glyph" aria-hidden="true"><span /><span /><span /></span>
+          <BrandLogo size={28} />
           <span className="brand-copy"><strong>Hub Commerciale</strong><small>Workspace vendite</small></span>
         </button>
         <button className="mobile-close" aria-label="Chiudi menu" onClick={onClose}><span className="material-symbols-outlined">close</span></button>

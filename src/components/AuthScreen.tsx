@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
+import { BrandLogo } from './BrandLogo';
 
 type Mode = 'login' | 'register' | 'request-reset' | 'confirm-reset';
 export const AuthScreen: React.FC = () => {
@@ -62,14 +63,14 @@ export const AuthScreen: React.FC = () => {
   };
 
   return <div className="auth-shell">
-    <header className="auth-header"><div className="auth-wordmark"><span className="wordmark-glyph" aria-hidden="true"><span /><span /><span /></span><span>Hub Commerciale</span></div><span className="auth-header-note">Workspace vendite</span></header>
+    <header className="auth-header"><div className="auth-wordmark"><BrandLogo size={28} /><span>Hub Commerciale</span></div><span className="auth-header-note">Workspace vendite</span></header>
     <main className="auth-main"><div className="auth-panel">
       <div className="auth-kicker">ACCESSO SICURO</div>
       <h1>{mode === 'register' ? 'Crea il tuo workspace' : mode === 'request-reset' ? 'Recupera l’accesso' : mode === 'confirm-reset' ? 'Nuova password' : 'Bentornato'}</h1>
       <p className="auth-subtitle">{mode === 'register' ? inviteToken ? 'Completa l’invito per entrare nel team.' : 'Organizza opportunità, attività e team in un unico spazio.' : mode === 'request-reset' ? 'Ti invieremo un link per impostare una nuova password.' : mode === 'confirm-reset' ? 'Scegli una password di almeno 12 caratteri.' : 'Accedi al tuo spazio commerciale.'}</p>
       {(mode === 'login' || mode === 'register') && <div className="auth-switch"><button className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setError(''); }}>Accedi</button><button className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setError(''); }}>Registrati</button></div>}
-      {notice && <div className="auth-message success" role="status">{notice}</div>}
-      {error && <div className="auth-message error" role="alert">{error}</div>}
+      {notice && <div className="auth-message success" role="status"><span className="material-symbols-outlined">check_circle</span><span>{notice}</span></div>}
+      {error && <div className="auth-message error" role="alert"><span className="material-symbols-outlined">error</span><span>{error}</span></div>}
       <form onSubmit={submit} className="auth-form">
         {mode === 'register' && <><label>Nome e cognome<input required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Mario Rossi" /></label>{!inviteToken && <label>Azienda<input autoComplete="organization" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Nome azienda" /></label>}</>}
         {mode !== 'confirm-reset' && <label>Email<input required type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} readOnly={!!inviteToken && mode === 'register'} placeholder="nome@azienda.it" /></label>}
