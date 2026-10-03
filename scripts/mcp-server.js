@@ -239,7 +239,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         value: args.value,
         valueType: args.valueType || 'One Shot',
         leadSource: args.leadSource || 'AI Inbound MCP',
-        salesRep: args.salesRep || 'Francesco V.',
+        salesRep: args.salesRep || 'Commerciale Responsabile',
         phone: args.phone || '',
         whatsapp: args.whatsapp || args.phone || '',
         email: args.email || '',
@@ -248,7 +248,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         notes: args.notes || 'Creata tramite MCP Server',
         nextAction: {
           what: args.nextActionWhat,
-          who: args.salesRep || 'Francesco V.',
+          who: args.salesRep || 'Commerciale Responsabile',
           when: args.nextActionWhen,
           time: '11:00',
           type: args.nextActionType || 'chiamata',

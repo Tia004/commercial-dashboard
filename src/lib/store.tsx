@@ -598,7 +598,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         brand,
         service: brand === 'NoLimits' ? 'Gestione Meta Ads' : brand === 'Webissimo' ? 'E-Commerce Shopify Plus' : 'Food Marketing & Margini',
         leadSource: 'AI Autonomous Lead Inbound',
-        salesRep: 'Francesco V.',
+        salesRep: salesReps[0]?.name || 'Commerciale Responsabile',
         phone: '+39 02 ' + Math.floor(1000000 + Math.random() * 9000000),
         whatsapp: '+39340' + Math.floor(1000000 + Math.random() * 9000000),
         email: `${name.toLowerCase().replace(/\s+/g, '.')}@azienda.it`,
@@ -609,7 +609,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         notes: `Generata automaticamente dall'Agente AI in base all'istruzione: "${instruction}"`,
         nextAction: {
           what: `Primo contatto telefonico conoscitivo con ${name}`,
-          who: 'Francesco V.',
+          who: salesReps[0]?.name || 'Commerciale Responsabile',
           when: today,
           time: '11:30',
           type: 'chiamata',

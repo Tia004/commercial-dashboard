@@ -8,11 +8,18 @@ export const NextStepModal: React.FC = () => {
   const { nextStepModalDeal, setNextStepModalDeal, setDealNextAction, salesReps } = useCRM();
 
   const [what, setWhat] = useState('');
-  const [who, setWho] = useState(nextStepModalDeal?.salesRep || 'Francesco V.');
+  const [who, setWho] = useState('');
   const [when, setWhen] = useState(new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState('11:00');
   const [type, setType] = useState<ActivityType>('chiamata');
   const [priority, setPriority] = useState<Priority>('Alta');
+
+  React.useEffect(() => {
+    if (nextStepModalDeal) {
+      setWho(nextStepModalDeal.salesRep || salesReps[0]?.name || 'Commerciale');
+      setWhat('');
+    }
+  }, [nextStepModalDeal, salesReps]);
 
   if (!nextStepModalDeal) return null;
 

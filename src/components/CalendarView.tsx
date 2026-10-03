@@ -2,10 +2,12 @@
 
 import React, { useState } from 'react';
 import { useCRM } from '@/lib/store';
+import { useAuth } from '@/lib/auth';
 import { CommercialTask, ActivityType } from '@/types/crm';
 
 export const CalendarView: React.FC = () => {
   const { tasks, completeTask, setSelectedDeal, opportunities, addTask, brands, salesReps } = useCRM();
+  const { user } = useAuth();
 
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [filterType, setFilterType] = useState<string>('all');
@@ -15,7 +17,7 @@ export const CalendarView: React.FC = () => {
   const [newTitle, setNewTitle] = useState('');
   const [newClient, setNewClient] = useState('');
   const [newBrand, setNewBrand] = useState('NoLimits');
-  const [newRep, setNewRep] = useState('Francesco V.');
+  const [newRep, setNewRep] = useState(user?.name || salesReps[0]?.name || 'Commerciale');
   const [newType, setNewType] = useState<ActivityType>('chiamata');
   const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
   const [newTime, setNewTime] = useState('10:00');

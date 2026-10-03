@@ -15,21 +15,19 @@ export const DealModal: React.FC = () => {
     snoozeDeal,
   } = useCRM();
 
-  if (!selectedDeal) return null;
-
   const [activeTab, setActiveTab] = useState<'timeline' | 'edit' | 'quote'>('timeline');
   const [newLogTitle, setNewLogTitle] = useState('');
   const [newLogDesc, setNewLogDesc] = useState('');
   const [newLogType, setNewLogType] = useState<ActivityType>('chiamata');
 
   // Edit fields
-  const [editName, setEditName] = useState(selectedDeal.name);
-  const [editCompany, setEditCompany] = useState(selectedDeal.company);
-  const [editValue, setEditValue] = useState(selectedDeal.value);
-  const [editPhone, setEditPhone] = useState(selectedDeal.phone);
-  const [editWhatsapp, setEditWhatsapp] = useState(selectedDeal.whatsapp);
-  const [editEmail, setEditEmail] = useState(selectedDeal.email);
-  const [editNotes, setEditNotes] = useState(selectedDeal.notes);
+  const [editName, setEditName] = useState('');
+  const [editCompany, setEditCompany] = useState('');
+  const [editValue, setEditValue] = useState(0);
+  const [editPhone, setEditPhone] = useState('');
+  const [editWhatsapp, setEditWhatsapp] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editNotes, setEditNotes] = useState('');
 
   // Standby quick state
   const [isStandbyOpen, setIsStandbyOpen] = useState(false);
@@ -39,9 +37,22 @@ export const DealModal: React.FC = () => {
   );
 
   // Quotation Generator state
-  const [quoteItems, setQuoteItems] = useState([
-    { name: selectedDeal.service, price: selectedDeal.value, quantity: 1 },
-  ]);
+  const [quoteItems, setQuoteItems] = useState<{ name: string; price: number; quantity: number }[]>([]);
+
+  React.useEffect(() => {
+    if (selectedDeal) {
+      setEditName(selectedDeal.name);
+      setEditCompany(selectedDeal.company);
+      setEditValue(selectedDeal.value);
+      setEditPhone(selectedDeal.phone);
+      setEditWhatsapp(selectedDeal.whatsapp);
+      setEditEmail(selectedDeal.email);
+      setEditNotes(selectedDeal.notes);
+      setQuoteItems([{ name: selectedDeal.service, price: selectedDeal.value, quantity: 1 }]);
+    }
+  }, [selectedDeal]);
+
+  if (!selectedDeal) return null;
 
   const stages: DealStage[] = [
     'Nuovo lead',

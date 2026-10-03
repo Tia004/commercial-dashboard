@@ -19,6 +19,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
     setSelectedDeal,
     triggerNextStepPrompt,
     selectedBrand,
+    setIsNewDealModalOpen,
   } = useCRM();
 
   const today = new Date().toISOString().split('T')[0];
@@ -285,7 +286,28 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
         )}
 
         {/* List of today's tasks */}
-        {todayTasks.length === 0 && dealsWithoutAction.length === 0 ? (
+        {opportunities.length === 0 ? (
+          <div className="p-8 text-center bg-surface-container-low rounded-2xl border border-dashed border-outline-variant/50 flex flex-col items-center justify-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-surface-container text-primary flex items-center justify-center shadow-sm">
+              <span className="material-symbols-outlined text-[28px]">rocket_launch</span>
+            </div>
+            <div>
+              <span className="text-sm font-bold text-on-surface block">
+                Benvenuto nel tuo Hub Commerciale!
+              </span>
+              <p className="text-xs text-on-surface-variant max-w-sm mt-0.5">
+                La dashboard è attiva e inizializzata con tutti i contatori a zero. Inizia inserendo la prima opportunità per NoLimits, Webissimo o Sapori.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsNewDealModalOpen(true)}
+              className="mt-1 px-4 py-2 rounded-xl bg-primary text-on-primary font-bold text-xs uppercase tracking-wider shadow-sm hover:opacity-90 flex items-center gap-1.5 transition-all"
+            >
+              <span className="material-symbols-outlined text-[16px]">add</span>
+              <span>Inserisci Prima Opportunità</span>
+            </button>
+          </div>
+        ) : todayTasks.length === 0 && dealsWithoutAction.length === 0 ? (
           <div className="p-8 text-center bg-surface-container-low rounded-xl border border-dashed border-outline-variant/50 flex flex-col items-center justify-center gap-2">
             <span className="material-symbols-outlined text-emerald-500 text-[36px]">task_alt</span>
             <span className="text-sm font-bold text-on-surface">

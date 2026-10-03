@@ -1,19 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCRM } from '@/lib/store';
+import { useAuth } from '@/lib/auth';
 import { Brand, ValueType, DealStage, ActivityType, Priority } from '@/types/crm';
 import { INITIAL_SERVICES } from '@/lib/initialData';
 
 export const NewDealModal: React.FC = () => {
   const { isNewDealModalOpen, setIsNewDealModalOpen, addOpportunity, brands, salesReps } = useCRM();
+  const { user } = useAuth();
+
+  const defaultRep = user?.name || salesReps[0]?.name || 'Commerciale';
 
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
   const [brand, setBrand] = useState<Brand>(brands[0] || 'NoLimits');
   const [service, setService] = useState('Gestione Meta Ads');
   const [leadSource, setLeadSource] = useState('Webinar B2B');
-  const [salesRep, setSalesRep] = useState(salesReps[0]?.name || 'Francesco V.');
+  const [salesRep, setSalesRep] = useState(defaultRep);
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
@@ -24,7 +28,7 @@ export const NewDealModal: React.FC = () => {
 
   // Mandatory Next Action fields
   const [actionWhat, setActionWhat] = useState('Primo contatto conoscitivo di qualifica');
-  const [actionWho, setActionWho] = useState(salesReps[0]?.name || 'Francesco V.');
+  const [actionWho, setActionWho] = useState(defaultRep);
   const [actionWhen, setActionWhen] = useState(new Date().toISOString().split('T')[0]);
   const [actionTime, setActionTime] = useState('11:30');
   const [actionType, setActionType] = useState<ActivityType>('chiamata');

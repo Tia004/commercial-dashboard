@@ -3,6 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { useCRM } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
+import {
+  speakHumanVoice,
+  stopHumanVoice,
+  getItalianVoices,
+  getSavedVoiceName,
+  savePreferredVoice,
+  getSavedVoiceSpeed,
+  savePreferredVoiceSpeed,
+  getSavedVoiceMode,
+  savePreferredVoiceMode,
+  VoiceOption,
+} from '@/lib/speechVoice';
 
 export const AiCopilotBar: React.FC = () => {
   const { executeAIInstruction, alerts, kpis } = useCRM();
@@ -13,15 +25,68 @@ export const AiCopilotBar: React.FC = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
 
-  // Text to Speech
-  const speakBriefing = () => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      alert('Sintesi vocale non supportata dal tuo browser');
-      return;
-    }
+  // Voice Customization State
+  const [isVoiceMenuOpen, setIsVoiceMenuOpen] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState<VoiceOption[]>([]);
+  const [selectedVoiceName, setSelectedVoiceName] = useState<string>('');
+  const [voiceSpeed, setVoiceSpeed] = useState<number>(0.98);
+  const [voiceMode, setVoiceMode] = useState<'browser' | 'cloud_hd'>('browser');
 
+  // Load available system and browser voices
+  useEffect(() => {
+    const loadVoices = () => {
+      const v = getItalianVoices();
+      setAvailableVoices(v);
+      const saved = getSavedVoiceName();
+      if (saved) {
+        setSelectedVoiceName(saved);
+      } else if (v.length > 0) {
+        setSelectedVoiceName(v[0].name);
+      }
+    };
+
+    loadVoices();
+    setVoiceSpeed(getSavedVoiceSpeed());
+    setVoiceMode(getSavedVoiceMode());
+
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, []);
+
+  const handleVoiceChange = (vName: string) => {
+    setSelectedVoiceName(vName);
+    savePreferredVoice(vName);
+  };
+
+  const handleSpeedChange = (spd: number) => {
+    setVoiceSpeed(spd);
+    savePreferredVoiceSpeed(spd);
+  };
+
+  const handleVoiceModeChange = (mode: 'browser' | 'cloud_hd') => {
+    setVoiceMode(mode);
+    savePreferredVoiceMode(mode);
+  };
+
+  // Preview / Test Voice
+  const handleTestVoice = () => {
+    const testSample = `Buongiorno ${user?.name ? user.name.split(' ')[0] : 'Direttore'}, sono la tua assistente commerciale esecutiva. La mia voce è calibrata per conversare in modo caldo, naturale e professionale.`;
+    speakHumanVoice(
+      testSample,
+      {
+        onStart: () => setIsSpeaking(true),
+        onEnd: () => setIsSpeaking(false),
+        onError: () => setIsSpeaking(false),
+      },
+      selectedVoiceName
+    );
+  };
+
+  // Text to Speech Briefing
+  const speakBriefing = () => {
     if (isSpeaking) {
-      window.speechSynthesis.cancel();
+      stopHumanVoice();
       setIsSpeaking(false);
       return;
     }
@@ -31,20 +96,18 @@ export const AiCopilotBar: React.FC = () => {
     if (kpis.openDealsCount === 0) {
       textToSpeak += `La dashboard commerciale è attiva e inizializzata con tutti i contatori a zero. Puoi inserire la tua prima opportunità con il pulsante dedicato o configurare il database Turso e le Passkey nelle impostazioni.`;
     } else {
-      textToSpeak += `Ecco il punto commerciale di oggi: il valore della pipeline attiva è di euro ${kpis.pipelineTotal.toLocaleString()}, con ${kpis.openDealsCount} trattative in corso e ${alerts.length} anomalie da verificare. Ci sono ${kpis.scheduledMeetingsCount} appuntamenti programmati.`;
+      textToSpeak += `Ecco il punto commerciale di oggi: il valore della pipeline attiva è di ${kpis.pipelineTotal.toLocaleString()} euro, con ${kpis.openDealsCount} trattative in corso e ${alerts.length} anomalie da verificare. Ci sono ${kpis.scheduledMeetingsCount} appuntamenti programmati per i brand aziendali.`;
     }
 
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = 'it-IT';
-    utterance.rate = 1.05;
-    utterance.pitch = 1.0;
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
+    speakHumanVoice(
+      textToSpeak,
+      {
+        onStart: () => setIsSpeaking(true),
+        onEnd: () => setIsSpeaking(false),
+        onError: () => setIsSpeaking(false),
+      },
+      selectedVoiceName
+    );
   };
 
   // Speech to Text (Microphone dictation)
@@ -96,11 +159,17 @@ export const AiCopilotBar: React.FC = () => {
       setExecutionResult(res);
       setPrompt('');
 
-      // If success, speak brief confirmation if user wants
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window && !isSpeaking) {
-        const shortConfirm = new SpeechSynthesisUtterance(res.message.substring(0, 100));
-        shortConfirm.lang = 'it-IT';
-        window.speechSynthesis.speak(shortConfirm);
+      // If success, speak confirmation with pleasant human voice
+      if (res.success) {
+        speakHumanVoice(
+          res.message.substring(0, 140),
+          {
+            onStart: () => setIsSpeaking(true),
+            onEnd: () => setIsSpeaking(false),
+            onError: () => setIsSpeaking(false),
+          },
+          selectedVoiceName
+        );
       }
     } catch (e: any) {
       setExecutionResult({
@@ -142,21 +211,39 @@ export const AiCopilotBar: React.FC = () => {
 
         {/* TTS & Voice Controls */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Active Model Indicator */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container text-on-surface text-xs font-medium border border-outline-variant/20">
-            <span className="material-symbols-outlined text-[16px] text-emerald-500">verified_user</span>
+            <span className="material-symbols-outlined text-[16px] text-emerald-500">verified</span>
             <span>
-              <strong>Gemini 2.5 Flash Lite</strong> • Zero-Lag
+              <strong>Gemini 3.5 Flash Lite</strong>
+            </span>
+            <span className="px-1.5 py-0.2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] rounded uppercase">
+              Free
             </span>
           </div>
 
+          {/* Voice Config Trigger */}
+          <button
+            onClick={() => setIsVoiceMenuOpen(!isVoiceMenuOpen)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-semibold border border-outline-variant/30 transition-all shadow-sm"
+            title="Scegli la voce femminile e regola la cadenza naturale"
+          >
+            <span className="material-symbols-outlined text-[16px] text-primary">record_voice_over</span>
+            <span>Voce AI</span>
+            <span className="material-symbols-outlined text-[14px] text-outline">
+              {isVoiceMenuOpen ? 'expand_less' : 'tune'}
+            </span>
+          </button>
+
+          {/* Speak / Stop Briefing Button */}
           <button
             onClick={speakBriefing}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-sm ${
               isSpeaking
-                ? 'bg-amber-600 text-white animate-pulse'
+                ? 'bg-rose-600 text-white animate-pulse'
                 : 'bg-primary text-on-primary hover:opacity-90'
             }`}
-            title="Ascolta sintesi vocale briefing mattutino"
+            title="Ascolta sintesi vocale briefing con voce naturale"
           >
             <span className="material-symbols-outlined text-[16px]">
               {isSpeaking ? 'stop_circle' : 'volume_up'}
@@ -165,6 +252,105 @@ export const AiCopilotBar: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Voice Configuration Panel (Drawer) */}
+      {isVoiceMenuOpen && (
+        <div className="p-4 bg-surface-container-low rounded-2xl border border-primary/20 flex flex-col gap-3.5 animate-fade-in z-20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-[20px]">graphic_eq</span>
+              <span className="font-headline font-bold text-xs text-on-surface">
+                Sintesi Vocale Umana Naturale (Italiano)
+              </span>
+            </div>
+            <button
+              onClick={() => setIsVoiceMenuOpen(false)}
+              className="text-outline hover:text-on-surface text-xs"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Voice Selector */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-bold text-on-surface-variant flex items-center gap-1">
+                <span>Voce Femminile Selezionata</span>
+                <span className="material-symbols-outlined text-[13px] text-emerald-500">female</span>
+              </label>
+              <select
+                value={selectedVoiceName}
+                onChange={(e) => handleVoiceChange(e.target.value)}
+                className="bg-surface-container p-2 rounded-xl border border-outline-variant/30 text-on-surface text-xs outline-none cursor-pointer"
+              >
+                {availableVoices.length > 0 ? (
+                  availableVoices.map((v) => (
+                    <option key={v.id} value={v.name}>
+                      {v.name} ({v.gender === 'female' ? 'Femminile' : 'Maschile'}{v.isNatural ? ' • HD' : ''})
+                    </option>
+                  ))
+                ) : (
+                  <option value="">Voce di sistema predefinita</option>
+                )}
+              </select>
+            </div>
+
+            {/* Cadence / Speed */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-bold text-on-surface-variant flex items-center justify-between">
+                <span>Cadenza Conversazionale</span>
+                <span className="font-mono text-primary font-bold">{voiceSpeed}x</span>
+              </label>
+              <div className="flex items-center gap-2 bg-surface-container p-2 rounded-xl border border-outline-variant/30">
+                <input
+                  type="range"
+                  min="0.8"
+                  max="1.3"
+                  step="0.05"
+                  value={voiceSpeed}
+                  onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
+                  className="w-full accent-primary cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Mode & Test Action */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-bold text-on-surface-variant">
+                Modalità Audio
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleVoiceModeChange(voiceMode === 'browser' ? 'cloud_hd' : 'browser')}
+                  className={`flex-1 p-2 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 ${
+                    voiceMode === 'cloud_hd'
+                      ? 'bg-primary text-on-primary border-primary'
+                      : 'bg-surface-container text-on-surface border-outline-variant/30'
+                  }`}
+                  title="Cloud Studio HD usa OpenAI TTS Nova se hai configurato la chiave OpenAI"
+                >
+                  <span className="material-symbols-outlined text-[15px]">
+                    {voiceMode === 'cloud_hd' ? 'cloud' : 'devices'}
+                  </span>
+                  <span>{voiceMode === 'cloud_hd' ? 'Studio HD' : 'Naturale Web'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleTestVoice}
+                  disabled={isSpeaking}
+                  className="px-3 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs border border-primary/30 flex items-center gap-1 transition-all"
+                  title="Ascolta una frase di prova per valutare la naturalezza della voce"
+                >
+                  <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+                  <span>Prova</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Audio Waveform Bar (active during speech or listening) */}
       {(isSpeaking || isListening) && (
@@ -179,10 +365,10 @@ export const AiCopilotBar: React.FC = () => {
               <span className="text-xs font-bold text-on-surface">
                 {isListening
                   ? 'In ascolto del microfono... Dì il tuo comando adesso'
-                  : 'AI Parlante: Riproduzione briefing commerciale...'}
+                  : 'Assistente AI: Riproduzione con voce naturale e cadenza fluida...'}
               </span>
               <span className="text-[11px] text-on-surface-variant">
-                Elaborazione istantanea con modello vocale italiano
+                Modello vocale: {selectedVoiceName || 'Sintesi neurale italiana'}
               </span>
             </div>
           </div>
