@@ -7,13 +7,22 @@ async function getDB() {
   const owner = process.env.MCP_OWNER_USER_ID;
   if (!owner) throw new Error('MCP_OWNER_USER_ID non configurato.');
   const db = await getServerDb();
-  const result = await db.execute({ sql: 'SELECT payload FROM crm_data WHERE user_id = ?', args: [owner] });
-  return result.rows.length ? JSON.parse(String(result.rows[0].payload)) : { opportunities: [], tasks: [], brands: ['NoLimits', 'Webissimo', 'Sapori'], salesReps: [] };
+  const result = await db.execute({ sql: 'SELECT payload,revision FROM crm_data WHERE user_id = ?', args: [owner] });
+  const data = result.rows.length ? JSON.parse(String(result.rows[0].payload)) : { opportunities: [], tasks: [], brands: ['NoLimits', 'Webissimo', 'Sapori'], salesReps: [] };
+  Object.defineProperty(data, '_revision', { value: result.rows.length ? Number(result.rows[0].revision) : 0 });
+  return data;
 }
 
 async function saveDB(data: any) {
   const db = await getServerDb();
-  await db.execute({ sql: 'INSERT INTO crm_data(user_id,payload,updated_at) VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at', args: [process.env.MCP_OWNER_USER_ID!, JSON.stringify(data), new Date().toISOString()] });
+  const revision = data._revision;
+  const payload = JSON.stringify(data);
+  const updated = await db.execute({ sql: 'UPDATE crm_data SET payload = ?, updated_at = ?, revision = revision + 1 WHERE user_id = ? AND revision = ?', args: [payload, new Date().toISOString(), process.env.MCP_OWNER_USER_ID!, revision] });
+  if (!updated.rowsAffected && revision === 0) {
+    const inserted = await db.execute({ sql: 'INSERT OR IGNORE INTO crm_data(user_id,payload,updated_at,revision) VALUES (?,?,?,1)', args: [process.env.MCP_OWNER_USER_ID!, payload, new Date().toISOString()] });
+    if (inserted.rowsAffected) return;
+  }
+  if (!updated.rowsAffected) throw new Error('Archivio modificato da un’altra sessione. Riprova.');
 }
 
 export async function GET() {

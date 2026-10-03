@@ -109,8 +109,8 @@ export const DealModal: React.FC = () => {
         {/* Modal Top Bar */}
         <div className="p-6 bg-surface-container-low border-b border-outline-variant/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary text-on-primary font-headline font-bold text-xl flex items-center justify-center flex-shrink-0 shadow-sm">
-              {selectedDeal.company.substring(0, 2).toUpperCase()}
+            <div className="w-12 h-12 rounded-xl bg-surface-container border border-outline-variant text-on-surface-variant flex items-center justify-center flex-shrink-0">
+              <span className="material-symbols-outlined">domain</span>
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2 flex-wrap">

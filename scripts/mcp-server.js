@@ -22,11 +22,22 @@ const dbClient = createClient({
 });
 async function loadDB() {
   await dbClient.execute('CREATE TABLE IF NOT EXISTS crm_data (user_id TEXT PRIMARY KEY, payload TEXT NOT NULL, updated_at TEXT NOT NULL)');
-  const result = await dbClient.execute({ sql: 'SELECT payload FROM crm_data WHERE user_id = ?', args: [owner] });
-  return result.rows.length ? JSON.parse(String(result.rows[0].payload)) : { opportunities: [], tasks: [], brands: ['NoLimits', 'Webissimo', 'Sapori'], salesReps: [] };
+  const columns = (await dbClient.execute('PRAGMA table_info(crm_data)')).rows.map((row) => String(row.name));
+  if (!columns.includes('revision')) await dbClient.execute('ALTER TABLE crm_data ADD COLUMN revision INTEGER NOT NULL DEFAULT 0');
+  const result = await dbClient.execute({ sql: 'SELECT payload,revision FROM crm_data WHERE user_id = ?', args: [owner] });
+  const data = result.rows.length ? JSON.parse(String(result.rows[0].payload)) : { opportunities: [], tasks: [], brands: ['NoLimits', 'Webissimo', 'Sapori'], salesReps: [] };
+  Object.defineProperty(data, '_revision', { value: result.rows.length ? Number(result.rows[0].revision) : 0 });
+  return data;
 }
 async function saveDB(data) {
-  await dbClient.execute({ sql: 'INSERT INTO crm_data(user_id,payload,updated_at) VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at', args: [owner, JSON.stringify(data), new Date().toISOString()] });
+  const revision = data._revision;
+  const payload = JSON.stringify(data);
+  const updated = await dbClient.execute({ sql: 'UPDATE crm_data SET payload = ?, updated_at = ?, revision = revision + 1 WHERE user_id = ? AND revision = ?', args: [payload, new Date().toISOString(), owner, revision] });
+  if (!updated.rowsAffected && revision === 0) {
+    const inserted = await dbClient.execute({ sql: 'INSERT OR IGNORE INTO crm_data(user_id,payload,updated_at,revision) VALUES (?,?,?,1)', args: [owner, payload, new Date().toISOString()] });
+    if (inserted.rowsAffected) return;
+  }
+  if (!updated.rowsAffected) throw new Error('Archivio modificato da un’altra sessione. Riprova la richiesta.');
 }
 
 const server = new Server(

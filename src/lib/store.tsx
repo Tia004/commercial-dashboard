@@ -2,7 +2,7 @@
 
 import { italianDateKey } from '@/lib/date';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './auth';
 import {
   Opportunity,
@@ -37,7 +37,8 @@ interface CRMContextType {
   alerts: CommercialAlert[];
   kpis: KPISummary;
   geminiApiKey: string;
-  syncStatus: 'loading' | 'saved' | 'saving' | 'error';
+  syncStatus: 'loading' | 'saved' | 'saving' | 'error' | 'conflict';
+  retrySave: () => void;
   dataReady: boolean;
   importLegacyData: () => { success: boolean; message: string };
 
@@ -98,7 +99,13 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id;
   const [dataReady, setDataReady] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<'loading' | 'saved' | 'saving' | 'error'>('loading');
+  const [syncStatus, setSyncStatus] = useState<'loading' | 'saved' | 'saving' | 'error' | 'conflict'>('loading');
+  const revisionRef = useRef(0);
+  const lastSavedPayloadRef = useRef('');
+  const blockedRef = useRef(false);
+  const activeUserRef = useRef<string | undefined>(undefined);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const [retryEpoch, setRetryEpoch] = useState(0);
   const [opportunities, setOpportunities] = useState<Opportunity[]>(INITIAL_OPPORTUNITIES);
   const [tasks, setTasks] = useState<CommercialTask[]>(INITIAL_TASKS);
   const [brands, setBrands] = useState<Brand[]>(INITIAL_BRANDS);
@@ -107,7 +114,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const [selectedBrand, setSelectedBrand] = useState<string>('all');
   const [selectedRep, setSelectedRep] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [theme, setThemeState] = useState<'light' | 'slate' | 'oled'>('light');
+  const [theme, setThemeState] = useState<'light' | 'slate' | 'oled'>('slate');
   const [geminiApiKey, setGeminiApiKeyState] = useState<string>('');
 
   const [selectedDeal, setSelectedDeal] = useState<Opportunity | null>(null);
@@ -136,13 +143,17 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
   // The CRM archive belongs to the authenticated account and is stored server-side.
   useEffect(() => {
+    activeUserRef.current = userId;
+    blockedRef.current = false;
     setDataReady(false);
-    if (!userId) { setOpportunities([]); setTasks([]); setBrands(INITIAL_BRANDS); setSalesReps([]); return; }
+    if (!userId) { revisionRef.current = 0; lastSavedPayloadRef.current = ''; setOpportunities([]); setTasks([]); setBrands(INITIAL_BRANDS); setSalesReps([]); return; }
     let cancelled = false;
     setSyncStatus('loading');
     fetch('/api/crm', { cache: 'no-store' }).then(async (r) => { if (!r.ok) throw new Error('load'); return r.json(); })
-      .then(({ data }) => {
+      .then(({ data, revision }) => {
         if (cancelled) return;
+        revisionRef.current = Number(revision || 0);
+        lastSavedPayloadRef.current = JSON.stringify({ opportunities: data?.opportunities || [], tasks: data?.tasks || [], brands: data?.brands || INITIAL_BRANDS, salesReps: data?.salesReps || [] });
         setOpportunities(data?.opportunities || []);
         setTasks(data?.tasks || []);
         setBrands(data?.brands || INITIAL_BRANDS);
@@ -155,14 +166,27 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!userId || !dataReady) return;
-    setSyncStatus('saving');
+    const payload = JSON.stringify({ opportunities, tasks, brands, salesReps });
+    if (payload === lastSavedPayloadRef.current || blockedRef.current) return;
     const timer = window.setTimeout(() => {
-      fetch('/api/crm', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ opportunities, tasks, brands, salesReps }) })
-        .then((r) => { if (!r.ok) throw new Error('save'); setSyncStatus('saved'); })
-        .catch(() => setSyncStatus('error'));
+      setSyncStatus('saving');
+      saveQueueRef.current = saveQueueRef.current.then(async () => {
+        if (blockedRef.current || activeUserRef.current !== userId || payload === lastSavedPayloadRef.current) return;
+        try {
+          const response = await fetch('/api/crm', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...JSON.parse(payload), baseRevision: revisionRef.current }) });
+          if (response.status === 409) { blockedRef.current = true; setSyncStatus('conflict'); return; }
+          if (!response.ok) throw new Error('save');
+          const result = await response.json();
+          revisionRef.current = result.revision;
+          lastSavedPayloadRef.current = payload;
+          setSyncStatus('saved');
+        } catch { blockedRef.current = true; setSyncStatus('error'); }
+      });
     }, 650);
     return () => window.clearTimeout(timer);
-  }, [userId, dataReady, opportunities, tasks, brands, salesReps]);
+  }, [userId, dataReady, opportunities, tasks, brands, salesReps, retryEpoch]);
+
+  const retrySave = () => { blockedRef.current = false; setRetryEpoch((value) => value + 1); };
 
   const setTheme = (newTheme: 'light' | 'slate' | 'oled') => {
     setThemeState(newTheme);
@@ -681,6 +705,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         kpis,
         geminiApiKey,
         syncStatus,
+        retrySave,
         dataReady,
         importLegacyData,
         nextStepModalDeal,

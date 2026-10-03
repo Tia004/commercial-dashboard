@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="it" data-theme="light">
+    <html lang="it" data-theme="slate">
       <body className="antialiased min-h-screen">
         <AuthProvider>
           <CRMProvider>{children}</CRMProvider>

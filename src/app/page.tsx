@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { Sidebar, ActiveTab } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
@@ -14,9 +14,9 @@ import { DealModal } from '@/components/DealModal';
 import { NextStepModal } from '@/components/NextStepModal';
 import { NewDealModal } from '@/components/NewDealModal';
 import { SettingsMcpModal } from '@/components/SettingsMcpModal';
-import { AuthModal } from '@/components/AuthModal';
 import { AuthScreen } from '@/components/AuthScreen';
 import { SalesFocus } from '@/components/SalesFocus';
+import { CommandPalette } from '@/components/CommandPalette';
 import { useCRM } from '@/lib/store';
 
 export default function HomePage() {
@@ -24,6 +24,15 @@ export default function HomePage() {
   const { dataReady, syncStatus } = useCRM();
   const [activeTab, setActiveTab] = useState<ActiveTab>('cockpit');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setPaletteOpen((value) => !value); }
+      if (event.key === 'Escape') setPaletteOpen(false);
+    };
+    window.addEventListener('keydown', shortcut);
+    return () => window.removeEventListener('keydown', shortcut);
+  }, []);
 
   if (isLoading) return <div className="app-loading" role="status">Caricamento workspace…</div>;
 
@@ -42,7 +51,7 @@ export default function HomePage() {
       {/* 2. Main Content Wrapper */}
       <div className="app-main-wrap">
         {/* Fixed Top Header */}
-        <Header onMenu={() => setMobileOpen(true)} />
+        <Header onMenu={() => setMobileOpen(true)} onOpenSearch={() => setPaletteOpen(true)} />
 
         {/* Dynamic Main Viewport */}
         <main className="app-main" id="main-content">
@@ -68,7 +77,7 @@ export default function HomePage() {
       <NextStepModal />
       <NewDealModal />
       <SettingsMcpModal />
-      <AuthModal />
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onNavigate={setActiveTab} />
     </div>
   );
 }

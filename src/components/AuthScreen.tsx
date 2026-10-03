@@ -1,280 +1,86 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
-import { useCRM } from '@/lib/store';
 
+type Mode = 'login' | 'register' | 'request-reset' | 'confirm-reset';
 export const AuthScreen: React.FC = () => {
-  const {
-    loginWithPassword,
-    registerUser,
-    loginWithPasskey,
-    isPasskeySupported,
-  } = useAuth();
-
-  const { theme, setTheme } = useCRM();
-
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const { loginWithPassword, registerUser, loginWithPasskey, isPasskeySupported } = useAuth();
+  const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
-  const [role, setRole] = useState('Direttore Commerciale');
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [inviteToken, setInviteToken] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setErrorMsg(null);
-
-    if (mode === 'login') {
-      const res = await loginWithPassword(email, password);
-      if (!res.success) setErrorMsg(res.error || 'Accesso non riuscito');
-    } else {
-      const res = await registerUser(name, email, password, company, role);
-      if (!res.success) setErrorMsg(res.error || 'Registrazione non riuscita');
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('notice') === 'verified') setNotice('Email verificata. Ora puoi accedere.');
+    if (params.get('notice') === 'invalid') setError('Il link è scaduto o non è valido.');
+    const invite = params.get('invite');
+    if (invite) {
+      setInviteToken(invite);
+      setMode('register');
+      fetch('/api/team/invite?token=' + encodeURIComponent(invite)).then((r) => r.json()).then((data) => {
+        if (data.email) setEmail(data.email);
+        else setError(data.error || 'Invito non valido.');
+      }).catch(() => setError('Impossibile verificare l’invito.'));
     }
-    setIsLoading(false);
+    const reset = params.get('reset');
+    if (reset) { setResetToken(reset); setMode('confirm-reset'); }
+  }, []);
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault(); setBusy(true); setError(''); setNotice('');
+    try {
+      if (mode === 'login') {
+        const result = await loginWithPassword(email, password);
+        if (!result.success) setError(result.error || 'Accesso non riuscito.');
+      } else if (mode === 'register') {
+        const result = await registerUser(name, email, password, company, undefined, inviteToken);
+        if (!result.success) setError(result.error || 'Registrazione non riuscita.');
+        else { setNotice(result.message || 'Controlla la tua email per verificare l’account.'); setMode('login'); setPassword(''); }
+      } else {
+        const response = await fetch('/api/auth/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(mode === 'request-reset' ? { action: 'request', email } : { action: 'confirm', token: resetToken, password }) });
+        const data = await response.json();
+        if (!response.ok) setError(data.error || 'Operazione non riuscita.');
+        else { setNotice(mode === 'request-reset' ? data.message : 'Password aggiornata. Ora puoi accedere.'); if (mode === 'confirm-reset') { setMode('login'); setPassword(''); window.history.replaceState({}, '', '/'); } }
+      }
+    } catch { setError('Connessione non disponibile. Riprova.'); }
+    finally { setBusy(false); }
   };
 
-  const handlePasskey = async () => {
-    setIsLoading(true);
-    setErrorMsg(null);
-    const res = await loginWithPasskey();
-    if (!res.success) setErrorMsg(res.error || 'Autenticazione biometrica fallita');
-    setIsLoading(false);
+  const usePasskey = async () => {
+    setBusy(true); setError(''); setNotice('');
+    const result = await loginWithPasskey(email);
+    if (!result.success) setError(result.error || 'Accesso con passkey non riuscito.');
+    setBusy(false);
   };
 
-  return (
-    <div className="min-h-screen w-full bg-surface flex flex-col justify-between p-4 md:p-8 antialiased">
-      {/* Top Bar with Brand & Theme Switcher */}
-      <div className="max-w-6xl w-full mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary text-on-primary font-headline font-bold text-base flex items-center justify-center shadow-sm">
-            HC
-          </div>
-          <div className="flex flex-col">
-            <span className="font-headline font-bold text-base tracking-tight text-on-surface leading-tight">
-              Hub Commerciale
-            </span>
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
-              NoLimits • Webissimo • Sapori
-            </span>
-          </div>
-        </div>
-
-        {/* Theme switcher */}
-        <div className="inline-flex items-center bg-surface-container-low p-1 rounded-xl border border-outline-variant/30 shadow-sm text-xs">
-          <button
-            onClick={() => setTheme('light')}
-            className={`px-2.5 py-1 rounded-lg font-semibold transition-all flex items-center gap-1 ${
-              theme === 'light' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[14px]">light_mode</span>
-            <span>Light</span>
-          </button>
-          <button
-            onClick={() => setTheme('slate')}
-            className={`px-2.5 py-1 rounded-lg font-semibold transition-all flex items-center gap-1 ${
-              theme === 'slate' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[14px]">dark_mode</span>
-            <span>Dark</span>
-          </button>
-          <button
-            onClick={() => setTheme('oled')}
-            className={`px-2.5 py-1 rounded-lg font-semibold transition-all flex items-center gap-1 ${
-              theme === 'oled' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[14px]">contrast</span>
-            <span>OLED</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Center Auth Card */}
-      <div className="max-w-md w-full mx-auto my-auto py-8">
-        <div className="bg-surface-container-lowest rounded-3xl p-6 md:p-8 shadow-xl border border-outline-variant/40 flex flex-col gap-5">
-          {/* Card Title */}
-          <div className="text-center flex flex-col items-center gap-2">
-            <div className="w-12 h-12 rounded-2xl bg-surface-container text-primary flex items-center justify-center shadow-sm">
-              <span className="material-symbols-outlined text-[26px]">
-                {mode === 'login' ? 'lock' : 'person_add'}
-              </span>
-            </div>
-            <h1 className="font-headline font-bold text-2xl text-on-surface tracking-tight">
-              {mode === 'login' ? 'Accedi al CRM Commerciale' : 'Registra Nuovo Account'}
-            </h1>
-            <p className="text-xs text-on-surface-variant max-w-xs">
-              {mode === 'login'
-                ? 'Accedi con la tua email e password.'
-                : 'Crea uno spazio protetto per gestire la tua attività commerciale.'}
-            </p>
-          </div>
-
-          {/* Mode Switcher */}
-          <div className="grid grid-cols-2 p-1 bg-surface-container rounded-xl text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => {
-                setMode('login');
-                setErrorMsg(null);
-              }}
-              className={`py-2 rounded-lg transition-all ${
-                mode === 'login'
-                  ? 'bg-surface-container-lowest text-on-surface shadow-sm'
-                  : 'text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              Accedi
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode('register');
-                setErrorMsg(null);
-              }}
-              className={`py-2 rounded-lg transition-all ${
-                mode === 'register'
-                  ? 'bg-surface-container-lowest text-on-surface shadow-sm'
-                  : 'text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              Registrati
-            </button>
-          </div>
-
-          {/* Biometric Passkey Login if supported */}
-          {mode === 'login' && isPasskeySupported && (
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={handlePasskey}
-                disabled={isLoading}
-                className="w-full py-3 px-4 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface font-bold text-xs border border-primary/40 flex items-center justify-center gap-2.5 transition-all shadow-sm hover:border-primary group"
-              >
-                <span className="material-symbols-outlined text-primary text-[22px] group-hover:scale-110 transition-transform">
-                  fingerprint
-                </span>
-                <span>Accedi con Touch ID / Windows Hello</span>
-              </button>
-              <div className="flex items-center gap-2 text-[10px] text-outline uppercase tracking-wider justify-center">
-                <span className="w-12 h-px bg-outline-variant/40" />
-                <span>oppure inserisci email</span>
-                <span className="w-12 h-px bg-outline-variant/40" />
-              </div>
-            </div>
-          )}
-
-          {/* Error Message */}
-          {errorMsg && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[16px]">error</span>
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 text-xs">
-            {mode === 'register' && (
-              <>
-                <div>
-                  <label className="font-bold text-on-surface-variant block mb-1">
-                    Nome e Cognome *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Mario Rossi"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-on-surface-variant block mb-1">
-                    Azienda di Riferimento
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Omnihub Group S.r.l."
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none"
-                  />
-                </div>
-
-
-              </>
-            )}
-
-            <div>
-              <label className="font-bold text-on-surface-variant block mb-1">
-                Indirizzo Email *
-              </label>
-              <input
-                type="email"
-                required
-                placeholder="tuo.nome@azienda.it"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="font-bold text-on-surface-variant block mb-1">
-                Password *
-              </label>
-              <input
-                type="password"
-                required
-                placeholder="Minimo 12 caratteri"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={mode === 'register' ? 12 : undefined}
-                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none font-mono"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 rounded-xl bg-primary text-on-primary font-bold text-xs uppercase tracking-wider shadow-md hover:opacity-90 transition-all flex items-center justify-center gap-1.5 mt-2 disabled:opacity-50"
-            >
-              {isLoading ? (
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-[18px]">
-                    {mode === 'login' ? 'login' : 'check'}
-                  </span>
-                  <span>{mode === 'login' ? 'Accedi al CRM' : 'Crea Account & Inizia'}</span>
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Clean Slate Guarantee note */}
-          <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20 flex items-center gap-2 text-[11px] text-on-surface-variant">
-            <span className="material-symbols-outlined text-primary text-[18px]">verified</span>
-            <span>
-              La dashboard viene inizializzata pulita (tutti i valori impostati a zero: 0€ venduto, 0 trattative).
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="max-w-6xl w-full mx-auto text-center text-xs text-on-surface-variant">
-        <span>Hub Commerciale Multi-Brand • NoLimits, Webissimo, Sapori • Accesso protetto</span>
-      </div>
-    </div>
-  );
+  return <div className="auth-shell">
+    <header className="auth-header"><div className="auth-wordmark"><span className="wordmark-glyph" aria-hidden="true"><span /><span /><span /></span><span>Hub Commerciale</span></div><span className="auth-header-note">Workspace vendite</span></header>
+    <main className="auth-main"><div className="auth-panel">
+      <div className="auth-kicker">ACCESSO SICURO</div>
+      <h1>{mode === 'register' ? 'Crea il tuo workspace' : mode === 'request-reset' ? 'Recupera l’accesso' : mode === 'confirm-reset' ? 'Nuova password' : 'Bentornato'}</h1>
+      <p className="auth-subtitle">{mode === 'register' ? inviteToken ? 'Completa l’invito per entrare nel team.' : 'Organizza opportunità, attività e team in un unico spazio.' : mode === 'request-reset' ? 'Ti invieremo un link per impostare una nuova password.' : mode === 'confirm-reset' ? 'Scegli una password di almeno 12 caratteri.' : 'Accedi al tuo spazio commerciale.'}</p>
+      {(mode === 'login' || mode === 'register') && <div className="auth-switch"><button className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setError(''); }}>Accedi</button><button className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setError(''); }}>Registrati</button></div>}
+      {notice && <div className="auth-message success" role="status">{notice}</div>}
+      {error && <div className="auth-message error" role="alert">{error}</div>}
+      <form onSubmit={submit} className="auth-form">
+        {mode === 'register' && <><label>Nome e cognome<input required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Mario Rossi" /></label>{!inviteToken && <label>Azienda<input autoComplete="organization" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Nome azienda" /></label>}</>}
+        {mode !== 'confirm-reset' && <label>Email<input required type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} readOnly={!!inviteToken && mode === 'register'} placeholder="nome@azienda.it" /></label>}
+        {mode !== 'request-reset' && <label>Password<input required type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} minLength={mode === 'login' ? undefined : 12} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === 'login' ? 'La tua password' : 'Almeno 12 caratteri'} /></label>}
+        <button className="auth-submit" disabled={busy} type="submit">{busy ? 'Attendi…' : mode === 'register' ? 'Crea account' : mode === 'request-reset' ? 'Invia link di recupero' : mode === 'confirm-reset' ? 'Salva nuova password' : 'Accedi'} <span aria-hidden="true">→</span></button>
+      </form>
+      {mode === 'login' && isPasskeySupported && <button className="auth-passkey" disabled={busy || !email} onClick={usePasskey}><span className="material-symbols-outlined">fingerprint</span> Accedi con passkey</button>}
+      {mode === 'login' ? <button className="auth-text-button" onClick={() => { setMode('request-reset'); setError(''); setNotice(''); }}>Password dimenticata?</button> : mode === 'request-reset' || mode === 'confirm-reset' ? <button className="auth-text-button" onClick={() => { setMode('login'); setError(''); setNotice(''); }}>Torna all’accesso</button> : null}
+      {mode === 'login' && <button className="auth-text-button auth-resend" disabled={!email || busy} onClick={async () => { setError(''); setNotice(''); const response = await fetch('/api/auth/resend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) }); const data = await response.json(); if (response.ok) setNotice(data.message); else setError(data.error || 'Invio non riuscito.'); }}>Invia di nuovo la verifica email</button>}
+      <div className="auth-footnote"><span className="material-symbols-outlined">lock</span> I dati del workspace sono protetti da accesso autenticato.</div>
+    </div></main>
+    <footer className="auth-footer">Hub Commerciale <span>·</span> NoLimits, Webissimo, Sapori</footer>
+  </div>;
 };

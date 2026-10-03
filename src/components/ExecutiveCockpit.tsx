@@ -4,7 +4,7 @@ import { italianDateKey } from '@/lib/date';
 
 import React from 'react';
 import { useCRM } from '@/lib/store';
-import { AiCopilotBar } from './AiCopilotBar';
+import { speakHumanVoice } from '@/lib/speechVoice';
 import { CommercialTask, Opportunity } from '@/types/crm';
 
 interface ExecutiveCockpitProps {
@@ -99,7 +99,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-primary" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-outline">
               VENDITE / PANORAMICA
             </span>
@@ -113,6 +113,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
         </div>
 
         <div className="flex items-center gap-3">
+          <button onClick={() => speakHumanVoice(`Pipeline attiva: ${kpis.pipelineTotal.toLocaleString('it-IT')} euro. ${kpis.openDealsCount} trattative aperte. ${todayTasks.length} attività da seguire oggi.`)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-outline-variant text-on-surface-variant text-xs hover:text-on-surface"><span className="material-symbols-outlined text-[16px]">volume_up</span> Ascolta riepilogo</button>
           <div className="flex items-center gap-1.5 bg-surface-container px-3 py-1.5 rounded-xl border border-outline-variant/30 text-xs">
             <span className="material-symbols-outlined text-outline text-[16px]">sync</span>
             <span className="font-mono text-on-surface-variant">{syncStatus === 'saved' ? 'Dati salvati' : syncStatus === 'error' ? 'Salvataggio non riuscito' : 'Sincronizzazione…'}</span>
@@ -127,10 +128,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
         </div>
       </div>
 
-      {/* 2. Autonomous AI Copilot Bar */}
-      <AiCopilotBar />
-
-      {/* 3. 4 Main Macro KPIs */}
+      {/* Main KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* KPI 1: Venduto */}
         <div className="bg-surface-container-lowest p-5 rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col justify-between group hover:border-primary/40 transition-all">
@@ -143,12 +141,12 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
                 € {kpis.soldTotal.toLocaleString()}
               </div>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-surface-container text-on-surface-variant flex items-center justify-center">
               <span className="material-symbols-outlined text-[22px]">payments</span>
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-outline-variant/20 flex items-center justify-between text-xs">
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+            <span className="text-on-surface-variant font-semibold flex items-center gap-1">
               <span className="material-symbols-outlined text-[16px]">trending_up</span>
               {closedSales.length} trattative concluse
             </span>
@@ -167,7 +165,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
                 € {kpis.pipelineTotal.toLocaleString()}
               </div>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-surface-container text-on-surface-variant flex items-center justify-center">
               <span className="material-symbols-outlined text-[22px]">account_tree</span>
             </div>
           </div>
@@ -188,7 +186,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
                 {kpis.openDealsCount}
               </div>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-surface-container text-on-surface-variant flex items-center justify-center">
               <span className="material-symbols-outlined text-[22px]">work_history</span>
             </div>
           </div>
@@ -214,7 +212,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
                 {kpis.scheduledMeetingsCount}
               </div>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-surface-container text-on-surface-variant flex items-center justify-center">
               <span className="material-symbols-outlined text-[22px]">calendar_month</span>
             </div>
           </div>
@@ -416,7 +414,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-amber-500 text-[22px]">notifications_active</span>
               <h3 className="font-headline font-bold text-lg text-on-surface">
-                Alert Commerciali & Anomalie Rilevate
+                Avvisi da seguire
               </h3>
             </div>
             <span className="px-2 py-0.5 rounded-full bg-surface-container text-on-surface font-mono font-bold text-xs">
@@ -427,7 +425,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
           <div className="flex flex-col gap-2.5">
             {alerts.length === 0 ? (
               <div className="p-4 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl">
-                Nessun alert attivo. La pipeline è in perfetto stato di salute!
+                Nessun avviso attivo.
               </div>
             ) : (
               alerts.slice(0, 4).map((alert) => (

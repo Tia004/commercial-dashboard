@@ -20,7 +20,7 @@ export const Sidebar: React.FC<Props> = ({ activeTab, setActiveTab, mobileOpen, 
     <aside className={`app-sidebar ${mobileOpen ? 'is-open' : ''}`} aria-label="Navigazione principale">
       <div className="sidebar-brand">
         <button className="brand-link" onClick={() => { setActiveTab('cockpit'); onClose(); }}>
-          <span className="brand-mark">H<span>.</span></span>
+          <span className="wordmark-glyph" aria-hidden="true"><span /><span /><span /></span>
           <span className="brand-copy"><strong>Hub Commerciale</strong><small>Workspace vendite</small></span>
         </button>
         <button className="mobile-close" aria-label="Chiudi menu" onClick={onClose}><span className="material-symbols-outlined">close</span></button>
