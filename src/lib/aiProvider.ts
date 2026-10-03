@@ -366,7 +366,8 @@ export async function executeUniversalAI(
   }
 
   try {
-    const systemPrompt = `Sei l'Agente AI Commerciale Direzionale di Hub Commerciale per i brand NoLimits, Webissimo e Sapori.
+    const systemPrompt = `Sei l'Agente AI Commerciale Direzionale di Hub Commerciale.
+Supporti la direzione commerciale e i venditori nell'analisi della pipeline, nella prioritizzazione dei lead e nella gestione delle opportunità multi-brand.
 Analizza l'istruzione dell'utente e la pipeline commerciale. Rispondi in italiano in modo estremamente professionale ed esecutivo.
 Dati correnti della pipeline: ${JSON.stringify(contextData || {})}`;
 

@@ -9,15 +9,15 @@ import { Brand, ValueType, DealStage, ActivityType, Priority } from '@/types/crm
 import { INITIAL_SERVICES } from '@/lib/initialData';
 
 export const NewDealModal: React.FC = () => {
-  const { isNewDealModalOpen, setIsNewDealModalOpen, addOpportunity, brands, salesReps } = useCRM();
+  const { isNewDealModalOpen, setIsNewDealModalOpen, addOpportunity, brands, addBrand, salesReps } = useCRM();
   const { user } = useAuth();
 
   const defaultRep = user?.name || salesReps[0]?.name || 'Commerciale';
 
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
-  const [brand, setBrand] = useState<Brand>(brands[0] || 'NoLimits');
-  const [service, setService] = useState('Gestione Meta Ads');
+  const [brand, setBrand] = useState<Brand>(brands[0] || '');
+  const [service, setService] = useState('Consulenza');
   const [leadSource, setLeadSource] = useState('Non specificata');
   const [salesRep, setSalesRep] = useState(defaultRep);
   const [phone, setPhone] = useState('');
@@ -42,10 +42,15 @@ export const NewDealModal: React.FC = () => {
     e.preventDefault();
     if (!name || !company || !actionWhat) return;
 
+    const effectiveBrand = brand.trim() || 'Generale';
+    if (!brands.includes(effectiveBrand)) {
+      addBrand(effectiveBrand);
+    }
+
     addOpportunity({
       name,
       company,
-      brand,
+      brand: effectiveBrand,
       service,
       leadSource,
       salesRep,
@@ -183,20 +188,53 @@ export const NewDealModal: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="font-bold text-on-surface-variant block mb-1">Brand di Riferimento *</label>
-                <select
-                  value={brand}
-                  onChange={(e) => {
-                    setBrand(e.target.value);
-                    const defaultSrv = INITIAL_SERVICES[e.target.value]?.[0] || 'Consulenza';
-                    setService(defaultSrv);
-                  }}
-                  className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none cursor-pointer"
-                >
-                  {brands.map((b) => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-on-surface-variant block">Brand *</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const val = window.prompt('Nome del nuovo brand da aggiungere:');
+                      if (val && val.trim()) {
+                        addBrand(val.trim());
+                        setBrand(val.trim());
+                      }
+                    }}
+                    className="text-[11px] text-primary hover:underline font-bold"
+                  >
+                    + Nuovo brand
+                  </button>
+                </div>
+                {brands.length === 0 ? (
+                  <input
+                    type="text"
+                    placeholder="Es: Mio Brand o Azienda"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    required
+                    className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none"
+                  />
+                ) : (
+                  <select
+                    value={brand}
+                    onChange={(e) => {
+                      if (e.target.value === '__add__') {
+                        const val = window.prompt('Nome del nuovo brand:');
+                        if (val && val.trim()) {
+                          addBrand(val.trim());
+                          setBrand(val.trim());
+                        }
+                      } else {
+                        setBrand(e.target.value);
+                      }
+                    }}
+                    className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none cursor-pointer"
+                  >
+                    {brands.map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                    <option value="__add__">+ Aggiungi nuovo brand…</option>
+                  </select>
+                )}
               </div>
 
               <div>

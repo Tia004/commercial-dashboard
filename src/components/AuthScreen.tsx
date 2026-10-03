@@ -82,6 +82,6 @@ export const AuthScreen: React.FC = () => {
       {mode === 'login' && <button className="auth-text-button auth-resend" disabled={!email || busy} onClick={async () => { setError(''); setNotice(''); const response = await fetch('/api/auth/resend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) }); const data = await response.json(); if (response.ok) setNotice(data.message); else setError(data.error || 'Invio non riuscito.'); }}>Invia di nuovo la verifica email</button>}
       <div className="auth-footnote"><span className="material-symbols-outlined">lock</span> I dati del workspace sono protetti da accesso autenticato.</div>
     </div></main>
-    <footer className="auth-footer">Hub Commerciale <span>·</span> NoLimits, Webissimo, Sapori</footer>
+    <footer className="auth-footer">Hub Commerciale <span>·</span> Workspace vendite multi-brand</footer>
   </div>;
 };

@@ -5,6 +5,7 @@ import { italianDateKey } from '@/lib/date';
 import React, { useState } from 'react';
 import { useCRM } from '@/lib/store';
 import { DealStage, Opportunity } from '@/types/crm';
+import { getBrandBadge } from '@/lib/brandBadges';
 
 export const OpportunitiesList: React.FC = () => {
   const {
@@ -41,19 +42,6 @@ export const OpportunitiesList: React.FC = () => {
       if (sortBy === 'name') return a.name.localeCompare(b.name);
       return new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime();
     });
-
-  const getBrandBadge = (brand: string) => {
-    switch (brand.toLowerCase()) {
-      case 'nolimits':
-        return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30';
-      case 'webissimo':
-        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30';
-      case 'sapori':
-        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30';
-      default:
-        return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
-    }
-  };
 
   const getStageBadge = (stage: DealStage) => {
     switch (stage) {

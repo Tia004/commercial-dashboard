@@ -456,6 +456,9 @@ h1,h2,h3,h4,.font-headline { font-family:Inter,-apple-system,BlinkMacSystemFont,
 .settings-text-action { font-size:11px; color:var(--on-surface-variant); white-space:nowrap; }.settings-text-action:hover { color:var(--on-surface); }
 .settings-danger { color:#fb7185; font-size:11px; font-weight:600; }
 .settings-tags { display:flex; flex-wrap:wrap; gap:6px; }.settings-tags span { padding:6px 8px; border:1px solid var(--outline-variant); border-radius:6px; font-size:10px; }
+.settings-tag-item { display:inline-flex; align-items:center; gap:6px; background:var(--surface-container-low); }
+.settings-tag-remove { font-size:13px; line-height:1; border:none; background:transparent; color:var(--on-surface-variant); cursor:pointer; padding:0 2px; }
+.settings-tag-remove:hover { color:var(--error); }
 .settings-pending { display:grid; gap:5px; padding-top:12px; border-top:1px solid var(--outline-variant); }.settings-pending strong { font-size:11px; }.settings-pending small { color:var(--on-surface-variant); font-size:10px; }
 .settings-mono { font-family:ui-monospace,SFMono-Regular,monospace; }.settings-feedback { padding:10px 12px; border:1px solid var(--outline-variant); border-radius:8px; color:var(--on-surface); font-size:11px; }
 .theme-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }

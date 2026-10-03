@@ -60,15 +60,15 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 28, className = '' 
         {/* Ambient nexus glow */}
         <circle cx="16" cy="16" r="8" fill="url(#hc-core-glow)" />
 
-        {/* 3-brand convergence nexus: 3 aerodynamic interlocking gradient petals */}
-        {/* Petal 1: pointing North (NoLimits) */}
+        {/* Multi-brand convergence nexus: 3 aerodynamic interlocking gradient petals */}
+        {/* Petal 1: pointing North */}
         <path
           d="M 16 5.5 C 18.8 5.5 22.2 9.2 21 13.5 C 19.8 17.2 16.6 16.5 16 16 C 15.6 14.8 14.2 12 14.6 9 C 14.8 7.2 15.4 5.5 16 5.5 Z"
           fill="url(#hc-wing-1)"
           opacity="0.95"
         />
 
-        {/* Petal 2: pointing South-East (Webissimo) */}
+        {/* Petal 2: pointing South-East */}
         <g transform="rotate(120 16 16)">
           <path
             d="M 16 5.5 C 18.8 5.5 22.2 9.2 21 13.5 C 19.8 17.2 16.6 16.5 16 16 C 15.6 14.8 14.2 12 14.6 9 C 14.8 7.2 15.4 5.5 16 5.5 Z"
@@ -77,7 +77,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 28, className = '' 
           />
         </g>
 
-        {/* Petal 3: pointing South-West (Sapori) */}
+        {/* Petal 3: pointing South-West */}
         <g transform="rotate(240 16 16)">
           <path
             d="M 16 5.5 C 18.8 5.5 22.2 9.2 21 13.5 C 19.8 17.2 16.6 16.5 16 16 C 15.6 14.8 14.2 12 14.6 9 C 14.8 7.2 15.4 5.5 16 5.5 Z"

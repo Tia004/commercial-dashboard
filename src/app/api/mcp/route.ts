@@ -8,7 +8,7 @@ async function getDB() {
   if (!owner) throw new Error('MCP_OWNER_USER_ID non configurato.');
   const db = await getServerDb();
   const result = await db.execute({ sql: 'SELECT payload,revision FROM crm_data WHERE user_id = ?', args: [owner] });
-  const data = result.rows.length ? JSON.parse(String(result.rows[0].payload)) : { opportunities: [], tasks: [], brands: ['NoLimits', 'Webissimo', 'Sapori'], salesReps: [] };
+  const data = result.rows.length ? JSON.parse(String(result.rows[0].payload)) : { opportunities: [], tasks: [], brands: [], salesReps: [] };
   Object.defineProperty(data, '_revision', { value: result.rows.length ? Number(result.rows[0].revision) : 0 });
   return data;
 }
@@ -81,12 +81,14 @@ export async function POST(req: Request) {
 
       case 'create_opportunity': {
         if (!params || !String(params.name || '').trim() || !String(params.company || '').trim() || !String(params.salesRep || '').trim() || !String(params.nextActionWhat || '').trim() || !/^\d{4}-\d{2}-\d{2}$/.test(String(params.nextActionWhen || '')) || !Number.isFinite(Number(params.value)) || Number(params.value) < 0) return NextResponse.json({ success: false, error: 'Nome, azienda, responsabile, valore e prossima azione sono obbligatori.' }, { status: 400 });
-        const id = `${String(params.brand || 'NoLimits').slice(0, 2).toUpperCase()}-${crypto.randomUUID().slice(0, 8)}`;
+        const chosenBrand = params.brand ? String(params.brand).trim() : (db.brands && db.brands[0]) || 'Generale';
+        const brandPrefix = chosenBrand.replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'OP';
+        const id = `${brandPrefix}-${crypto.randomUUID().slice(0, 8)}`;
         const newDeal = {
           id,
           name: String(params.name).trim(),
           company: String(params.company).trim(),
-          brand: params.brand || 'NoLimits',
+          brand: chosenBrand,
           service: params.service || 'Consulenza',
           value: Number(params.value),
           valueType: params.valueType || 'One Shot',

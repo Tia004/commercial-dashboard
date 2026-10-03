@@ -77,6 +77,7 @@ interface CRMContextType {
   completeTask: (id: string) => void;
 
   addBrand: (brandName: string) => void;
+  deleteBrand: (brandName: string) => void;
   addSalesRep: (name: string, role: string) => void;
 
   addDealHistoryLog: (dealId: string, item: Omit<ActivityHistoryItem, 'id' | 'timestamp'>) => void;
@@ -108,7 +109,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const [retryEpoch, setRetryEpoch] = useState(0);
   const [opportunities, setOpportunities] = useState<Opportunity[]>(INITIAL_OPPORTUNITIES);
   const [tasks, setTasks] = useState<CommercialTask[]>(INITIAL_TASKS);
-  const [brands, setBrands] = useState<Brand[]>(INITIAL_BRANDS);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [salesReps, setSalesReps] = useState<SalesRep[]>(INITIAL_REPS);
 
   const [selectedBrand, setSelectedBrand] = useState<string>('all');
@@ -146,23 +147,26 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     activeUserRef.current = userId;
     blockedRef.current = false;
     setDataReady(false);
-    if (!userId) { revisionRef.current = 0; lastSavedPayloadRef.current = ''; setOpportunities([]); setTasks([]); setBrands(INITIAL_BRANDS); setSalesReps([]); return; }
+    if (!userId) { revisionRef.current = 0; lastSavedPayloadRef.current = ''; setOpportunities([]); setTasks([]); setBrands([]); setSalesReps([]); return; }
     let cancelled = false;
     setSyncStatus('loading');
     fetch('/api/crm', { cache: 'no-store' }).then(async (r) => { if (!r.ok) throw new Error('load'); return r.json(); })
       .then(({ data, revision }) => {
         if (cancelled) return;
+        const initialUserBrands: Brand[] = Array.isArray(data?.brands) && data.brands.length > 0
+          ? data.brands
+          : (user?.company?.trim() ? [user.company.trim()] : []);
         revisionRef.current = Number(revision || 0);
-        lastSavedPayloadRef.current = JSON.stringify({ opportunities: data?.opportunities || [], tasks: data?.tasks || [], brands: data?.brands || INITIAL_BRANDS, salesReps: data?.salesReps || [] });
+        lastSavedPayloadRef.current = JSON.stringify({ opportunities: data?.opportunities || [], tasks: data?.tasks || [], brands: initialUserBrands, salesReps: data?.salesReps || [] });
         setOpportunities(data?.opportunities || []);
         setTasks(data?.tasks || []);
-        setBrands(data?.brands || INITIAL_BRANDS);
+        setBrands(initialUserBrands);
         setSalesReps(data?.salesReps || []);
         setDataReady(true);
         setSyncStatus('saved');
       }).catch(() => { if (!cancelled) setSyncStatus('error'); });
     return () => { cancelled = true; };
-  }, [userId]);
+  }, [userId, user?.company]);
 
   useEffect(() => {
     if (!userId || !dataReady) return;
@@ -573,9 +577,16 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addBrand = (brandName: string) => {
-    if (!brands.includes(brandName)) {
-      setBrands((prev) => [...prev, brandName]);
+    const trimmed = brandName.trim();
+    if (trimmed && !brands.includes(trimmed)) {
+      setBrands((prev) => [...prev, trimmed]);
+      if (brands.length === 0) setSelectedBrand('all');
     }
+  };
+
+  const deleteBrand = (brandName: string) => {
+    setBrands((prev) => prev.filter((b) => b !== brandName));
+    if (selectedBrand === brandName) setSelectedBrand('all');
   };
 
   const addSalesRep = (name: string, role: string) => {
@@ -731,6 +742,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         updateTask,
         completeTask,
         addBrand,
+        deleteBrand,
         addSalesRep,
         addDealHistoryLog,
         triggerNextStepPrompt,

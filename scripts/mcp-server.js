@@ -25,7 +25,7 @@ async function loadDB() {
   const columns = (await dbClient.execute('PRAGMA table_info(crm_data)')).rows.map((row) => String(row.name));
   if (!columns.includes('revision')) await dbClient.execute('ALTER TABLE crm_data ADD COLUMN revision INTEGER NOT NULL DEFAULT 0');
   const result = await dbClient.execute({ sql: 'SELECT payload,revision FROM crm_data WHERE user_id = ?', args: [owner] });
-  const data = result.rows.length ? JSON.parse(String(result.rows[0].payload)) : { opportunities: [], tasks: [], brands: ['NoLimits', 'Webissimo', 'Sapori'], salesReps: [] };
+  const data = result.rows.length ? JSON.parse(String(result.rows[0].payload)) : { opportunities: [], tasks: [], brands: [], salesReps: [] };
   Object.defineProperty(data, '_revision', { value: result.rows.length ? Number(result.rows[0].revision) : 0 });
   return data;
 }
@@ -58,13 +58,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'get_commercial_kpis',
-        description: 'Recupera i KPI principali della dashboard commerciale: Venduto, Pipeline attiva, Trattative aperte, Appuntamenti e Win-rate per i brand NoLimits, Webissimo e Sapori.',
+        description: 'Recupera i KPI principali della dashboard commerciale: Venduto, Pipeline attiva, Trattative aperte, Appuntamenti e Win-rate per i brand aziendali.',
         inputSchema: {
           type: 'object',
           properties: {
             brand: {
               type: 'string',
-              description: 'Opzionale: filtrare per brand (NoLimits, Webissimo, Sapori o all)',
+              description: 'Opzionale: filtrare per brand (o all)',
             },
           },
         },
@@ -75,7 +75,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: 'object',
           properties: {
-            brand: { type: 'string', description: 'Filtra per brand (NoLimits, Webissimo, Sapori)' },
+            brand: { type: 'string', description: 'Filtra per brand' },
             stage: { type: 'string', description: 'Filtra per fase (Nuovo lead, Conoscenza, Appuntamento, Trattativa, Chiusura, Venduta, Stand-by, Persa)' },
             salesRep: { type: 'string', description: 'Filtra per commerciale' },
           },
@@ -89,7 +89,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             name: { type: 'string', description: 'Nome e cognome referente' },
             company: { type: 'string', description: 'Nome azienda' },
-            brand: { type: 'string', description: 'Brand (NoLimits, Webissimo, Sapori)' },
+            brand: { type: 'string', description: 'Brand' },
             service: { type: 'string', description: 'Servizio interessato' },
             value: { type: 'number', description: 'Valore economico potenziale (€)' },
             valueType: { type: 'string', enum: ['One Shot', 'Mensile', 'Annuale'], description: 'Tipo di valore' },
@@ -235,14 +235,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     case 'create_opportunity': {
       if (!args?.name?.trim() || !args?.company?.trim() || !args?.nextActionWhat?.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(String(args.nextActionWhen || '')) || !Number.isFinite(args.value) || args.value < 0) return { isError: true, content: [{ type: 'text', text: 'Dati cliente, valore e prossima azione validi sono obbligatori.' }] };
-      const brandPrefix = (args.brand || 'NL').substring(0, 2).toUpperCase();
+      const chosenBrand = args?.brand ? String(args.brand).trim() : (db.brands && db.brands[0]) || 'Generale';
+      const brandPrefix = chosenBrand.replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'OP';
       const id = `${brandPrefix}-${randomUUID().slice(0, 8).toUpperCase()}`;
 
       const newDeal = {
         id,
         name: args.name,
         company: args.company,
-        brand: args.brand,
+        brand: chosenBrand,
         service: args.service,
         value: args.value,
         valueType: args.valueType || 'One Shot',

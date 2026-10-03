@@ -6,6 +6,7 @@ import React from 'react';
 import { useCRM } from '@/lib/store';
 import { speakHumanVoice } from '@/lib/speechVoice';
 import { CommercialTask, Opportunity } from '@/types/crm';
+import { getBrandBadge } from '@/lib/brandBadges';
 
 interface ExecutiveCockpitProps {
   onNavigateToTab: (tab: any) => void;
@@ -16,6 +17,8 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
     kpis,
     tasks,
     opportunities,
+    brands,
+    addBrand,
     alerts,
     completeTask,
     setSelectedDeal,
@@ -77,19 +80,6 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
         return 'alarm_on';
       default:
         return 'task_alt';
-    }
-  };
-
-  const getBrandBadge = (brand: string) => {
-    switch (brand.toLowerCase()) {
-      case 'nolimits':
-        return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30';
-      case 'webissimo':
-        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30';
-      case 'sapori':
-        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30';
-      default:
-        return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
     }
   };
 
@@ -301,16 +291,32 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
                 Benvenuto nel tuo Hub Commerciale!
               </span>
               <p className="text-xs text-on-surface-variant max-w-sm mt-0.5">
-                La dashboard è attiva e inizializzata con tutti i contatori a zero. Inizia inserendo la prima opportunità per NoLimits, Webissimo o Sapori.
+                {brands.length === 0
+                  ? 'Il tuo workspace è pronto. Aggiungi il tuo primo brand aziendale per iniziare.'
+                  : 'La dashboard è attiva con tutti i contatori a zero. Inizia inserendo la prima opportunità.'}
               </p>
             </div>
-            <button
-              onClick={() => setIsNewDealModalOpen(true)}
-              className="mt-1 px-4 py-2 rounded-xl bg-primary text-on-primary font-bold text-xs uppercase tracking-wider shadow-sm hover:opacity-90 flex items-center gap-1.5 transition-all"
-            >
-              <span className="material-symbols-outlined text-[16px]">add</span>
-              <span>Inserisci Prima Opportunità</span>
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+              {brands.length === 0 && (
+                <button
+                  onClick={() => {
+                    const name = window.prompt('Inserisci il nome del brand che gestisci:');
+                    if (name && name.trim()) addBrand(name.trim());
+                  }}
+                  className="px-4 py-2 rounded-xl bg-surface-container text-on-surface font-bold text-xs uppercase tracking-wider border border-outline-variant hover:border-primary flex items-center gap-1.5 transition-all"
+                >
+                  <span className="material-symbols-outlined text-[16px]">add_business</span>
+                  <span>Aggiungi Brand</span>
+                </button>
+              )}
+              <button
+                onClick={() => setIsNewDealModalOpen(true)}
+                className="px-4 py-2 rounded-xl bg-primary text-on-primary font-bold text-xs uppercase tracking-wider shadow-sm hover:opacity-90 flex items-center gap-1.5 transition-all"
+              >
+                <span className="material-symbols-outlined text-[16px]">add</span>
+                <span>Inserisci Prima Opportunità</span>
+              </button>
+            </div>
           </div>
         ) : todayTasks.length === 0 && dealsWithoutAction.length === 0 ? (
           <div className="p-8 text-center bg-surface-container-low rounded-xl border border-dashed border-outline-variant/50 flex flex-col items-center justify-center gap-2">

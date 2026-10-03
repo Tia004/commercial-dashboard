@@ -14,7 +14,7 @@ const items: { tab: ActiveTab; icon: string; label: string }[] = [
   { tab: 'analytics', icon: 'bar_chart', label: 'Analisi' },
 ];
 export const Sidebar: React.FC<Props> = ({ activeTab, setActiveTab, mobileOpen, onClose }) => {
-  const { alerts, setIsNewDealModalOpen, setIsSettingsModalOpen } = useCRM();
+  const { alerts, brands, setIsNewDealModalOpen, setIsSettingsModalOpen } = useCRM();
   const urgent = alerts.filter((a) => a.severity === 'urgent').length;
   return <>
     {mobileOpen && <button className="sidebar-scrim" aria-label="Chiudi menu" onClick={onClose} />}
@@ -36,7 +36,7 @@ export const Sidebar: React.FC<Props> = ({ activeTab, setActiveTab, mobileOpen, 
         </nav>
         <button className="sidebar-create" onClick={() => { setIsNewDealModalOpen(true); onClose(); }}><span className="material-symbols-outlined">add</span> Nuova opportunità</button>
       </div>
-      <div className="sidebar-footer"><div className="sidebar-footer-head"><span className="footer-dot" /> NoLimits · Webissimo · Sapori</div><p>Le informazioni del tuo team, in un solo spazio.</p><button onClick={() => { setIsSettingsModalOpen(true); onClose(); }}><span className="material-symbols-outlined">settings</span> Impostazioni</button></div>
+      <div className="sidebar-footer"><div className="sidebar-footer-head"><span className="footer-dot" /> {brands.length > 0 ? brands.slice(0, 3).join(' · ') + (brands.length > 3 ? ` (+${brands.length - 3})` : '') : 'Workspace vendite'}</div><p>Le informazioni del tuo team, in un solo spazio.</p><button onClick={() => { setIsSettingsModalOpen(true); onClose(); }}><span className="material-symbols-outlined">settings</span> Impostazioni</button></div>
     </aside>
   </>;
 };

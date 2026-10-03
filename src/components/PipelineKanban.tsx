@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useCRM } from '@/lib/store';
 import { DealStage, Opportunity } from '@/types/crm';
+import { getBrandBadge } from '@/lib/brandBadges';
 
 const KANBAN_STAGES: { key: DealStage; label: string; color: string }[] = [
   { key: 'Nuovo lead', label: '1. Nuovo Lead', color: 'border-blue-500/40 text-blue-500' },
@@ -60,19 +61,6 @@ export const PipelineKanban: React.FC = () => {
       moveDealStage(dealId, targetStage);
     }
     setDraggedDealId(null);
-  };
-
-  const getBrandBadge = (brand: string) => {
-    switch (brand.toLowerCase()) {
-      case 'nolimits':
-        return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30';
-      case 'webissimo':
-        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30';
-      case 'sapori':
-        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30';
-      default:
-        return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
-    }
   };
 
   return (

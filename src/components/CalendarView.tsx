@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth';
 import { CommercialTask, ActivityType } from '@/types/crm';
 
 export const CalendarView: React.FC = () => {
-  const { tasks, completeTask, setSelectedDeal, opportunities, addTask, brands, salesReps } = useCRM();
+  const { tasks, completeTask, setSelectedDeal, opportunities, addTask, brands, addBrand, salesReps } = useCRM();
   const { user } = useAuth();
 
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -18,7 +18,7 @@ export const CalendarView: React.FC = () => {
   // Form state for new task
   const [newTitle, setNewTitle] = useState('');
   const [newClient, setNewClient] = useState('');
-  const [newBrand, setNewBrand] = useState('NoLimits');
+  const [newBrand, setNewBrand] = useState(brands[0] || '');
   const [newRep, setNewRep] = useState(user?.name || salesReps[0]?.name || 'Commerciale');
   const [newType, setNewType] = useState<ActivityType>('chiamata');
   const [newDate, setNewDate] = useState(italianDateKey());
@@ -317,15 +317,45 @@ export const CalendarView: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-on-surface-variant block mb-1">Brand</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-on-surface-variant block">Brand</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const name = window.prompt('Nome nuovo brand:');
+                        if (name && name.trim()) {
+                          addBrand(name.trim());
+                          setNewBrand(name.trim());
+                        }
+                      }}
+                      className="text-[11px] font-semibold text-primary hover:underline"
+                    >
+                      + Nuovo
+                    </button>
+                  </div>
                   <select
                     value={newBrand}
-                    onChange={(e) => setNewBrand(e.target.value)}
+                    onChange={(e) => {
+                      if (e.target.value === '__NEW__') {
+                        const name = window.prompt('Nome nuovo brand:');
+                        if (name && name.trim()) {
+                          addBrand(name.trim());
+                          setNewBrand(name.trim());
+                        }
+                        return;
+                      }
+                      setNewBrand(e.target.value);
+                    }}
                     className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none"
                   >
-                    {brands.map((b) => (
-                      <option key={b} value={b}>{b}</option>
-                    ))}
+                    {brands.length === 0 ? (
+                      <option value="">Nessun brand (clicca + Nuovo)</option>
+                    ) : (
+                      brands.map((b) => (
+                        <option key={b} value={b}>{b}</option>
+                      ))
+                    )}
+                    <option value="__NEW__">+ Aggiungi brand...</option>
                   </select>
                 </div>
               </div>

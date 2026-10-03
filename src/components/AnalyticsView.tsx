@@ -237,7 +237,7 @@ export const AnalyticsView: React.FC = () => {
             <h3 className="font-headline font-bold text-base text-on-surface">
               Confronto Portfolio Brand
             </h3>
-            <span className="text-xs text-on-surface-variant">NoLimits • Webissimo • Sapori</span>
+            <span className="text-xs text-on-surface-variant">{brands.length ? `${brands.length} brand gestiti` : 'Portfolio'}</span>
           </div>
 
           <div className="flex flex-col gap-4">

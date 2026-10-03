@@ -6,7 +6,7 @@ import { AuthProvider } from '@/lib/auth';
 export const metadata: Metadata = {
   title: 'Hub Commerciale | Workspace vendite',
   description:
-    'Workspace per gestire opportunità, attività e priorità commerciali di NoLimits, Webissimo e Sapori.',
+    'Workspace per gestire opportunità, attività e priorità commerciali di tutti i tuoi brand.',
 };
 
 export default function RootLayout({

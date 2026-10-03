@@ -1,4 +1,4 @@
-export type Brand = 'NoLimits' | 'Webissimo' | 'Sapori' | string;
+export type Brand = string;
 
 export type ValueType = 'One Shot' | 'Mensile' | 'Annuale';
 
@@ -67,7 +67,7 @@ export interface Opportunity {
   id: string;
   name: string; // Nome e cognome
   company: string; // Azienda
-  brand: Brand; // NoLimits, Webissimo, Sapori
+  brand: Brand;
   service: string; // Servizio interessato
   leadSource: string; // Webinar B2B, Google Ads, Meta Ads, Inbound, ecc.
   salesRep: string; // Responsabile commerciale

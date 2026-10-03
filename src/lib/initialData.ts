@@ -1,14 +1,12 @@
 import { italianDateKey, italianDateAfterDays } from '@/lib/date';
 import { Opportunity, CommercialTask, SalesRep, Brand } from '@/types/crm';
 
-export const INITIAL_BRANDS: Brand[] = ['NoLimits', 'Webissimo', 'Sapori'];
+export const INITIAL_BRANDS: Brand[] = [];
 
 export const INITIAL_REPS: SalesRep[] = [];
 
 export const INITIAL_SERVICES: Record<string, string[]> = {
-  NoLimits: ['Gestione Meta Ads', 'Campagne Google Ads ROI', 'Growth Hacking Funnel', 'TikTok B2B & Creator', 'SEO Scalata Organica'],
-  Webissimo: ['Sviluppo E-Commerce Shopify Plus', 'Portale Web App Next.js', 'Restyling Brand & UI/UX', 'Integrazioni ERP/CRM'],
-  Sapori: ['Food Marketing & Social Ho.Re.Ca', 'Menu Engineering & Margini', 'Lead Gen Franchising Food', 'Shooting & Packaging Gourmet'],
+  Default: ['Consulenza', 'Sviluppo Progetto', 'Servizio Premium', 'Abbonamento Mensile', 'Strategia di Vendita'],
 };
 
 // INITIAL DATA IS EMPTY (0 TRATTATIVE, 0€ PIPELINE, 0 TASK)
@@ -22,11 +20,11 @@ const tomorrow = italianDateAfterDays(1);
 
 export const DEMO_OPPORTUNITIES: Opportunity[] = [
   {
-    id: 'NL-8429',
+    id: 'CS-8429',
     name: 'Dott. Mario Rossi',
     company: 'TechSpa S.r.l.',
-    brand: 'NoLimits',
-    service: 'Gestione Meta Ads',
+    brand: 'Divisione B2B',
+    service: 'Gestione Lead Generation',
     leadSource: 'Webinar B2B',
     salesRep: 'Francesco V.',
     phone: '+39 02 8934521',
@@ -54,11 +52,11 @@ export const DEMO_OPPORTUNITIES: Opportunity[] = [
     ],
   },
   {
-    id: 'WB-3011',
+    id: 'DM-3011',
     name: 'Giulia Bianchi',
     company: 'Atelier Moda Milano S.p.A.',
-    brand: 'Webissimo',
-    service: 'Sviluppo E-Commerce Shopify Plus',
+    brand: 'Digital Services',
+    service: 'Sviluppo E-Commerce',
     leadSource: 'Google Ads',
     salesRep: 'Marco T.',
     phone: '+39 02 7712390',
@@ -68,7 +66,7 @@ export const DEMO_OPPORTUNITIES: Opportunity[] = [
     valueType: 'One Shot',
     entryDate: yesterday,
     stage: 'Chiusura',
-    notes: 'Progetto migrazione da Magento obsoleto a Shopify Plus headless.',
+    notes: 'Progetto migrazione da piattaforma precedente.',
     dealHealthScore: 92,
     nextAction: {
       id: 'act-2',
@@ -81,15 +79,15 @@ export const DEMO_OPPORTUNITIES: Opportunity[] = [
       completed: false,
     },
     history: [
-      { id: 'h-10', date: '20/09', timestamp: '2026-09-20T09:00:00Z', title: 'Lead ricevuto da Campagna Search Webissimo', type: 'task', author: 'System' },
+      { id: 'h-10', date: '20/09', timestamp: '2026-09-20T09:00:00Z', title: 'Lead ricevuto da Campagna Search', type: 'task', author: 'System' },
     ],
   },
   {
-    id: 'SP-1092',
+    id: 'PR-1092',
     name: 'Roberto Valente',
     company: 'Osteria Del Duca & Franchising',
-    brand: 'Sapori',
-    service: 'Menu Engineering & Margini',
+    brand: 'Retail & Food',
+    service: 'Consulenza Strategica & Margini',
     leadSource: 'Referral',
     salesRep: 'Elena B.',
     phone: '+39 051 445566',
@@ -99,11 +97,11 @@ export const DEMO_OPPORTUNITIES: Opportunity[] = [
     valueType: 'Mensile',
     entryDate: today,
     stage: 'Appuntamento',
-    notes: 'Catena di 4 locali tipici in Emilia. Cercano ottimizzazione food cost.',
+    notes: 'Catena di locali tipici. Cercano ottimizzazione margini e food cost.',
     dealHealthScore: 78,
     nextAction: {
       id: 'act-3',
-      what: 'Video call con Chef e titolare per audit food-cost attuale',
+      what: 'Video call con responsabile per audit attuale',
       who: 'Elena B.',
       when: today,
       time: '16:00',
@@ -118,11 +116,11 @@ export const DEMO_OPPORTUNITIES: Opportunity[] = [
 export const DEMO_TASKS: CommercialTask[] = [
   {
     id: 'tsk-1',
-    dealId: 'NL-8429',
+    dealId: 'CS-8429',
     dealTitle: 'TechSpa S.r.l. - Dott. Mario Rossi',
-    title: 'Richiamare Mario Rossi su preventivo Meta Ads',
+    title: 'Richiamare Mario Rossi su preventivo B2B',
     client: 'Dott. Mario Rossi',
-    brand: 'NoLimits',
+    brand: 'Divisione B2B',
     assignedTo: 'Francesco V.',
     type: 'chiamata',
     priority: 'Alta',
@@ -133,11 +131,11 @@ export const DEMO_TASKS: CommercialTask[] = [
   },
   {
     id: 'tsk-2',
-    dealId: 'WB-3011',
+    dealId: 'DM-3011',
     dealTitle: 'Atelier Moda - Giulia Bianchi',
-    title: 'Inviare contratto Shopify Plus con clausola SLA',
+    title: 'Inviare contratto Digital Services con clausola SLA',
     client: 'Giulia Bianchi',
-    brand: 'Webissimo',
+    brand: 'Digital Services',
     assignedTo: 'Marco T.',
     type: 'preventivo',
     priority: 'Alta',
