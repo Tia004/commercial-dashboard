@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useCRM } from '@/lib/store';
+import { useAuth } from '@/lib/auth';
 
 export const AiCopilotBar: React.FC = () => {
   const { executeAIInstruction, alerts, kpis } = useCRM();
+  const { user } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionResult, setExecutionResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -24,7 +26,13 @@ export const AiCopilotBar: React.FC = () => {
       return;
     }
 
-    const textToSpeak = `Buongiorno Alessandro. Ecco il punto commerciale di oggi. Il valore della pipeline attiva è di euro ${kpis.pipelineTotal.toLocaleString()}, con ${kpis.openDealsCount} trattative in corso e ${alerts.length} anomalie da verificare. Ci sono ${kpis.scheduledMeetingsCount} appuntamenti programmati. Ti consiglio di iniziare dal follow-up scaduto di NoLimits e di confermare la proposta tecnica per TechSpa.`;
+    const userName = user?.name ? user.name.split(' ')[0] : 'Direttore';
+    let textToSpeak = `Buongiorno ${userName}. `;
+    if (kpis.openDealsCount === 0) {
+      textToSpeak += `La dashboard commerciale è attiva e inizializzata con tutti i contatori a zero. Puoi inserire la tua prima opportunità con il pulsante dedicato o configurare il database Turso e le Passkey nelle impostazioni.`;
+    } else {
+      textToSpeak += `Ecco il punto commerciale di oggi: il valore della pipeline attiva è di euro ${kpis.pipelineTotal.toLocaleString()}, con ${kpis.openDealsCount} trattative in corso e ${alerts.length} anomalie da verificare. Ci sono ${kpis.scheduledMeetingsCount} appuntamenti programmati.`;
+    }
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = 'it-IT';

@@ -17,6 +17,8 @@ import {
   INITIAL_REPS,
   INITIAL_OPPORTUNITIES,
   INITIAL_TASKS,
+  DEMO_OPPORTUNITIES,
+  DEMO_TASKS,
 } from './initialData';
 
 interface CRMContextType {
@@ -73,15 +75,19 @@ interface CRMContextType {
   addDealHistoryLog: (dealId: string, item: Omit<ActivityHistoryItem, 'id' | 'timestamp'>) => void;
   triggerNextStepPrompt: (deal: Opportunity) => void;
 
+  // Demo & Reset
+  loadDemoData: () => void;
+  resetAllData: () => void;
+
   // Autonomous AI executor
   executeAIInstruction: (instruction: string) => Promise<{ success: boolean; message: string; data?: any }>;
 }
 
 const CRMContext = createContext<CRMContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY_DEALS = 'hubc_crm_opportunities_v1';
-const LOCAL_STORAGE_KEY_TASKS = 'hubc_crm_tasks_v1';
-const LOCAL_STORAGE_KEY_BRANDS = 'hubc_crm_brands_v1';
+const LOCAL_STORAGE_KEY_DEALS = 'hubc_crm_opportunities_v2';
+const LOCAL_STORAGE_KEY_TASKS = 'hubc_crm_tasks_v2';
+const LOCAL_STORAGE_KEY_BRANDS = 'hubc_crm_brands_v2';
 const LOCAL_STORAGE_KEY_THEME = 'hubc_crm_theme_v1';
 const LOCAL_STORAGE_KEY_GEMINI_KEY = 'hubc_crm_gemini_key_v1';
 
@@ -686,6 +692,17 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     };
   };
 
+  const loadDemoData = () => {
+    setOpportunities(DEMO_OPPORTUNITIES);
+    setTasks(DEMO_TASKS);
+  };
+
+  const resetAllData = () => {
+    setOpportunities([]);
+    setTasks([]);
+    setSelectedDeal(null);
+  };
+
   return (
     <CRMContext.Provider
       value={{
@@ -727,6 +744,8 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         addDealHistoryLog,
         triggerNextStepPrompt,
         executeAIInstruction,
+        loadDemoData,
+        resetAllData,
       }}
     >
       {children}

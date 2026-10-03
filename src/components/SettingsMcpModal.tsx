@@ -220,14 +220,18 @@ export const SettingsMcpModal: React.FC = () => {
               <div className="p-4 bg-surface-container-low rounded-2xl border border-outline-variant/30 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-primary text-on-primary font-bold text-base flex items-center justify-center shadow-sm">
-                    {user?.name.substring(0, 2).toUpperCase() || 'AR'}
+                    {user ? (
+                      user.name.substring(0, 2).toUpperCase()
+                    ) : (
+                      <span className="material-symbols-outlined text-[24px]">person</span>
+                    )}
                   </div>
                   <div>
                     <span className="font-headline font-bold text-base text-on-surface block">
                       {user?.name || 'Utente Non Connesso'}
                     </span>
                     <span className="text-[11px] text-on-surface-variant">
-                      {user?.email || 'Nessuna email'} • <strong className="text-primary">{user?.role}</strong>
+                      {user?.email || 'Nessuna email'} • <strong className="text-primary">{user?.role || 'Ospite'}</strong>
                     </span>
                   </div>
                 </div>
@@ -277,7 +281,7 @@ export const SettingsMcpModal: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      placeholder="Es: MacBook Pro di Alessandro / PC Ufficio Windows Hello"
+                      placeholder="Es: Mio MacBook Pro / PC Windows Hello / iPhone"
                       value={passkeyLabel}
                       onChange={(e) => setPasskeyLabel(e.target.value)}
                       className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none"

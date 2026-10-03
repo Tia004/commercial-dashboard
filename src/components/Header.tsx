@@ -173,7 +173,11 @@ export const Header: React.FC = () => {
             </span>
           </div>
           <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-xs shadow-sm group-hover:scale-105 transition-transform">
-            {user ? user.name.substring(0, 2).toUpperCase() : 'AR'}
+            {user ? (
+              user.name.substring(0, 2).toUpperCase()
+            ) : (
+              <span className="material-symbols-outlined text-[18px]">person</span>
+            )}
           </div>
         </div>
       </div>

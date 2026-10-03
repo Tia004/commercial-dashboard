@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useAuth } from '@/lib/auth';
 import { Sidebar, ActiveTab } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { ExecutiveCockpit } from '@/components/ExecutiveCockpit';
@@ -14,9 +15,16 @@ import { NextStepModal } from '@/components/NextStepModal';
 import { NewDealModal } from '@/components/NewDealModal';
 import { SettingsMcpModal } from '@/components/SettingsMcpModal';
 import { AuthModal } from '@/components/AuthModal';
+import { AuthScreen } from '@/components/AuthScreen';
 
 export default function HomePage() {
+  const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('cockpit');
+
+  // If not authenticated, show the Login/Registration Portal
+  if (!isAuthenticated) {
+    return <AuthScreen />;
+  }
 
   return (
     <div className="flex min-h-screen bg-surface text-on-surface antialiased">
