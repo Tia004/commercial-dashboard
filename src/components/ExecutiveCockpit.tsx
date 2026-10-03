@@ -1,5 +1,7 @@
 'use client';
 
+import { italianDateKey } from '@/lib/date';
+
 import React from 'react';
 import { useCRM } from '@/lib/store';
 import { AiCopilotBar } from './AiCopilotBar';
@@ -19,17 +21,20 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
     setSelectedDeal,
     triggerNextStepPrompt,
     selectedBrand,
+    selectedRep,
+    syncStatus,
     setIsNewDealModalOpen,
   } = useCRM();
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = italianDateKey();
 
   // Activities for Today
   const todayTasks = tasks.filter(
     (t) =>
-      t.date === today &&
+      t.date <= today &&
       t.status !== 'Completata' &&
-      (selectedBrand === 'all' || t.brand.toLowerCase() === selectedBrand.toLowerCase())
+      (selectedBrand === 'all' || t.brand.toLowerCase() === selectedBrand.toLowerCase()) &&
+      (selectedRep === 'all' || t.assignedTo === selectedRep)
   );
 
   // Deals without next action that must be planned today
@@ -39,13 +44,15 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
       d.stage !== 'Persa' &&
       d.stage !== 'Stand-by' &&
       (!d.nextAction || !d.nextAction.what || d.nextAction.completed) &&
-      (selectedBrand === 'all' || d.brand.toLowerCase() === selectedBrand.toLowerCase())
+      (selectedBrand === 'all' || d.brand.toLowerCase() === selectedBrand.toLowerCase()) &&
+      (selectedRep === 'all' || d.salesRep === selectedRep)
   );
 
   // Recent Won Sales
   const closedSales = opportunities
     .filter((d) => d.stage === 'Venduta')
     .slice(0, 4);
+  const closedCount = opportunities.filter((d) => d.stage === 'Venduta' || d.stage === 'Persa').length;
 
   // Stand-by deals
   const standbyDeals = opportunities.filter(
@@ -94,21 +101,21 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-outline">
-              Executive Console • Portafoglio Multi-Brand
+              VENDITE / PANORAMICA
             </span>
           </div>
           <h1 className="font-headline font-bold text-2xl md:text-3xl text-on-surface tracking-tight mt-1">
-            Cockpit Commerciale Direzionale
+            Il tuo spazio commerciale
           </h1>
           <p className="text-xs text-on-surface-variant mt-0.5">
-            Panoramica centralizzata vendite e compiti quotidiani per NoLimits, Webissimo e Sapori
+            Le priorità di oggi, i risultati e le opportunità da seguire.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 bg-surface-container px-3 py-1.5 rounded-xl border border-outline-variant/30 text-xs">
             <span className="material-symbols-outlined text-outline text-[16px]">sync</span>
-            <span className="font-mono text-on-surface-variant">Sincronizzazione Realtime</span>
+            <span className="font-mono text-on-surface-variant">{syncStatus === 'saved' ? 'Dati salvati' : syncStatus === 'error' ? 'Salvataggio non riuscito' : 'Sincronizzazione…'}</span>
           </div>
           <button
             onClick={() => onNavigateToTab('kanban')}
@@ -130,7 +137,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
           <div className="flex items-start justify-between">
             <div>
               <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                Venduto Concluso
+                Venduto
               </span>
               <div className="font-headline font-bold text-2xl md:text-3xl text-on-surface tracking-tight mt-1">
                 € {kpis.soldTotal.toLocaleString()}
@@ -143,7 +150,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
           <div className="mt-4 pt-3 border-t border-outline-variant/20 flex items-center justify-between text-xs">
             <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
               <span className="material-symbols-outlined text-[16px]">trending_up</span>
-              +28.4% vs mese prec.
+              {closedSales.length} trattative concluse
             </span>
             <span className="text-on-surface-variant font-mono">{closedSales.length} chiusure</span>
           </div>
@@ -165,8 +172,8 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-outline-variant/20 flex items-center justify-between text-xs">
-            <span className="text-on-surface-variant">Target €800k</span>
-            <span className="font-semibold text-primary">{kpis.winRate}% Win-Rate stimato</span>
+            <span className="text-on-surface-variant">Trattative in corso</span>
+            <span className="font-semibold text-primary">{closedCount ? `${kpis.winRate}% tasso di chiusura` : 'Nessuna chiusura'}</span>
           </div>
         </div>
 
@@ -223,7 +230,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
         </div>
       </div>
 
-      {/* 4. SECTION: COSA DEVO FARE OGGI? (CRITICAL SECTION) */}
+      {/* 4. SECTION: Da fare oggi (CRITICAL SECTION) */}
       <section className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/30 flex flex-col gap-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -233,14 +240,14 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-headline font-bold text-xl text-on-surface tracking-tight">
-                  COSA DEVO FARE OGGI?
+                  Da fare oggi
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full bg-primary text-on-primary font-bold text-xs">
                   {todayTasks.length + dealsWithoutAction.length} Attività
                 </span>
               </div>
               <p className="text-xs text-on-surface-variant">
-                Recupero automatico di chiamate, follow-up, appuntamenti, preventivi e opportunità da sbloccare
+                Attività in scadenza e arretrate, ordinate per priorità.
               </p>
             </div>
           </div>

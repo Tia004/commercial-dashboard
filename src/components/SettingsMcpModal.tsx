@@ -38,6 +38,7 @@ export const SettingsMcpModal: React.FC = () => {
     opportunities,
     loadDemoData,
     resetAllData,
+    importLegacyData,
   } = useCRM();
 
   const {
@@ -92,6 +93,7 @@ export const SettingsMcpModal: React.FC = () => {
 
   // Copied alert
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [importFeedback, setImportFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     setAiConfig(getSavedAIConfig());
@@ -117,9 +119,8 @@ export const SettingsMcpModal: React.FC = () => {
 
     try {
       const savedTursoUrl = localStorage.getItem('hubc_crm_turso_url_v1') || '';
-      const savedTursoToken = localStorage.getItem('hubc_crm_turso_token_v1') || '';
+      localStorage.removeItem('hubc_crm_turso_token_v1');
       setTursoUrl(savedTursoUrl);
-      setTursoToken(savedTursoToken);
     } catch (e) {}
   }, []);
 
@@ -278,7 +279,7 @@ export const SettingsMcpModal: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-on-surface-variant">
-                Gestione Account, Passkey Biometriche, Modelli AI con blocco fatturazione, Sintesi Vocale e Database Turso
+                Gestione account, modelli AI, sintesi vocale e archivio dati
               </p>
             </div>
           </div>
@@ -293,13 +294,11 @@ export const SettingsMcpModal: React.FC = () => {
         {/* Tab Switcher Grid */}
         <div className="flex items-center gap-2 border-b border-outline-variant/20 pb-2 overflow-x-auto text-xs font-bold">
           {[
-            { id: 'account', label: 'Account & Passkey', icon: 'fingerprint' },
-            { id: 'ai', label: 'Modelli AI & Fatturazione', icon: 'psychology' },
+            { id: 'account', label: 'Account', icon: 'fingerprint' },
             { id: 'voice', label: 'Voce Assistente AI', icon: 'record_voice_over' },
-            { id: 'turso', label: 'Database Turso (10GB)', icon: 'database' },
+            { id: 'turso', label: 'Archivio dati', icon: 'database' },
             { id: 'mcp', label: 'Server MCP & Agenti AI', icon: 'terminal' },
             { id: 'brands', label: 'Brand & Listini', icon: 'corporate_fare' },
-            { id: 'integrations', label: 'Integrazioni Cloud', icon: 'hub' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -337,6 +336,7 @@ export const SettingsMcpModal: React.FC = () => {
                     <span className="text-[11px] text-on-surface-variant">
                       {user?.email || 'Nessuna email'} • <strong className="text-primary">{user?.role || 'Ospite'}</strong>
                     </span>
+                    {user && <span className="text-[10px] text-on-surface-variant block break-all">ID account per MCP: {user.id}</span>}
                   </div>
                 </div>
 
@@ -359,104 +359,8 @@ export const SettingsMcpModal: React.FC = () => {
                 </div>
               </div>
 
-              {/* Passkeys Management */}
-              <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-[22px]">fingerprint</span>
-                    <h3 className="font-headline font-bold text-base text-on-surface">
-                      Passkey Biometriche (Touch ID su macOS & Windows Hello)
-                    </h3>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                    FIDO2 / WebAuthn Standard
-                  </span>
-                </div>
-
-                <p className="text-xs text-on-surface-variant leading-relaxed">
-                  Le Passkey ti permettono di accedere all&apos;Hub Commerciale in 1 secondo utilizzando l&apos;impronta digitale o il riconoscimento facciale del tuo Mac o PC Windows, senza dover digitare alcuna password.
-                </p>
-
-                {/* Create Passkey Box */}
-                <div className="p-4 bg-surface-container-low rounded-xl border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="flex-1 w-full">
-                    <label className="font-bold text-on-surface block mb-1">
-                      Etichetta Dispositivo (opzionale)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Es: Mio MacBook Pro / PC Windows Hello / iPhone"
-                      value={passkeyLabel}
-                      onChange={(e) => setPasskeyLabel(e.target.value)}
-                      className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none"
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleCreatePasskey}
-                    className="px-4 py-2.5 rounded-xl bg-primary text-on-primary font-bold shadow-md hover:opacity-90 transition-all flex items-center gap-2 flex-shrink-0 self-end sm:self-auto"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">add_moderator</span>
-                    <span>Crea Passkey Ora</span>
-                  </button>
-                </div>
-
-                {passkeyFeedback && (
-                  <div className="p-3 bg-surface-container rounded-xl text-xs font-semibold text-on-surface flex items-center justify-between">
-                    <span>{passkeyFeedback}</span>
-                    <button onClick={() => setPasskeyFeedback(null)} className="text-outline hover:text-on-surface">✕</button>
-                  </div>
-                )}
-
-                {/* Registered Passkeys List */}
-                <div className="flex flex-col gap-2 pt-2">
-                  <span className="font-bold text-on-surface-variant uppercase text-[10px] tracking-wider">
-                    Passkey Registrate ({user?.passkeys?.length || 0})
-                  </span>
-
-                  {user?.passkeys && user.passkeys.length > 0 ? (
-                    <div className="flex flex-col gap-2">
-                      {user.passkeys.map((pk) => (
-                        <div
-                          key={pk.id}
-                          className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20 flex items-center justify-between"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined text-primary text-[20px]">
-                              fingerprint
-                            </span>
-                            <div>
-                              <span className="font-bold text-on-surface block">{pk.name}</span>
-                              <span className="text-[10px] text-on-surface-variant font-mono">
-                                Creata il {pk.createdAt}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={handleTestPasskey}
-                              className="px-2.5 py-1 rounded-lg bg-surface-container text-on-surface hover:text-primary font-semibold text-[11px] border border-outline-variant/30 transition-colors"
-                            >
-                              Testa Biometria
-                            </button>
-                            <button
-                              onClick={() => removePasskey(pk.id)}
-                              className="p-1.5 rounded-lg text-outline hover:text-rose-500 transition-colors"
-                              title="Rimuovi passkey"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">delete</span>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-4 text-center bg-surface-container-low rounded-xl text-on-surface-variant text-xs">
-                      Nessuna passkey ancora registrata. Crea la prima passkey per abilitare il login biometrico con Touch ID / Windows Hello.
-                    </div>
-                  )}
-                </div>
+              <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 text-xs text-on-surface-variant leading-relaxed">
+                L’accesso è protetto da password e sessione sul server. Le passkey saranno disponibili dopo l’integrazione della verifica WebAuthn sul server.
               </div>
             </div>
           )}
@@ -730,7 +634,7 @@ export const SettingsMcpModal: React.FC = () => {
                   </h3>
                 </div>
                 <p className="text-xs text-on-surface-variant leading-relaxed">
-                  L&apos;AI Commerciale utilizza voci neurali femminili calibrate per conversare in italiano in modo caldo, rilassato e professionale. Puoi scegliere tra la sintesi neurale integrata del sistema oppure la modalità Studio HD.
+                  La lettura vocale usa le voci disponibili gratuitamente sul tuo dispositivo. Qualità e scelta delle voci dipendono dal browser e dal sistema operativo.
                 </p>
               </div>
 
@@ -739,7 +643,7 @@ export const SettingsMcpModal: React.FC = () => {
                 <div className="flex flex-col gap-2">
                   <label className="font-bold text-xs text-on-surface flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-primary text-[18px]">female</span>
-                    <span>Voce Femminile Selezionata</span>
+                    <span>Voce selezionata</span>
                   </label>
                   <select
                     value={selectedVoiceName}
@@ -749,15 +653,15 @@ export const SettingsMcpModal: React.FC = () => {
                     {voicesList.length > 0 ? (
                       voicesList.map((v) => (
                         <option key={v.id} value={v.name}>
-                          {v.name} ({v.gender === 'female' ? 'Femminile' : 'Maschile'}{v.isNatural ? ' • Neurale HD' : ''})
+                          {v.name} ({v.lang}{v.isNatural ? ' · voce avanzata' : ''})
                         </option>
                       ))
                     ) : (
-                      <option value="">Voce naturale italiana predefinita</option>
+                      <option value="">Voce italiana predefinita</option>
                     )}
                   </select>
                   <span className="text-[11px] text-on-surface-variant">
-                    Le voci contrassegnate come Neurale HD (come Microsoft Elsa / Isabella, Apple Alice o Google Italiano) offrono la migliore resa empatica.
+                    La qualità delle voci disponibili dipende dal dispositivo e dal browser. Scegli quella che preferisci e ascolta la prova.
                   </span>
                 </div>
 
@@ -803,33 +707,15 @@ export const SettingsMcpModal: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-xs text-on-surface">Naturale Browser (Consigliato)</span>
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 uppercase">
-                          Free • Zero Lag
+                          Gratis
                         </span>
                       </div>
                       <span className="text-[11px] text-on-surface-variant">
-                        Utilizza le voci neurali del tuo computer/telefono (Elsa, Alice, Chiara) a costo zero.
+                        Usa una voce italiana disponibile sul tuo dispositivo. Nessun costo API.
                       </span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleVoiceModeChange('cloud_hd')}
-                      className={`p-3.5 rounded-xl border text-left flex flex-col gap-1 transition-all ${
-                        voiceMode === 'cloud_hd'
-                          ? 'bg-primary/5 border-primary shadow-sm'
-                          : 'bg-surface-container border-outline-variant/30 text-on-surface hover:border-primary/40'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-xs text-on-surface">Studio HD (OpenAI Nova)</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 uppercase">
-                          Billed
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-on-surface-variant">
-                        Richiede chiave OpenAI attiva: voce ultra-realistica registrata in studio per briefing esecutivi.
-                      </span>
-                    </button>
+
                   </div>
                 </div>
 
@@ -854,86 +740,16 @@ export const SettingsMcpModal: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 4: TURSO DATABASE (10GB EDGE SQLITE) */}
           {activeTab === 'turso' && (
-            <div className="flex flex-col gap-4">
-              <div className="p-4 bg-surface-container-low rounded-2xl border border-outline-variant/30 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-[22px]">database</span>
-                    <h3 className="font-headline font-bold text-base text-on-surface">
-                      Database Turso Edge Cloud (10GB Dedicati Gratuiti)
-                    </h3>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                    libSQL Edge Engine
-                  </span>
-                </div>
-                <p className="text-xs text-on-surface-variant leading-relaxed">
-                  Ogni account aziendale può collegare il proprio database Turso gratuito con 10GB di spazio ad altissima velocità su edge SQLite (fino a 500 database per account e latenza &lt; 20ms).
-                </p>
-              </div>
-
-              <div className="p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 flex flex-col gap-3">
-                <div>
-                  <label className="font-bold text-on-surface-variant block mb-1">
-                    Turso Database URL (es. libsql://nome-db-org.turso.io)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="libsql://tuo-database-turso.turso.io"
-                    value={tursoUrl}
-                    onChange={(e) => setTursoUrl(e.target.value)}
-                    className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface font-mono outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-on-surface-variant block mb-1">
-                    Turso Auth Token
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="eyJhbGciOiJFZERTQ..."
-                    value={tursoToken}
-                    onChange={(e) => setTursoToken(e.target.value)}
-                    className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface font-mono outline-none"
-                  />
-                  <span className="text-[10px] text-on-surface-variant mt-1 block">
-                    Puoi ottenere il token con il comando CLI: <code className="font-mono text-primary font-bold">turso db tokens create nome-db</code>
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-outline-variant/20">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleTestTurso}
-                      disabled={isTursoTesting}
-                      className="px-3.5 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-bold border border-outline-variant/30 transition-all flex items-center gap-1.5"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">speed</span>
-                      <span>{isTursoTesting ? 'Ping in corso...' : 'Testa Connessione Turso'}</span>
-                    </button>
-                    {tursoTestResult && (
-                      <span className={`text-xs font-bold ${tursoTestResult.success ? 'text-emerald-600' : 'text-rose-500'}`}>
-                        {tursoTestResult.success ? `Connesso (${tursoTestResult.latencyMs} ms)` : `Errore: ${tursoTestResult.error}`}
-                      </span>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      localStorage.setItem('hubc_crm_turso_url_v1', tursoUrl);
-                      localStorage.setItem('hubc_crm_turso_token_v1', tursoToken);
-                      alert('Parametri Turso memorizzati localmente con successo!');
-                    }}
-                    className="px-4 py-2 rounded-xl bg-primary text-on-primary font-bold shadow-sm hover:opacity-90 transition-all"
-                  >
-                    Salva Parametri Turso
-                  </button>
-                </div>
+            <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 flex flex-col gap-3">
+              <h3 className="font-headline font-bold text-base text-on-surface">Archivio dei dati commerciali</h3>
+              <p className="text-xs text-on-surface-variant leading-relaxed">Le trattative, le attività e i brand sono salvati sul server e separati per account. Per il deploy configura TURSO_DATABASE_URL e TURSO_AUTH_TOKEN nelle variabili d’ambiente di Vercel. I token del database non vanno inseriti nel browser.</p>
+              <p className="text-xs text-on-surface-variant">ID account per le integrazioni MCP: <code className="font-mono break-all">{user?.id || 'Accedi per visualizzarlo'}</code></p>
+              <div className="pt-3 border-t border-outline-variant/30 flex flex-col gap-2">
+                <strong className="text-xs text-on-surface">Hai usato la versione precedente?</strong>
+                <p className="text-xs text-on-surface-variant">Puoi trasferire i dati salvati in questo browser solo se l’archivio dell’account è vuoto.</p>
+                <button type="button" onClick={() => { if (window.confirm('Importare i dati locali precedenti in questo account?')) setImportFeedback(importLegacyData().message); }} className="self-start px-3 py-2 rounded-lg border border-outline-variant text-xs font-semibold text-on-surface hover:border-primary">Importa dati locali precedenti</button>
+                {importFeedback && <p role="status" className="text-xs text-on-surface-variant">{importFeedback}</p>}
               </div>
             </div>
           )}
@@ -954,7 +770,7 @@ export const SettingsMcpModal: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-xs text-on-surface-variant leading-relaxed">
-                  L&apos;Hub Commerciale include un server MCP sia in modalità standard STDIO che in endpoint HTTP/SSE. Permette a qualsiasi assistente (Claude Desktop, Cursor, Codex, Windsurf o custom agent) di leggere le pipeline, spostare trattative, creare task e interrogare i dati delle vendite in tempo reale.
+                  Il server MCP STDIO legge lo stesso archivio della dashboard quando è configurato per un account. L’API HTTP usa un token dedicato per le integrazioni. Le modifiche diventano visibili nella dashboard al successivo caricamento.
                 </p>
               </div>
 
@@ -980,28 +796,8 @@ export const SettingsMcpModal: React.FC = () => {
                 </div>
               </div>
 
-              {/* Setup snippet */}
-              <div className="p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-on-surface">Configurazione per Claude Desktop / Cursor / Agenti Custom</span>
-                  <button
-                    onClick={() => copyToClipboard(`{\n  "mcpServers": {\n    "hub-commerciale": {\n      "command": "node",\n      "args": ["${process.cwd ? process.cwd() : '/path/to/project'}/scripts/mcp-server.js"]\n    }\n  }\n}`, 'mcp-config')}
-                    className="text-[11px] text-primary hover:underline flex items-center gap-1 font-bold"
-                  >
-                    <span className="material-symbols-outlined text-[14px]">content_copy</span>
-                    <span>{copiedKey === 'mcp-config' ? 'Copiato!' : 'Copia Configurazione JSON'}</span>
-                  </button>
-                </div>
-                <pre className="p-3 bg-surface-container text-on-surface font-mono text-[11px] rounded-xl overflow-x-auto">
-{`{
-  "mcpServers": {
-    "hub-commerciale": {
-      "command": "node",
-      "args": ["${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/scripts/mcp-server.js"]
-    }
-  }
-}`}
-                </pre>
+              <div className="p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 text-xs text-on-surface-variant leading-relaxed">
+                Per STDIO usa <code className="font-mono">npm run mcp</code> con TURSO_DATABASE_URL, TURSO_AUTH_TOKEN e MCP_OWNER_USER_ID nell’ambiente del processo. L’API HTTP richiede anche MCP_API_TOKEN ed espone le operazioni documentate nel README.
               </div>
             </div>
           )}

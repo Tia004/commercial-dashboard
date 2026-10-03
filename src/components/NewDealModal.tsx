@@ -1,5 +1,7 @@
 'use client';
 
+import { italianDateKey } from '@/lib/date';
+
 import React, { useState, useEffect } from 'react';
 import { useCRM } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
@@ -16,12 +18,12 @@ export const NewDealModal: React.FC = () => {
   const [company, setCompany] = useState('');
   const [brand, setBrand] = useState<Brand>(brands[0] || 'NoLimits');
   const [service, setService] = useState('Gestione Meta Ads');
-  const [leadSource, setLeadSource] = useState('Webinar B2B');
+  const [leadSource, setLeadSource] = useState('Non specificata');
   const [salesRep, setSalesRep] = useState(defaultRep);
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
-  const [value, setValue] = useState<number>(15000);
+  const [value, setValue] = useState<number>(0);
   const [valueType, setValueType] = useState<ValueType>('One Shot');
   const [stage, setStage] = useState<DealStage>('Nuovo lead');
   const [notes, setNotes] = useState('');
@@ -29,7 +31,7 @@ export const NewDealModal: React.FC = () => {
   // Mandatory Next Action fields
   const [actionWhat, setActionWhat] = useState('Primo contatto conoscitivo di qualifica');
   const [actionWho, setActionWho] = useState(defaultRep);
-  const [actionWhen, setActionWhen] = useState(new Date().toISOString().split('T')[0]);
+  const [actionWhen, setActionWhen] = useState(italianDateKey());
   const [actionTime, setActionTime] = useState('11:30');
   const [actionType, setActionType] = useState<ActivityType>('chiamata');
   const [actionPriority, setActionPriority] = useState<Priority>('Alta');
@@ -47,12 +49,12 @@ export const NewDealModal: React.FC = () => {
       service,
       leadSource,
       salesRep,
-      phone: phone || '+39 02 ' + Math.floor(1000000 + Math.random() * 9000000),
-      whatsapp: whatsapp || phone || '+39340' + Math.floor(1000000 + Math.random() * 9000000),
-      email: email || `${name.toLowerCase().replace(/\s+/g, '.')}@${company.toLowerCase().replace(/[^a-z]/g, '')}.it`,
+      phone: phone.trim(),
+      whatsapp: whatsapp.trim(),
+      email: email.trim(),
       value,
       valueType,
-      entryDate: new Date().toISOString().split('T')[0],
+      entryDate: italianDateKey(),
       stage,
       notes,
       nextAction: {
@@ -217,6 +219,7 @@ export const NewDealModal: React.FC = () => {
                   onChange={(e) => setLeadSource(e.target.value)}
                   className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none cursor-pointer"
                 >
+                  <option value="Non specificata">Non specificata</option>
                   <option value="Webinar B2B">Webinar B2B</option>
                   <option value="Google Ads">Google Ads</option>
                   <option value="Meta Ads">Meta Ads</option>
@@ -235,7 +238,8 @@ export const NewDealModal: React.FC = () => {
                   onChange={(e) => setSalesRep(e.target.value)}
                   className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none cursor-pointer"
                 >
-                  {salesReps.map((r) => (
+                  <option value={defaultRep}>{defaultRep}</option>
+                  {salesReps.filter((r) => r.name !== defaultRep).map((r) => (
                     <option key={r.id} value={r.name}>{r.name}</option>
                   ))}
                 </select>
@@ -246,6 +250,7 @@ export const NewDealModal: React.FC = () => {
                 <input
                   type="number"
                   required
+                  min="0"
                   value={value}
                   onChange={(e) => setValue(Number(e.target.value))}
                   className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none font-mono"
@@ -298,7 +303,8 @@ export const NewDealModal: React.FC = () => {
                   onChange={(e) => setActionWho(e.target.value)}
                   className="w-full bg-surface-container p-2 rounded-xl border border-outline-variant/30 text-on-surface outline-none cursor-pointer"
                 >
-                  {salesReps.map((r) => (
+                  <option value={defaultRep}>{defaultRep}</option>
+                  {salesReps.filter((r) => r.name !== defaultRep).map((r) => (
                     <option key={r.id} value={r.name}>{r.name}</option>
                   ))}
                 </select>

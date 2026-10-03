@@ -166,7 +166,7 @@ export function getSavedVoiceMode(): 'browser' | 'cloud_hd' {
   if (typeof window === 'undefined') return 'browser';
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_VOICE_MODE_KEY);
-    return saved === 'cloud_hd' ? 'cloud_hd' : 'browser';
+    return 'browser';
   } catch (e) {
     return 'browser';
   }
@@ -175,7 +175,7 @@ export function getSavedVoiceMode(): 'browser' | 'cloud_hd' {
 export function savePreferredVoiceMode(mode: 'browser' | 'cloud_hd') {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(LOCAL_STORAGE_VOICE_MODE_KEY, mode);
+    localStorage.setItem(LOCAL_STORAGE_VOICE_MODE_KEY, 'browser');
   } catch (e) {}
 }
 
@@ -217,55 +217,6 @@ export function speakHumanVoice(
   if (!cleaned) {
     callbacks?.onEnd?.();
     return;
-  }
-
-  const mode = getSavedVoiceMode();
-  const speed = getSavedVoiceSpeed();
-
-  // If Cloud HD is selected and user has OpenAI key stored
-  if (mode === 'cloud_hd') {
-    try {
-      const savedConfig = localStorage.getItem('hubc_crm_ai_provider_config_v1');
-      const apiKey = savedConfig ? JSON.parse(savedConfig).apiKey : '';
-
-      if (apiKey) {
-        callbacks?.onStart?.();
-        fetch('/api/tts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: cleaned,
-            voice: 'nova', // Warm feminine human voice
-            apiKey,
-          }),
-        })
-          .then((res) => {
-            if (!res.ok) throw new Error('Cloud TTS non disponibile');
-            return res.blob();
-          })
-          .then((blob) => {
-            const url = URL.createObjectURL(blob);
-            activeCloudAudio = new Audio(url);
-            activeCloudAudio.playbackRate = speed;
-            activeCloudAudio.onended = () => {
-              callbacks?.onEnd?.();
-              activeCloudAudio = null;
-            };
-            activeCloudAudio.onerror = (e) => {
-              // fallback to browser
-              activeCloudAudio = null;
-              fallbackBrowserSpeak(cleaned, callbacks, customVoiceName);
-            };
-            activeCloudAudio.play();
-          })
-          .catch(() => {
-            fallbackBrowserSpeak(cleaned, callbacks, customVoiceName);
-          });
-        return;
-      }
-    } catch (e) {
-      // Fallback to browser
-    }
   }
 
   // Browser speech synthesis fallback

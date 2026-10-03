@@ -1,5 +1,7 @@
 'use client';
 
+import { italianDateKey } from '@/lib/date';
+
 import React, { useState } from 'react';
 import { useCRM } from '@/lib/store';
 import { DealStage, Opportunity } from '@/types/crm';
@@ -70,29 +72,35 @@ export const OpportunitiesList: React.FC = () => {
 
   // Export CSV
   const handleExportCSV = () => {
-    const headers = ['ID', 'Cliente', 'Azienda', 'Brand', 'Servizio', 'Valore', 'Tipo', 'Fonte', 'Responsabile', 'Stato', 'Data Ingresso'];
+    const headers = ['ID', 'Cliente', 'Azienda', 'Brand', 'Servizio', 'Valore', 'Tipo', 'Fonte', 'Responsabile', 'Stato', 'Data Ingresso', 'Email', 'Telefono', 'Prossima azione', 'Data prossima azione'];
     const rows = filteredDeals.map((d) => [
       d.id,
-      `"${d.name}"`,
-      `"${d.company}"`,
+      d.name,
+      d.company,
       d.brand,
-      `"${d.service}"`,
+      d.service,
       d.value,
       d.valueType,
-      `"${d.leadSource}"`,
-      `"${d.salesRep}"`,
+      d.leadSource,
+      d.salesRep,
       d.stage,
       d.entryDate,
+      d.email || '', d.phone || '', d.nextAction?.what || '', d.nextAction?.when || '',
     ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const cell = (value: string | number) => {
+      const raw = String(value ?? '');
+      const safe = /^[\s]*[=+@-]/.test(raw) && typeof value !== 'number' ? `'${raw}` : raw;
+      return `"${safe.replace(/"/g, '""')}"`;
+    };
+    const csvContent = '\uFEFF' + [headers, ...rows].map((row) => row.map(cell).join(';')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `hub_commerciale_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.href = url;
+    link.download = `hub_commerciale_export_${italianDateKey()}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -197,8 +205,11 @@ export const OpportunitiesList: React.FC = () => {
                 filteredDeals.map((deal) => (
                   <tr
                     key={deal.id}
+                    tabIndex={0}
+                    aria-label={`Apri opportunità ${deal.company}`}
                     className="hover:bg-surface-container-low/60 transition-colors group cursor-pointer"
                     onClick={() => setSelectedDeal(deal)}
+                    onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedDeal(deal); } }}
                   >
                     {/* Cliente & Azienda */}
                     <td className="py-3 px-4">

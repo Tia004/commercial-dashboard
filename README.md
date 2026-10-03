@@ -1,98 +1,43 @@
-# Hub Commerciale - Executive Multi-Brand CRM & AI Copilot (v1.0.0-beta.1)
+# Hub Commerciale
 
-Dashboard commerciale direzionale creata per centralizzare, orchestrare e chiudere le vendite dei diversi brand aziendali: **NoLimits**, **Webissimo** e **Sapori**.
+CRM multi-brand per NoLimits, Webissimo e Sapori. La dashboard gestisce opportunità, attività, prossimi passi, stand-by, analisi e dieci code Focus per il lavoro quotidiano.
 
-Costruita in **Next.js 14**, **Tailwind CSS**, **libSQL / Turso** e dotata di **Agente AI autonomo (Gemini / Claude / OpenAI / NVIDIA / OpenRouter)** e **Server Model Context Protocol (MCP)** per Claude Desktop, Cowork e Codex.
-
----
-
-## ⚡ Caratteristiche Principali
-
-1. **Dashboard Direzionale & Cockpit Esecutivo**:
-   - Indicatori immediati: *Venduto*, *Pipeline attiva*, *Trattative in lavorazione*, *Appuntamenti*.
-   - Sezione prioritaria **"COSA DEVO FARE OGGI?"** con recupero automatico di chiamate, follow-up, appuntamenti, preventivi e scadenze.
-2. **Regola Fondamentale del CRM**:
-   - *Nessuna trattativa aperta può rimanere senza un prossimo step.*
-   - All'aggiunta, avanzamento o completamento di un'attività il sistema richiede obbligatoriamente: *"Qual è il prossimo step?"*.
-3. **Pipeline Kanban Interattiva**:
-   - Fasi dinamiche: *Nuovo lead → Conoscenza → Appuntamento → Trattativa → Chiusura*, più *Venduta*, *Persa* e *Stand-by*.
-   - Drag-and-drop con calcolo del volume finanziario per colonna.
-4. **Scheda Cliente 360 con Cronologia Reale**:
-   - Timeline degli eventi (es. *02/10 Lead → 03/10 Chiamata → 04/10 Video call → 04/10 Preventivo → 09/10 Vendita*).
-   - Generatore preventivi integrato e contatto istantaneo con WhatsApp, Telefono ed Email.
-5. **Autenticazione con Passkey (Touch ID su macOS & Windows Hello)**:
-   - Accesso biometrico senza password in 1 click tramite lo standard WebAuthn/FIDO2.
-6. **Agente AI Copilot & Voice Briefing**:
-   - Sintesi vocale briefing commerciale mattutino e dettatura microfonica con visualizzatore audio ad onda.
-   - Esecuzione autonoma di comandi (es: *"Crea lead Mario Rossi NoLimits €18.5k"*, *"Sposta TechSpa a Chiusura"*).
-   - Supporto universale: **Google Gemini 2.5 Flash Lite**, **OpenAI ChatGPT**, **Anthropic Claude**, **OpenRouter**, **NVIDIA NIM**, **Groq** o **Ollama/LM Studio**.
-7. **Database Turso Edge Cloud (10GB Gratuiti)**:
-   - Supporto nativo per connettere il database SQLite Edge su Turso con latenza < 20ms e 10GB di storage dedicati per ogni azienda.
-8. **Server MCP Universale Integrato**:
-   - Server MCP STDIO (`scripts/mcp-server.js`) ed endpoint HTTP/SSE (`/api/mcp`) per permettere ad agenti esterni (Claude Desktop, Cowork, Codex, Cursor, Goose, Windsurf) di interagire direttamente con la pipeline commerciale.
-9. **Triplo Tema Visivo**:
-   - **Light (Porcellana)**, **Slate (Dark Ardesia)** e **OLED (Nero Assoluto #000000)**.
-
----
-
-## 🚀 Avvio Locale
+## Avvio locale
 
 ```bash
-# Installa le dipendenze
 npm install
-
-# Avvia il server di sviluppo su http://localhost:3000
 npm run dev
-
-# Avvia il server MCP per Claude Desktop o Cowork
-npm run mcp
 ```
 
----
+In sviluppo il database viene creato in `data/commercial.sqlite` (ignorato da Git). Registra un account dall'interfaccia. I dati sono separati per ID account e salvati sul server. Se avevi dati nella versione precedente, usa **Impostazioni → Archivio dati → Importa dati locali precedenti** con un account ancora vuoto.
 
-## 🌐 Deploy su Vercel & Variabili d'Ambiente
+## Deploy Vercel
 
-Per pubblicare la dashboard su Vercel:
+Prima del deploy imposta **entrambe** le variabili d'ambiente del database:
 
-1. Collega il repository GitHub su [Vercel](https://vercel.com).
-2. Nella sezione **Environment Variables**, configura le seguenti chiavi:
+- `TURSO_DATABASE_URL`
+- `TURSO_AUTH_TOKEN`
 
-### 1. Database Turso (Consigliato per persistenza cloud 10GB)
-- `TURSO_DATABASE_URL`: L'URL del tuo database Turso (es. `libsql://tuo-db-org.turso.io`).
-- `TURSO_AUTH_TOKEN`: Il token di autenticazione generato da Turso.
+Senza database persistente il login in produzione risponde con un errore esplicito. Le password sono elaborate sul server con scrypt e sale casuale; le sessioni usano cookie HttpOnly, SameSite=Lax e Secure in produzione. Il login limita a 10 tentativi falliti per email ogni 15 minuti. L'accesso con passkey è disattivato fino alla verifica WebAuthn sul server. Per una distribuzione a clienti esterni servono ancora verifica email, recupero password e una policy di accesso del team.
 
-*(Se non configurate, la dashboard funziona ugualmente salvando i dati localmente nel browser).*
+## Integrazioni MCP
 
-### 2. Motore AI (Opzionale: puoi impostarle su Vercel o direttamente dalle Impostazioni della dashboard)
-- `GEMINI_API_KEY`: Chiave gratuita di Google AI Studio per Gemini 2.5 Flash Lite.
-- `OPENAI_API_KEY`: Per GPT-4o / GPT-4o-mini.
-- `ANTHROPIC_API_KEY`: Per Claude 3.5 Sonnet / Haiku.
-- `OPENROUTER_API_KEY`: Per accedere a oltre 200 modelli LLM con una sola chiave.
-- `NVIDIA_API_KEY`: Per i microservizi NVIDIA NIM.
+Lo script STDIO usa lo stesso database e richiede `MCP_OWNER_USER_ID`, corrispondente all'ID visibile in Impostazioni → Account. Avvio: `npm run mcp`. Configura anche le variabili Turso nel processo MCP se il database non è locale.
 
-### 3. URL Applicazione
-- `NEXT_PUBLIC_APP_URL`: Il dominio Vercel generato (es. `https://commercial-dashboard.vercel.app`).
+L'endpoint `/api/mcp` è un'API JSON per integrazioni, **non** un trasporto MCP HTTP/SSE standard. In produzione richiede `MCP_API_TOKEN` nell'header `Authorization: Bearer …` e `MCP_OWNER_USER_ID`. Espone `get_commercial_kpis`, `list_opportunities` e `create_opportunity`. Se le variabili non sono configurate, rifiuta le richieste. Non inserire token Turso o MCP nel browser.
 
----
+## Voce
 
-## 🔌 Configurazione Claude Desktop / Cowork / Codex (MCP)
+Il riepilogo vocale usa la sintesi del browser e le voci italiane installate sul dispositivo, senza API a pagamento. La qualità dipende dal sistema operativo e dalle voci disponibili. Il TTS cloud a pagamento è disattivato.
 
-Aggiungi il server nel tuo file di configurazione MCP (es. `~/Library/Application Support/Claude/claude_desktop_config.json`):
+## Risorse grafiche
 
-```json
-{
-  "mcpServers": {
-    "hub-commerciale": {
-      "command": "node",
-      "args": [
-        "/percorso/assoluto/commercial-dashboard/scripts/mcp-server.js"
-      ]
-    }
-  }
-}
+I font Inter e Plus Jakarta Sans sono distribuiti con licenza SIL OFL; Material Symbols è distribuito con licenza Apache 2.0. I testi delle licenze sono in `public/fonts/`.
+
+## Verifica
+
+```bash
+npm run build
 ```
 
----
-
-## 📦 Versionamento
-- **v1.0.0-beta.1**: Release beta iniziale completa con suite multi-brand, passkey, multi-LLM, Turso DB e server MCP.
+Prima di offrire il prodotto a una realtà esterna, completare i punti di sicurezza e onboarding sopra indicati, configurare il database persistente e verificare il deployment con account reali di test.

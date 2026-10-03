@@ -1,26 +1,19 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { timingSafeEqual } from 'crypto';
+import { getServerDb } from '@/lib/serverDb';
+import { italianDateKey } from '@/lib/date';
 
-const DB_PATH = path.join(process.cwd(), 'data', 'crm-store.json');
-
-function getDB() {
-  try {
-    if (fs.existsSync(DB_PATH)) {
-      return JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-    }
-  } catch (e) {
-    console.error(e);
-  }
-  return { opportunities: [], tasks: [], brands: ['NoLimits', 'Webissimo', 'Sapori'] };
+async function getDB() {
+  const owner = process.env.MCP_OWNER_USER_ID;
+  if (!owner) throw new Error('MCP_OWNER_USER_ID non configurato.');
+  const db = await getServerDb();
+  const result = await db.execute({ sql: 'SELECT payload FROM crm_data WHERE user_id = ?', args: [owner] });
+  return result.rows.length ? JSON.parse(String(result.rows[0].payload)) : { opportunities: [], tasks: [], brands: ['NoLimits', 'Webissimo', 'Sapori'], salesReps: [] };
 }
 
-function saveDB(data: any) {
-  try {
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (e) {
-    console.error(e);
-  }
+async function saveDB(data: any) {
+  const db = await getServerDb();
+  await db.execute({ sql: 'INSERT INTO crm_data(user_id,payload,updated_at) VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at', args: [process.env.MCP_OWNER_USER_ID!, JSON.stringify(data), new Date().toISOString()] });
 }
 
 export async function GET() {
@@ -28,26 +21,27 @@ export async function GET() {
   return NextResponse.json({
     name: 'hub-commerciale-mcp-http',
     version: '1.0.0',
-    status: 'online',
+    status: process.env.MCP_API_TOKEN && process.env.MCP_OWNER_USER_ID ? 'configured' : 'not_configured',
     tools: [
       'get_commercial_kpis',
       'list_opportunities',
       'create_opportunity',
-      'update_opportunity_stage',
-      'set_next_action',
-      'get_today_activities',
-      'snooze_opportunity',
-      'complete_activity',
     ],
   });
 }
 
 export async function POST(req: Request) {
   try {
+    const configuredToken = process.env.MCP_API_TOKEN;
+    if (!configuredToken || !process.env.MCP_OWNER_USER_ID) return NextResponse.json({ success: false, error: 'MCP HTTP non configurato.' }, { status: 503 });
+    const suppliedToken = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || '';
+    const expected = Buffer.from(configuredToken);
+    const actual = Buffer.from(suppliedToken);
+    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return NextResponse.json({ success: false, error: 'Non autorizzato.' }, { status: 401 });
     const body = await req.json();
     const { action, params } = body;
-    const db = getDB();
-    const today = new Date().toISOString().split('T')[0];
+    const db = await getDB();
+    const today = italianDateKey();
 
     switch (action) {
       case 'get_commercial_kpis': {
@@ -55,7 +49,7 @@ export async function POST(req: Request) {
         const sold = deals
           .filter((d: any) => d.stage === 'Venduta')
           .reduce((sum: number, d: any) => sum + (d.valueType === 'Mensile' ? d.value * 12 : d.value), 0);
-        const openDeals = deals.filter((d: any) => d.stage !== 'Venduta' && d.stage !== 'Persa');
+        const openDeals = deals.filter((d: any) => !['Venduta', 'Persa', 'Stand-by'].includes(d.stage));
         const pipeline = openDeals.reduce((sum: number, d: any) => sum + (d.valueType === 'Mensile' ? d.value * 12 : d.value), 0);
 
         return NextResponse.json({
@@ -77,23 +71,24 @@ export async function POST(req: Request) {
       }
 
       case 'create_opportunity': {
-        const id = `NL-${Math.floor(1000 + Math.random() * 9000)}`;
+        if (!params || !String(params.name || '').trim() || !String(params.company || '').trim() || !String(params.salesRep || '').trim() || !String(params.nextActionWhat || '').trim() || !/^\d{4}-\d{2}-\d{2}$/.test(String(params.nextActionWhen || '')) || !Number.isFinite(Number(params.value)) || Number(params.value) < 0) return NextResponse.json({ success: false, error: 'Nome, azienda, responsabile, valore e prossima azione sono obbligatori.' }, { status: 400 });
+        const id = `${String(params.brand || 'NoLimits').slice(0, 2).toUpperCase()}-${crypto.randomUUID().slice(0, 8)}`;
         const newDeal = {
           id,
-          name: params.name,
-          company: params.company,
+          name: String(params.name).trim(),
+          company: String(params.company).trim(),
           brand: params.brand || 'NoLimits',
           service: params.service || 'Consulenza',
-          value: params.value || 10000,
+          value: Number(params.value),
           valueType: params.valueType || 'One Shot',
-          salesRep: params.salesRep || 'Commerciale Responsabile',
+          salesRep: String(params.salesRep).trim(),
           leadSource: 'MCP HTTP Inbound',
           entryDate: today,
           stage: 'Nuovo lead',
           nextAction: {
-            what: params.nextActionWhat || 'Primo contatto conoscitivo',
-            who: params.salesRep || 'Commerciale Responsabile',
-            when: params.nextActionWhen || today,
+            what: String(params.nextActionWhat).trim(),
+            who: String(params.salesRep).trim(),
+            when: params.nextActionWhen,
             type: 'chiamata',
             priority: 'Alta',
             completed: false,
@@ -101,7 +96,9 @@ export async function POST(req: Request) {
           history: [],
         };
         db.opportunities.unshift(newDeal);
-        saveDB(db);
+        db.tasks ||= [];
+        db.tasks.unshift({ id: `tsk-${crypto.randomUUID()}`, dealId: id, dealTitle: `${newDeal.company} - ${newDeal.name}`, title: newDeal.nextAction.what, client: newDeal.name, brand: newDeal.brand, assignedTo: newDeal.salesRep, type: 'chiamata', priority: 'Alta', date: newDeal.nextAction.when, time: '10:00', status: 'Da fare' });
+        await saveDB(db);
         return NextResponse.json({ success: true, deal: newDeal });
       }
 

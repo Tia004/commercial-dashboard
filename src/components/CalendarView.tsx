@@ -1,5 +1,7 @@
 'use client';
 
+import { italianDateKey } from '@/lib/date';
+
 import React, { useState } from 'react';
 import { useCRM } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
@@ -19,7 +21,7 @@ export const CalendarView: React.FC = () => {
   const [newBrand, setNewBrand] = useState('NoLimits');
   const [newRep, setNewRep] = useState(user?.name || salesReps[0]?.name || 'Commerciale');
   const [newType, setNewType] = useState<ActivityType>('chiamata');
-  const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newDate, setNewDate] = useState(italianDateKey());
   const [newTime, setNewTime] = useState('10:00');
   const [newDesc, setNewDesc] = useState('');
 

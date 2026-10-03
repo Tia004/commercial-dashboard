@@ -1,5 +1,7 @@
 'use client';
 
+import { italianDateAfterDays } from '@/lib/date';
+
 import React, { useState } from 'react';
 import { useCRM } from '@/lib/store';
 import { Opportunity, DealStage, ActivityType } from '@/types/crm';
@@ -31,9 +33,9 @@ export const DealModal: React.FC = () => {
 
   // Standby quick state
   const [isStandbyOpen, setIsStandbyOpen] = useState(false);
-  const [standbyReason, setStandbyReason] = useState('Attesa approvazione budget');
+  const [standbyReason, setStandbyReason] = useState('');
   const [standbyDate, setStandbyDate] = useState(
-    new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
+    italianDateAfterDays(30)
   );
 
   // Quotation Generator state
@@ -159,7 +161,7 @@ export const DealModal: React.FC = () => {
             {stages.map((st, idx) => (
               <button
                 key={st}
-                onClick={() => moveDealStage(selectedDeal.id, st)}
+                onClick={() => st === 'Stand-by' ? setIsStandbyOpen(true) : moveDealStage(selectedDeal.id, st)}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
                   selectedDeal.stage === st
                     ? 'bg-primary text-on-primary shadow-sm ring-2 ring-primary/30'

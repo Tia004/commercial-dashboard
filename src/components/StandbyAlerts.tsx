@@ -1,5 +1,7 @@
 'use client';
 
+import { italianDateKey, italianDateAfterDays } from '@/lib/date';
+
 import React, { useState } from 'react';
 import { useCRM } from '@/lib/store';
 import { Opportunity } from '@/types/crm';
@@ -14,12 +16,12 @@ export const StandbyAlerts: React.FC = () => {
     triggerNextStepPrompt,
   } = useCRM();
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = italianDateKey();
 
   const [snoozeModalDeal, setSnoozeModalDeal] = useState<Opportunity | null>(null);
   const [snoozeReason, setSnoozeReason] = useState('Cliente in attesa di budget trimestrale');
   const [snoozeDate, setSnoozeDate] = useState(
-    new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
+    italianDateAfterDays(30)
   );
 
   const standbyDeals = opportunities.filter((d) => d.stage === 'Stand-by');

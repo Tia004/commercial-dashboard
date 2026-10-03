@@ -1,3 +1,4 @@
+import { italianDateKey, italianDateAfterDays } from '@/lib/date';
 import { Opportunity, CommercialTask, SalesRep, Brand } from '@/types/crm';
 
 export const INITIAL_BRANDS: Brand[] = ['NoLimits', 'Webissimo', 'Sapori'];
@@ -15,9 +16,9 @@ export const INITIAL_OPPORTUNITIES: Opportunity[] = [];
 export const INITIAL_TASKS: CommercialTask[] = [];
 
 // Optional Demo Data for testing if the user explicitly clicks "Carica Dati Demo"
-const today = new Date().toISOString().split('T')[0];
-const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+const today = italianDateKey();
+const yesterday = italianDateAfterDays(-1);
+const tomorrow = italianDateAfterDays(1);
 
 export const DEMO_OPPORTUNITIES: Opportunity[] = [
   {

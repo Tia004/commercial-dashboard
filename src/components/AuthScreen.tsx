@@ -111,8 +111,8 @@ export const AuthScreen: React.FC = () => {
             </h1>
             <p className="text-xs text-on-surface-variant max-w-xs">
               {mode === 'login'
-                ? 'Inserisci le tue credenziali o autenticati con la tua Passkey biometrica.'
-                : 'Crea il tuo profilo per gestire vendite, pipeline e compiti aziendali.'}
+                ? 'Accedi con la tua email e password.'
+                : 'Crea uno spazio protetto per gestire la tua attività commerciale.'}
             </p>
           </div>
 
@@ -209,21 +209,7 @@ export const AuthScreen: React.FC = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="font-bold text-on-surface-variant block mb-1">
-                    Ruolo Commerciale
-                  </label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none cursor-pointer"
-                  >
-                    <option value="Direttore Commerciale">Direttore Commerciale (Admin)</option>
-                    <option value="Senior Sales Closer">Senior Sales Closer</option>
-                    <option value="Enterprise Key Account">Enterprise Key Account</option>
-                    <option value="Sales Representative">Sales Representative</option>
-                  </select>
-                </div>
+
               </>
             )}
 
@@ -248,9 +234,11 @@ export const AuthScreen: React.FC = () => {
               <input
                 type="password"
                 required
-                placeholder="Minimo 6 caratteri"
+                placeholder="Minimo 12 caratteri"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                minLength={mode === 'register' ? 12 : undefined}
+                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                 className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none font-mono"
               />
             </div>
@@ -285,7 +273,7 @@ export const AuthScreen: React.FC = () => {
 
       {/* Footer */}
       <div className="max-w-6xl w-full mx-auto text-center text-xs text-on-surface-variant">
-        <span>Hub Commerciale Multi-Brand • NoLimits, Webissimo, Sapori • Sicurezza WebAuthn FIDO2</span>
+        <span>Hub Commerciale Multi-Brand • NoLimits, Webissimo, Sapori • Accesso protetto</span>
       </div>
     </div>
   );

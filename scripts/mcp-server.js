@@ -11,28 +11,22 @@ const {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } = require('@modelcontextprotocol/sdk/types.js');
-const fs = require('fs');
+const { createClient } = require('@libsql/client');
 const path = require('path');
-
-const DB_PATH = path.join(__dirname, '..', 'data', 'crm-store.json');
-
-function loadDB() {
-  try {
-    if (fs.existsSync(DB_PATH)) {
-      return JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-    }
-  } catch (e) {
-    console.error('Error reading CRM DB:', e);
-  }
-  return { opportunities: [], tasks: [], brands: ['NoLimits', 'Webissimo', 'Sapori'] };
+const { randomUUID } = require('crypto');
+const owner = process.env.MCP_OWNER_USER_ID;
+if (!owner) { console.error('Configura MCP_OWNER_USER_ID con l’ID dell’account autorizzato.'); process.exit(1); }
+const dbClient = createClient({
+  url: process.env.TURSO_DATABASE_URL || `file:${path.join(__dirname, '..', 'data', 'commercial.sqlite')}`,
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
+async function loadDB() {
+  await dbClient.execute('CREATE TABLE IF NOT EXISTS crm_data (user_id TEXT PRIMARY KEY, payload TEXT NOT NULL, updated_at TEXT NOT NULL)');
+  const result = await dbClient.execute({ sql: 'SELECT payload FROM crm_data WHERE user_id = ?', args: [owner] });
+  return result.rows.length ? JSON.parse(String(result.rows[0].payload)) : { opportunities: [], tasks: [], brands: ['NoLimits', 'Webissimo', 'Sapori'], salesReps: [] };
 }
-
-function saveDB(data) {
-  try {
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (e) {
-    console.error('Error writing CRM DB:', e);
-  }
+async function saveDB(data) {
+  await dbClient.execute({ sql: 'INSERT INTO crm_data(user_id,payload,updated_at) VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at', args: [owner, JSON.stringify(data), new Date().toISOString()] });
 }
 
 const server = new Server(
@@ -160,6 +154,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           type: 'object',
           properties: {
             taskId: { type: 'string', description: 'ID dell\'attività' },
+            nextActionWhat: { type: 'string', description: 'Nuova azione obbligatoria per trattative ancora aperte' },
+            nextActionWhen: { type: 'string', description: 'Data della nuova azione (YYYY-MM-DD)' },
           },
           required: ['taskId'],
         },
@@ -171,8 +167,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 // Handle Tool Calls
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
-  const db = loadDB();
-  const today = new Date().toISOString().split('T')[0];
+  const db = await loadDB();
+  const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
   switch (name) {
     case 'get_commercial_kpis': {
@@ -185,7 +181,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         .filter((d) => d.stage === 'Venduta')
         .reduce((sum, d) => sum + (d.valueType === 'Mensile' ? d.value * 12 : d.value), 0);
 
-      const openDeals = filtered.filter((d) => d.stage !== 'Venduta' && d.stage !== 'Persa');
+      const openDeals = filtered.filter((d) => !['Venduta', 'Persa', 'Stand-by'].includes(d.stage));
       const pipeline = openDeals.reduce((sum, d) => sum + (d.valueType === 'Mensile' ? d.value * 12 : d.value), 0);
       const meetings = (db.tasks || []).filter((t) => t.type === 'appuntamento' && t.status !== 'Completata').length;
 
@@ -199,7 +195,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 pipelineAttiva: `€ ${pipeline.toLocaleString()}`,
                 trattativeAperte: openDeals.length,
                 appuntamentiProgrammati: meetings,
-                winRate: '82%',
+                winRate: (() => { const closed = filtered.filter((d) => ['Venduta', 'Persa'].includes(d.stage)); return closed.length ? Math.round(closed.filter((d) => d.stage === 'Venduta').length / closed.length * 100) + '%' : '—'; })(),
                 brandMonitorati: db.brands,
               },
               null,
@@ -227,8 +223,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case 'create_opportunity': {
+      if (!args?.name?.trim() || !args?.company?.trim() || !args?.nextActionWhat?.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(String(args.nextActionWhen || '')) || !Number.isFinite(args.value) || args.value < 0) return { isError: true, content: [{ type: 'text', text: 'Dati cliente, valore e prossima azione validi sono obbligatori.' }] };
       const brandPrefix = (args.brand || 'NL').substring(0, 2).toUpperCase();
-      const id = `${brandPrefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const id = `${brandPrefix}-${randomUUID().slice(0, 8).toUpperCase()}`;
 
       const newDeal = {
         id,
@@ -270,7 +267,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // Auto-schedule task
       const newTask = {
-        id: `tsk-${Date.now()}`,
+        id: `tsk-${randomUUID()}`,
         dealId: newDeal.id,
         title: args.nextActionWhat,
         client: newDeal.name,
@@ -284,7 +281,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
       db.tasks.unshift(newTask);
 
-      saveDB(db);
+      await saveDB(db);
 
       return {
         content: [
@@ -302,6 +299,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { isError: true, content: [{ type: 'text', text: `Trattativa ${args.dealId} non trovata.` }] };
       }
 
+      if (!['Nuovo lead', 'Conoscenza', 'Appuntamento', 'Trattativa', 'Chiusura', 'Venduta', 'Persa'].includes(args.newStage)) return { isError: true, content: [{ type: 'text', text: 'Fase non valida. Per lo stand-by usa snooze_opportunity con motivo e data.' }] };
+      if (!['Venduta', 'Persa'].includes(args.newStage) && (!deal.nextAction?.what || deal.nextAction.completed)) return { isError: true, content: [{ type: 'text', text: 'Imposta prima una prossima azione valida.' }] };
       deal.stage = args.newStage;
       deal.history.unshift({
         id: `h-${Date.now()}`,
@@ -311,7 +310,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         author: 'MCP AI Client',
       });
 
-      saveDB(db);
+      await saveDB(db);
       return {
         content: [
           {
@@ -327,6 +326,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       if (!deal) {
         return { isError: true, content: [{ type: 'text', text: `Trattativa ${args.dealId} non trovata.` }] };
       }
+      if (!String(args.what || '').trim() || !/^\d{4}-\d{2}-\d{2}$/.test(String(args.when || ''))) return { isError: true, content: [{ type: 'text', text: 'Descrizione e data della prossima azione sono obbligatorie.' }] };
 
       deal.nextAction = {
         what: args.what,
@@ -346,7 +346,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         author: 'MCP AI Client',
       });
 
-      saveDB(db);
+      db.tasks = db.tasks || [];
+      db.tasks.unshift({ id: `tsk-${randomUUID()}`, dealId: deal.id, title: args.what, client: deal.name, brand: deal.brand, assignedTo: args.who || deal.salesRep, type: args.type || 'chiamata', priority: args.priority || 'Alta', date: args.when, time: args.time || '10:00', status: 'Da fare' });
+
+      await saveDB(db);
       return {
         content: [
           {
@@ -376,7 +379,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { isError: true, content: [{ type: 'text', text: `Trattativa ${args.dealId} non trovata.` }] };
       }
 
+      if (!String(args.reason || '').trim() || !/^\d{4}-\d{2}-\d{2}$/.test(String(args.reactivationDate || ''))) return { isError: true, content: [{ type: 'text', text: 'Motivo e data di riattivazione validi sono obbligatori.' }] };
       deal.stage = 'Stand-by';
+      deal.nextAction = { what: `Riattivare trattativa: ${args.reason}`, who: deal.salesRep, when: args.reactivationDate, time: '09:30', type: 'standby-wake', priority: 'Alta', completed: false };
       deal.standbyReason = args.reason;
       deal.standbyReactivationDate = args.reactivationDate;
       deal.history.unshift({
@@ -388,7 +393,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         author: 'MCP AI Client',
       });
 
-      saveDB(db);
+      db.tasks = db.tasks || [];
+      db.tasks.unshift({ id: `tsk-${randomUUID()}`, dealId: deal.id, title: deal.nextAction.what, client: deal.name, brand: deal.brand, assignedTo: deal.salesRep, type: 'standby-wake', priority: 'Alta', date: args.reactivationDate, time: '09:30', status: 'Da fare' });
+
+      await saveDB(db);
       return {
         content: [
           {
@@ -405,8 +413,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { isError: true, content: [{ type: 'text', text: `Task ${args.taskId} non trovato.` }] };
       }
 
+      const linkedDeal = (db.opportunities || []).find((d) => d.id === task.dealId);
+      if (linkedDeal && !['Venduta', 'Persa'].includes(linkedDeal.stage)) {
+        if (!String(args.nextActionWhat || '').trim() || !/^\d{4}-\d{2}-\d{2}$/.test(String(args.nextActionWhen || ''))) return { isError: true, content: [{ type: 'text', text: 'La trattativa richiede una nuova azione con data prima di completare l’attività.' }] };
+        linkedDeal.nextAction = { what: args.nextActionWhat, who: linkedDeal.salesRep, when: args.nextActionWhen, type: 'follow-up', priority: 'Alta', completed: false };
+        db.tasks.unshift({ id: `tsk-${Date.now()}`, dealId: linkedDeal.id, title: args.nextActionWhat, client: linkedDeal.name, brand: linkedDeal.brand, assignedTo: linkedDeal.salesRep, type: 'follow-up', priority: 'Alta', date: args.nextActionWhen, time: '10:00', status: 'Da fare' });
+      }
       task.status = 'Completata';
-      saveDB(db);
+      await saveDB(db);
       return {
         content: [
           {

@@ -16,33 +16,42 @@ import { NewDealModal } from '@/components/NewDealModal';
 import { SettingsMcpModal } from '@/components/SettingsMcpModal';
 import { AuthModal } from '@/components/AuthModal';
 import { AuthScreen } from '@/components/AuthScreen';
+import { SalesFocus } from '@/components/SalesFocus';
+import { useCRM } from '@/lib/store';
 
 export default function HomePage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+  const { dataReady, syncStatus } = useCRM();
   const [activeTab, setActiveTab] = useState<ActiveTab>('cockpit');
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  if (isLoading) return <div className="app-loading" role="status">Caricamento workspace…</div>;
 
   // If not authenticated, show the Login/Registration Portal
   if (!isAuthenticated) {
     return <AuthScreen />;
   }
+  if (!dataReady && syncStatus === 'error') return <div className="app-loading"><div className="load-error"><strong>Impossibile caricare i dati</strong><p>Controlla la connessione e la configurazione del database.</p><button onClick={() => window.location.reload()}>Riprova</button></div></div>;
+  if (!dataReady) return <div className="app-loading" role="status">Caricamento dati commerciali…</div>;
 
   return (
-    <div className="flex min-h-screen bg-surface text-on-surface antialiased">
+    <div className="app-shell">
       {/* 1. Fixed Left Sidebar */}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
       {/* 2. Main Content Wrapper */}
-      <div className="pl-72 flex flex-col flex-1 min-h-screen w-full">
+      <div className="app-main-wrap">
         {/* Fixed Top Header */}
-        <Header />
+        <Header onMenu={() => setMobileOpen(true)} />
 
         {/* Dynamic Main Viewport */}
-        <main className="w-full pt-20 px-6 lg:px-8 flex-1">
+        <main className="app-main" id="main-content">
           {activeTab === 'cockpit' && (
             <ExecutiveCockpit onNavigateToTab={(t) => setActiveTab(t)} />
           )}
 
           {activeTab === 'kanban' && <PipelineKanban />}
+          {activeTab === 'focus' && <SalesFocus />}
 
           {activeTab === 'opportunities' && <OpportunitiesList />}
 

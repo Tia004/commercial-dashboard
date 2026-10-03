@@ -1,6 +1,9 @@
 'use client';
 
+import { italianDateKey } from '@/lib/date';
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './auth';
 import {
   Opportunity,
   CommercialTask,
@@ -34,6 +37,9 @@ interface CRMContextType {
   alerts: CommercialAlert[];
   kpis: KPISummary;
   geminiApiKey: string;
+  syncStatus: 'loading' | 'saved' | 'saving' | 'error';
+  dataReady: boolean;
+  importLegacyData: () => { success: boolean; message: string };
 
   // Next step prompt modal state
   nextStepModalDeal: Opportunity | null;
@@ -85,13 +91,14 @@ interface CRMContextType {
 
 const CRMContext = createContext<CRMContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY_DEALS = 'hubc_crm_opportunities_v2';
-const LOCAL_STORAGE_KEY_TASKS = 'hubc_crm_tasks_v2';
-const LOCAL_STORAGE_KEY_BRANDS = 'hubc_crm_brands_v2';
 const LOCAL_STORAGE_KEY_THEME = 'hubc_crm_theme_v1';
 const LOCAL_STORAGE_KEY_GEMINI_KEY = 'hubc_crm_gemini_key_v1';
 
 export function CRMProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const userId = user?.id;
+  const [dataReady, setDataReady] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'loading' | 'saved' | 'saving' | 'error'>('loading');
   const [opportunities, setOpportunities] = useState<Opportunity[]>(INITIAL_OPPORTUNITIES);
   const [tasks, setTasks] = useState<CommercialTask[]>(INITIAL_TASKS);
   const [brands, setBrands] = useState<Brand[]>(INITIAL_BRANDS);
@@ -122,43 +129,40 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         setGeminiApiKeyState(savedApiKey);
       }
 
-      const savedDeals = localStorage.getItem(LOCAL_STORAGE_KEY_DEALS);
-      if (savedDeals) {
-        setOpportunities(JSON.parse(savedDeals));
-      }
-
-      const savedTasks = localStorage.getItem(LOCAL_STORAGE_KEY_TASKS);
-      if (savedTasks) {
-        setTasks(JSON.parse(savedTasks));
-      }
-
-      const savedBrands = localStorage.getItem(LOCAL_STORAGE_KEY_BRANDS);
-      if (savedBrands) {
-        setBrands(JSON.parse(savedBrands));
-      }
     } catch (e) {
       console.warn('LocalStorage error:', e);
     }
   }, []);
 
-  // Save to local storage on changes
+  // The CRM archive belongs to the authenticated account and is stored server-side.
   useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY_DEALS, JSON.stringify(opportunities));
-    } catch (e) {}
-  }, [opportunities]);
+    setDataReady(false);
+    if (!userId) { setOpportunities([]); setTasks([]); setBrands(INITIAL_BRANDS); setSalesReps([]); return; }
+    let cancelled = false;
+    setSyncStatus('loading');
+    fetch('/api/crm', { cache: 'no-store' }).then(async (r) => { if (!r.ok) throw new Error('load'); return r.json(); })
+      .then(({ data }) => {
+        if (cancelled) return;
+        setOpportunities(data?.opportunities || []);
+        setTasks(data?.tasks || []);
+        setBrands(data?.brands || INITIAL_BRANDS);
+        setSalesReps(data?.salesReps || []);
+        setDataReady(true);
+        setSyncStatus('saved');
+      }).catch(() => { if (!cancelled) setSyncStatus('error'); });
+    return () => { cancelled = true; };
+  }, [userId]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY_TASKS, JSON.stringify(tasks));
-    } catch (e) {}
-  }, [tasks]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY_BRANDS, JSON.stringify(brands));
-    } catch (e) {}
-  }, [brands]);
+    if (!userId || !dataReady) return;
+    setSyncStatus('saving');
+    const timer = window.setTimeout(() => {
+      fetch('/api/crm', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ opportunities, tasks, brands, salesReps }) })
+        .then((r) => { if (!r.ok) throw new Error('save'); setSyncStatus('saved'); })
+        .catch(() => setSyncStatus('error'));
+    }, 650);
+    return () => window.clearTimeout(timer);
+  }, [userId, dataReady, opportunities, tasks, brands, salesReps]);
 
   const setTheme = (newTheme: 'light' | 'slate' | 'oled') => {
     setThemeState(newTheme);
@@ -176,7 +180,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Stand-by auto-reactivation check
-  const today = new Date().toISOString().split('T')[0];
+  const today = italianDateKey();
 
   // Calculate dynamic alerts
   const alerts: CommercialAlert[] = [];
@@ -288,17 +292,19 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     .filter((d) => d.stage === 'Venduta')
     .reduce((sum, d) => sum + getNormalizedValue(d), 0);
 
-  const openDeals = filteredDeals.filter((d) => d.stage !== 'Venduta' && d.stage !== 'Persa');
+  const openDeals = filteredDeals.filter((d) => d.stage !== 'Venduta' && d.stage !== 'Persa' && d.stage !== 'Stand-by');
   const pipelineTotal = openDeals.reduce((sum, d) => sum + getNormalizedValue(d), 0);
   const openDealsCount = openDeals.length;
 
   const scheduledMeetingsCount = tasks.filter(
-    (t) => t.type === 'appuntamento' && t.status !== 'Completata'
+    (t) => t.type === 'appuntamento' && t.status !== 'Completata' &&
+      (selectedBrand === 'all' || t.brand === selectedBrand) &&
+      (selectedRep === 'all' || t.assignedTo === selectedRep)
   ).length;
 
   const totalClosed = filteredDeals.filter((d) => d.stage === 'Venduta' || d.stage === 'Persa').length;
   const wonCount = filteredDeals.filter((d) => d.stage === 'Venduta').length;
-  const winRate = totalClosed > 0 ? Math.round((wonCount / totalClosed) * 100) : 75;
+  const winRate = totalClosed > 0 ? Math.round((wonCount / totalClosed) * 100) : 0;
 
   const kpis: KPISummary = {
     soldTotal,
@@ -314,8 +320,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     data: Omit<Opportunity, 'id' | 'history'> & { initialHistoryTitle?: string }
   ): Opportunity => {
     const brandPrefix = data.brand.substring(0, 2).toUpperCase();
-    const randomId = Math.floor(1000 + Math.random() * 9000);
-    const id = `${brandPrefix}-${randomId}`;
+    const id = `${brandPrefix}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
     const newDeal: Opportunity = {
       ...data,
@@ -383,6 +388,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const moveDealStage = (id: string, newStage: DealStage) => {
     const deal = opportunities.find((d) => d.id === id);
     if (!deal) return;
+    if (newStage === 'Stand-by') { setSelectedDeal(deal); return; }
 
     const oldStage = deal.stage;
     const historyItem: ActivityHistoryItem = {
@@ -400,8 +406,12 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       history: [historyItem, ...deal.history],
     };
 
+    if (newStage !== 'Venduta' && newStage !== 'Persa' && deal.nextAction) {
+      updates.nextAction = { ...deal.nextAction, completed: true };
+    }
+
     if (newStage === 'Venduta') {
-      updates.winDate = new Date().toISOString().split('T')[0];
+      updates.winDate = italianDateKey();
     }
 
     updateOpportunity(id, updates);
@@ -501,7 +511,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const addTask = (taskData: Omit<CommercialTask, 'id'>): CommercialTask => {
     const newTask: CommercialTask = {
       ...taskData,
-      id: `tsk-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: `tsk-${crypto.randomUUID()}`,
     };
     setTasks((prev) => [newTask, ...prev]);
     return newTask;
@@ -521,6 +531,9 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     if (task.dealId) {
       const deal = opportunities.find((d) => d.id === task.dealId);
       if (deal) {
+        if (deal.nextAction && deal.stage !== 'Venduta' && deal.stage !== 'Persa') {
+          updateOpportunity(deal.id, { nextAction: { ...deal.nextAction, completed: true } });
+        }
         addDealHistoryLog(deal.id, {
           date: new Date().toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }),
           title: `Attività completata: ${task.title}`,
@@ -530,7 +543,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         });
 
         // Trigger the mandatory "Qual è il prossimo step?" prompt!
-        triggerNextStepPrompt(deal);
+        triggerNextStepPrompt(deal.nextAction ? { ...deal, nextAction: { ...deal.nextAction, completed: true } } : deal);
       }
     }
   };
@@ -567,62 +580,10 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   ): Promise<{ success: boolean; message: string; data?: any }> => {
     const lower = instruction.toLowerCase();
 
-    // 1. Check if user wants to create a new opportunity
+    // Structured deal creation stays in the validated form; free text must not invent contact data.
     if (lower.includes('crea') && (lower.includes('opportunità') || lower.includes('lead') || lower.includes('trattativa'))) {
-      // Extract details with regex or defaults
-      let brand: Brand = 'NoLimits';
-      if (lower.includes('webissimo')) brand = 'Webissimo';
-      if (lower.includes('sapori')) brand = 'Sapori';
-
-      // Value extraction
-      const valueMatch = instruction.match(/(\d+[\d\.,]*)\s*(€|euro|k)/i);
-      let value = 15000;
-      if (valueMatch) {
-        let num = parseFloat(valueMatch[1].replace('.', '').replace(',', '.'));
-        if (valueMatch[2].toLowerCase() === 'k') num *= 1000;
-        value = num;
-      }
-
-      // Name extraction
-      let name = 'Nuovo Cliente AI';
-      let company = 'Azienda Lead S.r.l.';
-      const nameMatch = instruction.match(/(?:per|cliente|nome)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
-      if (nameMatch) {
-        name = nameMatch[1];
-        company = `${nameMatch[1]} Group`;
-      }
-
-      const created = addOpportunity({
-        name,
-        company,
-        brand,
-        service: brand === 'NoLimits' ? 'Gestione Meta Ads' : brand === 'Webissimo' ? 'E-Commerce Shopify Plus' : 'Food Marketing & Margini',
-        leadSource: 'AI Autonomous Lead Inbound',
-        salesRep: salesReps[0]?.name || 'Commerciale Responsabile',
-        phone: '+39 02 ' + Math.floor(1000000 + Math.random() * 9000000),
-        whatsapp: '+39340' + Math.floor(1000000 + Math.random() * 9000000),
-        email: `${name.toLowerCase().replace(/\s+/g, '.')}@azienda.it`,
-        value,
-        valueType: 'One Shot',
-        entryDate: today,
-        stage: 'Nuovo lead',
-        notes: `Generata automaticamente dall'Agente AI in base all'istruzione: "${instruction}"`,
-        nextAction: {
-          what: `Primo contatto telefonico conoscitivo con ${name}`,
-          who: salesReps[0]?.name || 'Commerciale Responsabile',
-          when: today,
-          time: '11:30',
-          type: 'chiamata',
-          priority: 'Alta',
-          completed: false,
-        },
-      });
-
-      return {
-        success: true,
-        message: `Ho creato con successo l'opportunità per ${created.name} (${created.company}) sotto il brand ${created.brand}, valore €${created.value.toLocaleString()}, con primo contatto telefonico programmato per oggi alle 11:30!`,
-        data: created,
-      };
+      setIsNewDealModalOpen(true);
+      return { success: false, message: 'Ho aperto il modulo: inserisci i dati del cliente e la prossima azione per creare la trattativa.' };
     }
 
     // 2. Check if user wants to move deal stage
@@ -642,7 +603,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
           lower.includes(d.name.toLowerCase()) ||
           lower.includes(d.company.toLowerCase()) ||
           lower.includes(d.id.toLowerCase())
-      ) || opportunities[0];
+      );
 
       if (matchedDeal) {
         moveDealStage(matchedDeal.id, targetStage);
@@ -654,41 +615,26 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // 3. Check if user wants to snooze / standby
     if (lower.includes('stand-by') || lower.includes('standby') || lower.includes('snooze') || lower.includes('congela')) {
-      const matchedDeal = opportunities.find(
-        (d) =>
-          lower.includes(d.name.toLowerCase()) ||
-          lower.includes(d.company.toLowerCase())
-      ) || opportunities[0];
-
-      if (matchedDeal) {
-        const nextMonth = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
-        snoozeDeal(matchedDeal.id, 'Richiesta esplicita cliente (AI Copilot)', nextMonth);
-        return {
-          success: true,
-          message: `Ho messo in Stand-by la trattativa di ${matchedDeal.name} (${matchedDeal.company}) fino al ${nextMonth} con sveglia automatica impostata.`,
-          data: { dealId: matchedDeal.id, reactivationDate: nextMonth },
-        };
-      }
+      return { success: false, message: 'Apri la trattativa e indica motivo e data di riattivazione per metterla in stand-by.' };
     }
 
     // 4. Check if user asks "cosa devo fare oggi"
     if (lower.includes('cosa devo fare') || lower.includes('attivita') || lower.includes('task di oggi')) {
-      const todayTasks = tasks.filter((t) => t.date === today && t.status !== 'Completata');
+      const todayTasks = tasks.filter((t) => t.date <= today && t.status !== 'Completata');
       return {
         success: true,
-        message: `Oggi hai ${todayTasks.length} attività previste: ${todayTasks
+        message: `Hai ${todayTasks.length} attività da completare: ${todayTasks
           .map((t) => `• ${t.time || 'Orario flessibile'}: ${t.title} (${t.brand})`)
           .join('\n')}`,
         data: todayTasks,
       };
     }
 
-    // 5. Default intelligent response with Gemini integration fallback
+    // Never claim an action succeeded when it was not actually executed.
     return {
-      success: true,
-      message: `Comando recepito ed elaborato: "${instruction}". Pipeline sincronizzata, 0 anomalie critiche e registri attività aggiornati.`,
+      success: false,
+      message: 'Non ho riconosciuto il comando. Usa le azioni della dashboard per registrare i dati in modo preciso.',
     };
   };
 
@@ -701,6 +647,23 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     setOpportunities([]);
     setTasks([]);
     setSelectedDeal(null);
+  };
+
+  const importLegacyData = () => {
+    if (!dataReady) return { success: false, message: 'Attendi il caricamento dei dati.' };
+    if (opportunities.length || tasks.length) return { success: false, message: 'L’archivio attuale non è vuoto. L’importazione richiede un account senza dati.' };
+    try {
+      const legacyDeals = JSON.parse(localStorage.getItem('hubc_crm_opportunities_v2') || '[]');
+      const legacyTasks = JSON.parse(localStorage.getItem('hubc_crm_tasks_v2') || '[]');
+      const legacyBrands = JSON.parse(localStorage.getItem('hubc_crm_brands_v2') || '[]');
+      if (!Array.isArray(legacyDeals) || !Array.isArray(legacyTasks) || !Array.isArray(legacyBrands)) throw new Error('Formato non valido');
+      if (!legacyDeals.every((deal) => deal && typeof deal.id === 'string' && typeof deal.name === 'string' && typeof deal.company === 'string' && Array.isArray(deal.history)) || !legacyTasks.every((task) => task && typeof task.id === 'string' && typeof task.title === 'string') || !legacyBrands.every((brand) => typeof brand === 'string')) throw new Error('Dati non validi');
+      if (!legacyDeals.length && !legacyTasks.length) return { success: false, message: 'Nessun dato locale precedente trovato in questo browser.' };
+      setOpportunities(legacyDeals);
+      setTasks(legacyTasks);
+      if (legacyBrands.length) setBrands(legacyBrands);
+      return { success: true, message: `${legacyDeals.length} opportunità e ${legacyTasks.length} attività importate. Attendi che lo stato diventi “Dati salvati”.` };
+    } catch { return { success: false, message: 'Impossibile leggere i dati precedenti.' }; }
   };
 
   return (
@@ -717,6 +680,9 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         alerts,
         kpis,
         geminiApiKey,
+        syncStatus,
+        dataReady,
+        importLegacyData,
         nextStepModalDeal,
         setNextStepModalDeal,
         selectedDeal,

@@ -1,5 +1,7 @@
 'use client';
 
+import { italianDateKey } from '@/lib/date';
+
 import React, { useState } from 'react';
 import { useCRM } from '@/lib/store';
 import { ActivityType, Priority } from '@/types/crm';
@@ -9,7 +11,7 @@ export const NextStepModal: React.FC = () => {
 
   const [what, setWhat] = useState('');
   const [who, setWho] = useState('');
-  const [when, setWhen] = useState(new Date().toISOString().split('T')[0]);
+  const [when, setWhen] = useState(italianDateKey());
   const [time, setTime] = useState('11:00');
   const [type, setType] = useState<ActivityType>('chiamata');
   const [priority, setPriority] = useState<Priority>('Alta');
@@ -22,6 +24,7 @@ export const NextStepModal: React.FC = () => {
   }, [nextStepModalDeal, salesReps]);
 
   if (!nextStepModalDeal) return null;
+  const canDismiss = nextStepModalDeal.stage === 'Venduta' || nextStepModalDeal.stage === 'Persa' || !!(nextStepModalDeal.nextAction?.what && !nextStepModalDeal.nextAction.completed);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,12 +69,13 @@ export const NextStepModal: React.FC = () => {
               </h3>
             </div>
           </div>
-          <button
+          {canDismiss && <button
             onClick={() => setNextStepModalDeal(null)}
+            aria-label="Chiudi"
             className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-outline hover:text-on-surface"
           >
             ✕
-          </button>
+          </button>}
         </div>
 
         {/* Deal Context Info */}
@@ -202,13 +206,13 @@ export const NextStepModal: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-outline-variant/20 mt-2">
-            <button
+            {canDismiss && <button
               type="button"
               onClick={() => setNextStepModalDeal(null)}
               className="px-4 py-2.5 rounded-xl text-on-surface-variant hover:text-on-surface font-semibold"
             >
               Posticipa
-            </button>
+            </button>}
             <button
               type="submit"
               className="px-5 py-2.5 rounded-xl bg-primary text-on-primary font-bold shadow-md hover:opacity-90 flex items-center gap-1.5"

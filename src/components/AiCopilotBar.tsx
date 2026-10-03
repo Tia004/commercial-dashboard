@@ -94,7 +94,7 @@ export const AiCopilotBar: React.FC = () => {
     const userName = user?.name ? user.name.split(' ')[0] : 'Direttore';
     let textToSpeak = `Buongiorno ${userName}. `;
     if (kpis.openDealsCount === 0) {
-      textToSpeak += `La dashboard commerciale è attiva e inizializzata con tutti i contatori a zero. Puoi inserire la tua prima opportunità con il pulsante dedicato o configurare il database Turso e le Passkey nelle impostazioni.`;
+      textToSpeak += `La dashboard commerciale è attiva e inizializzata con tutti i contatori a zero. Puoi inserire la tua prima opportunità con il pulsante dedicato.`;
     } else {
       textToSpeak += `Ecco il punto commerciale di oggi: il valore della pipeline attiva è di ${kpis.pipelineTotal.toLocaleString()} euro, con ${kpis.openDealsCount} trattative in corso e ${alerts.length} anomalie da verificare. Ci sono ${kpis.scheduledMeetingsCount} appuntamenti programmati per i brand aziendali.`;
     }
@@ -197,31 +197,20 @@ export const AiCopilotBar: React.FC = () => {
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="font-headline font-bold text-base text-on-surface tracking-tight">
-                AI Commercial Copilot & Auto-Execution Engine
+                Assistente operativo
               </span>
               <span className="px-2 py-0.5 rounded-full bg-surface-container text-primary font-bold text-[10px] uppercase tracking-wider border border-outline-variant/30">
-                v4.5 Autopilot
+                Comandi rapidi
               </span>
             </div>
             <p className="text-xs text-on-surface-variant">
-              Dagli un&apos;istruzione a voce o testuale: crea lead, ripianifica step, avanza la pipeline o chiedigli cosa fare oggi.
+              Cerca le attività, apri il modulo per un nuovo lead o ascolta il riepilogo.
             </p>
           </div>
         </div>
 
         {/* TTS & Voice Controls */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Active Model Indicator */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container text-on-surface text-xs font-medium border border-outline-variant/20">
-            <span className="material-symbols-outlined text-[16px] text-emerald-500">verified</span>
-            <span>
-              <strong>Gemini 3.5 Flash Lite</strong>
-            </span>
-            <span className="px-1.5 py-0.2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] rounded uppercase">
-              Free
-            </span>
-          </div>
-
           {/* Voice Config Trigger */}
           <button
             onClick={() => setIsVoiceMenuOpen(!isVoiceMenuOpen)}
@@ -248,7 +237,7 @@ export const AiCopilotBar: React.FC = () => {
             <span className="material-symbols-outlined text-[16px]">
               {isSpeaking ? 'stop_circle' : 'volume_up'}
             </span>
-            <span>{isSpeaking ? 'Interrompi Voce' : 'Ascolta Briefing AI'}</span>
+            <span>{isSpeaking ? 'Interrompi Voce' : 'Ascolta riepilogo'}</span>
           </button>
         </div>
       </div>
@@ -260,7 +249,7 @@ export const AiCopilotBar: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-[20px]">graphic_eq</span>
               <span className="font-headline font-bold text-xs text-on-surface">
-                Sintesi Vocale Umana Naturale (Italiano)
+                Voce italiana del dispositivo
               </span>
             </div>
             <button
@@ -275,7 +264,7 @@ export const AiCopilotBar: React.FC = () => {
             {/* Voice Selector */}
             <div className="flex flex-col gap-1">
               <label className="text-[11px] font-bold text-on-surface-variant flex items-center gap-1">
-                <span>Voce Femminile Selezionata</span>
+                <span>Voce selezionata</span>
                 <span className="material-symbols-outlined text-[13px] text-emerald-500">female</span>
               </label>
               <select
@@ -286,7 +275,7 @@ export const AiCopilotBar: React.FC = () => {
                 {availableVoices.length > 0 ? (
                   availableVoices.map((v) => (
                     <option key={v.id} value={v.name}>
-                      {v.name} ({v.gender === 'female' ? 'Femminile' : 'Maschile'}{v.isNatural ? ' • HD' : ''})
+                      {v.name} ({v.gender === 'female' ? 'Femminile' : 'Maschile'}{v.isNatural ? ' • avanzata' : ''})
                     </option>
                   ))
                 ) : (
@@ -320,21 +309,7 @@ export const AiCopilotBar: React.FC = () => {
                 Modalità Audio
               </label>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleVoiceModeChange(voiceMode === 'browser' ? 'cloud_hd' : 'browser')}
-                  className={`flex-1 p-2 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 ${
-                    voiceMode === 'cloud_hd'
-                      ? 'bg-primary text-on-primary border-primary'
-                      : 'bg-surface-container text-on-surface border-outline-variant/30'
-                  }`}
-                  title="Cloud Studio HD usa OpenAI TTS Nova se hai configurato la chiave OpenAI"
-                >
-                  <span className="material-symbols-outlined text-[15px]">
-                    {voiceMode === 'cloud_hd' ? 'cloud' : 'devices'}
-                  </span>
-                  <span>{voiceMode === 'cloud_hd' ? 'Studio HD' : 'Naturale Web'}</span>
-                </button>
+                <span className="flex-1 p-2 rounded-xl text-xs font-semibold border bg-surface-container text-on-surface border-outline-variant/30 flex items-center justify-center gap-1.5"><span className="material-symbols-outlined text-[15px]">devices</span>Voce del dispositivo · gratuita</span>
 
                 <button
                   type="button"
@@ -433,11 +408,7 @@ export const AiCopilotBar: React.FC = () => {
           Comandi Rapidi:
         </span>
         {[
-          'Crea opportunità Mario Rossi NoLimits 18500€',
-          'Sposta TechSpa in Chiusura',
-          'Metti FinanzaFacile in Stand-by fino al 15 nov',
           'Cosa devo fare oggi?',
-          'Pianifica follow-up telefonico domani',
         ].map((chip, idx) => (
           <button
             key={idx}
