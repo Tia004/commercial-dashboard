@@ -38,13 +38,14 @@ export async function POST(req: NextRequest) {
       await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [hashToken(verificationToken), 'verify', email, userId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()] });
       if (inviteToken) await db.execute({ sql: 'UPDATE auth_tokens SET used_at = ? WHERE token_hash = ?', args: [new Date().toISOString(), hashToken(inviteToken)] });
       try {
-        await sendAccountEmail(email, 'Verifica il tuo indirizzo email · Hub Commerciale', 'Apri questo link per verificare il tuo account:\n\n' + appOrigin() + '/api/auth/verify?token=' + encodeURIComponent(verificationToken) + '\n\nIl link scade tra 24 ore. Se non hai richiesto l’account, ignora questa email.');
-      } catch {
+        await sendAccountEmail(email, 'Verifica il tuo indirizzo email · Hub Commerciale', 'Apri questo link per verificare il tuo account:\n\n' + appOrigin(req) + '/api/auth/verify?token=' + encodeURIComponent(verificationToken) + '\n\nIl link scade tra 24 ore. Se non hai richiesto l’account, ignora questa email.');
+      } catch (err: any) {
         await db.execute({ sql: 'DELETE FROM auth_tokens WHERE user_id = ? AND purpose = ?', args: [userId, 'verify'] });
         await db.execute({ sql: 'DELETE FROM users WHERE id = ?', args: [userId] });
         if (!inviteToken) await db.execute({ sql: 'DELETE FROM workspaces WHERE id = ?', args: [workspaceId] });
         if (inviteToken) await db.execute({ sql: 'UPDATE auth_tokens SET used_at = NULL WHERE token_hash = ?', args: [hashToken(inviteToken)] });
-        return NextResponse.json({ error: 'Invio email non riuscito. Controlla la configurazione SMTP.' }, { status: 503 });
+        const reason = err?.message ? ` (${err.message})` : '';
+        return NextResponse.json({ error: `Invio email non riuscito: controlla la configurazione SMTP.${reason}` }, { status: 503 });
       }
       return NextResponse.json({ pendingVerification: true, message: 'Account creato. Apri l’email di verifica per attivarlo.' }, { status: 201 });
     }

@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
     const token = createToken();
     const tokenHash = hashToken(token);
     await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [tokenHash, 'verify', email, userId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()] });
-    try { await sendAccountEmail(email, 'Verifica il tuo indirizzo email · Hub Commerciale', 'Apri questo link per verificare il tuo account:\n\n' + appOrigin() + '/api/auth/verify?token=' + encodeURIComponent(token) + '\n\nIl link scade tra 24 ore.'); }
-    catch { await db.execute({ sql: 'DELETE FROM auth_tokens WHERE token_hash = ?', args: [tokenHash] }); return NextResponse.json({ error: 'Invio email non riuscito.' }, { status: 503 }); }
+    try { await sendAccountEmail(email, 'Verifica il tuo indirizzo email · Hub Commerciale', 'Apri questo link per verificare il tuo account:\n\n' + appOrigin(req) + '/api/auth/verify?token=' + encodeURIComponent(token) + '\n\nIl link scade tra 24 ore.'); }
+    catch (err: any) { await db.execute({ sql: 'DELETE FROM auth_tokens WHERE token_hash = ?', args: [tokenHash] }); return NextResponse.json({ error: `Invio email non riuscito${err?.message ? `: ${err.message}` : ''}` }, { status: 503 }); }
     await db.execute({ sql: 'UPDATE auth_tokens SET used_at = ? WHERE user_id = ? AND purpose = ? AND token_hash != ? AND used_at IS NULL', args: [new Date().toISOString(), userId, 'verify', tokenHash] });
     return NextResponse.json(generic);
   } catch { return NextResponse.json({ error: 'Operazione non disponibile.' }, { status: 503 }); }

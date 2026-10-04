@@ -20,10 +20,10 @@ export async function POST(req: NextRequest) {
       const tokenHash = hashToken(token);
       await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [tokenHash, 'reset', email, String(user.rows[0].id), new Date(Date.now() + 30 * 60 * 1000).toISOString()] });
       try {
-        await sendAccountEmail(email, 'Reimposta la password · Hub Commerciale', 'Apri questo link per impostare una nuova password:\n\n' + appOrigin() + '/?reset=' + encodeURIComponent(token) + '\n\nIl link scade tra 30 minuti. Se non hai richiesto il recupero, ignora questa email.');
-      } catch {
+        await sendAccountEmail(email, 'Reimposta la password · Hub Commerciale', 'Apri questo link per impostare una nuova password:\n\n' + appOrigin(req) + '/?reset=' + encodeURIComponent(token) + '\n\nIl link scade tra 30 minuti. Se non hai richiesto il recupero, ignora questa email.');
+      } catch (err: any) {
         await db.execute({ sql: 'DELETE FROM auth_tokens WHERE token_hash = ?', args: [tokenHash] });
-        return NextResponse.json({ error: 'Invio email non riuscito.' }, { status: 503 });
+        return NextResponse.json({ error: `Invio email non riuscito${err?.message ? `: ${err.message}` : ''}` }, { status: 503 });
       }
       return NextResponse.json(generic);
     }

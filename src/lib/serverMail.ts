@@ -1,16 +1,37 @@
 import nodemailer from 'nodemailer';
 
-export function appOrigin() {
-  const value = process.env.APP_ORIGIN || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '');
-  if (!value) throw new Error('APP_ORIGIN non configurato');
-  const url = new URL(value);
-  if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:') throw new Error('APP_ORIGIN deve usare HTTPS');
-  return url.origin;
+export function appOrigin(req?: Request) {
+  if (process.env.APP_ORIGIN) {
+    const raw = process.env.APP_ORIGIN.trim();
+    const url = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
+    return url.origin;
+  }
+
+  // Automatically detect host from incoming HTTP request headers
+  if (req) {
+    const proto = req.headers.get('x-forwarded-proto') || 'https';
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+    if (host) return `${proto}://${host}`;
+  }
+
+  // Automatically detect Vercel production URL or deployment URL
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  if (vercel) {
+    return `https://${vercel.replace(/^https?:\/\//, '')}`;
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:3000';
+  }
+
+  throw new Error('APP_ORIGIN non configurato (aggiungi APP_ORIGIN con l’URL della dashboard nelle variabili di Vercel)');
 }
 
 export function isRealSmtpConfigured() {
-  const pass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
-  return !!(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && pass);
+  const pass = (process.env.SMTP_PASSWORD || process.env.SMTP_PASS || '').trim();
+  const user = (process.env.SMTP_USER || '').trim();
+  const host = (process.env.SMTP_HOST || '').trim();
+  return !!(host && process.env.SMTP_PORT && user && pass);
 }
 
 export function emailConfigured() {
@@ -33,22 +54,29 @@ export async function sendAccountEmail(to: string, subject: string, message: str
       console.log('└─────────────────────────────────────────────────────────────────────────────┘\n');
       return;
     }
-    throw new Error('SMTP non configurato');
+    throw new Error('Parametri SMTP mancanti (verifica SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS)');
   }
 
-  const port = Number(process.env.SMTP_PORT);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('SMTP_PORT non valido');
-  const pass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
-  const from = (process.env.SMTP_FROM && process.env.SMTP_FROM.trim())
-    ? process.env.SMTP_FROM.trim()
-    : `Hub Commerciale <${process.env.SMTP_USER}>`;
+  const port = Number(process.env.SMTP_PORT || 587);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('SMTP_PORT non valido (usa 587)');
+  const pass = (process.env.SMTP_PASSWORD || process.env.SMTP_PASS || '').trim();
+  const user = (process.env.SMTP_USER || '').trim();
+  const host = (process.env.SMTP_HOST || 'smtp-relay.brevo.com').trim();
+
+  let from = (process.env.SMTP_FROM || '').trim();
+  if (!from) {
+    from = user.includes('@') ? `"Hub Commerciale" <${user}>` : user;
+  }
 
   const transport = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
+    host,
     port,
     secure: port === 465,
-    requireTLS: port !== 465,
-    auth: { user: process.env.SMTP_USER, pass },
+    auth: { user, pass },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   });
+
   await transport.sendMail({ from, to, subject, text: message });
 }
