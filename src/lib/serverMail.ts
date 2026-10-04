@@ -28,6 +28,8 @@ export function appOrigin(req?: Request) {
 }
 
 export function isRealSmtpConfigured() {
+  if (process.env.RESEND_API_KEY?.trim()) return true;
+  if (process.env.BREVO_API_KEY?.trim()) return true;
   const pass = (process.env.SMTP_PASSWORD || process.env.SMTP_PASS || '').trim();
   const user = (process.env.SMTP_USER || '').trim();
   const host = (process.env.SMTP_HOST || '').trim();
@@ -251,6 +253,64 @@ export async function sendAccountEmail(
     from = user.includes('@') ? `"Hub Commerciale" <${user}>` : user;
   }
 
+  // 1. Resend REST API (Instant delivery < 1s)
+  const resendApiKey = (process.env.RESEND_API_KEY || '').trim();
+  if (resendApiKey) {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject,
+        html,
+        text: message,
+      }),
+    });
+    if (res.ok) return;
+    const errText = await res.text().catch(() => '');
+    throw new Error(`Errore invio Resend (${res.status}): ${errText}`);
+  }
+
+  // 2. Brevo REST API v3 (Instant high-priority transactional delivery, bypasses slow SMTP queue)
+  const brevoApiKey = (process.env.BREVO_API_KEY || (pass.startsWith('xkeysib-') ? pass : '')).trim();
+  if (brevoApiKey) {
+    try {
+      let senderName = 'Hub Commerciale';
+      let senderEmail = from;
+      const match = from.match(/^(?:"?([^"]*)"?\s)?<?([^>]+)>?$/);
+      if (match) {
+        if (match[1]) senderName = match[1].trim();
+        if (match[2]) senderEmail = match[2].trim();
+      }
+
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'content-type': 'application/json',
+          'api-key': brevoApiKey,
+        },
+        body: JSON.stringify({
+          sender: { name: senderName, email: senderEmail },
+          to: [{ email: to }],
+          subject,
+          htmlContent: html,
+          textContent: message,
+        }),
+      });
+
+      if (res.ok) return;
+      console.warn('Brevo REST API non riuscita, provo fallback su SMTP relay:', await res.text().catch(() => ''));
+    } catch (e) {
+      console.warn('Errore chiamata Brevo REST API, provo fallback SMTP:', e);
+    }
+  }
+
+  // 3. Fallback to standard SMTP (Nodemailer)
   const transport = nodemailer.createTransport({
     host,
     port,
