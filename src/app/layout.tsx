@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { CRMProvider } from '@/lib/store';
 import { AuthProvider } from '@/lib/auth';
+import { GlowPointerListener } from '@/components/GlowPointerListener';
 
 export const metadata: Metadata = {
   title: 'Hub Commerciale | Workspace vendite',
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="it" data-theme="slate">
       <body className="antialiased min-h-screen">
+        <GlowPointerListener />
         <AuthProvider>
           <CRMProvider>{children}</CRMProvider>
         </AuthProvider>
