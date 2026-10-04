@@ -58,9 +58,9 @@ export async function POST(req: NextRequest) {
         const verificationToken = createToken();
         await db.execute({ sql: 'DELETE FROM auth_tokens WHERE user_id = ? AND purpose = ?', args: [existingUserId, 'verify'] });
         await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [hashToken(verificationToken), 'verify', email, existingUserId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()] });
-        
         try {
           const verifyUrl = `${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}`;
+          console.log(`[AUTH VERIFY LINK FOR ${email}]: ${verifyUrl}`);
           await sendAccountEmail(
             email,
             'Verifica il tuo indirizzo email · Hub Commerciale',
@@ -100,6 +100,7 @@ export async function POST(req: NextRequest) {
       // Send verification link via Brevo SMTP
       try {
         const verifyUrl = `${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}`;
+        console.log(`[AUTH VERIFY LINK FOR ${email}]: ${verifyUrl}`);
         await sendAccountEmail(
           email,
           'Verifica il tuo indirizzo email · Hub Commerciale',

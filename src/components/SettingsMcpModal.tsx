@@ -4,19 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { useCRM } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
 import {
-  JARVIS_VOICES,
-  getSavedJarvisVoice,
-  saveJarvisVoice,
-  playVoiceSample,
   stopAllAudio,
-  getItalianVoices,
-  getSavedVoiceName,
-  getSavedVoiceSpeed,
-  savePreferredVoice,
-  savePreferredVoiceSpeed,
-  speakHumanVoice,
-  type VoiceOption,
 } from '@/lib/speechVoice';
+import { VoiceAuraOrb } from '@/components/VoiceAuraOrb';
 
 type Tab = 'account' | 'appearance' | 'team' | 'voice' | 'data' | 'integrations' | 'catalog';
 type Member = { id: string; email: string; name: string; role: string; verified: boolean };
@@ -25,7 +15,7 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: 'account', label: 'Account e sicurezza', icon: 'shield' },
   { id: 'appearance', label: 'Aspetto', icon: 'palette' },
   { id: 'team', label: 'Team', icon: 'group' },
-  { id: 'voice', label: 'Voce e Jarvis', icon: 'graphic_eq' },
+  { id: 'voice', label: 'Voce AI', icon: 'graphic_eq' },
   { id: 'data', label: 'Dati', icon: 'database' },
   { id: 'integrations', label: 'Integrazioni', icon: 'extension' },
   { id: 'catalog', label: 'Brand e commerciali', icon: 'layers' },
@@ -41,11 +31,6 @@ export const SettingsMcpModal: React.FC = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('member');
   const [keyName, setKeyName] = useState('');
-  const [selectedJarvisVoice, setSelectedJarvisVoice] = useState('Charon');
-  const [isJarvisPlaying, setIsJarvisPlaying] = useState(false);
-  const [voices, setVoices] = useState<VoiceOption[]>([]);
-  const [voiceName, setVoiceName] = useState('');
-  const [voiceSpeed, setVoiceSpeed] = useState(0.98);
   const [brandName, setBrandName] = useState('');
   const [repName, setRepName] = useState('');
   const [mcpStatus, setMcpStatus] = useState('not_configured');
@@ -59,11 +44,7 @@ export const SettingsMcpModal: React.FC = () => {
     if (!isSettingsModalOpen) return;
     void refreshTeam();
     fetch('/api/mcp').then((r) => r.json()).then((data) => setMcpStatus(data.status || 'not_configured')).catch(() => {});
-    setSelectedJarvisVoice(getSavedJarvisVoice());
-    const loadVoices = () => { const available = getItalianVoices(); setVoices(available); setVoiceName(getSavedVoiceName() || available[0]?.name || ''); };
-    loadVoices(); setVoiceSpeed(getSavedVoiceSpeed());
-    if ('speechSynthesis' in window) window.speechSynthesis.onvoiceschanged = loadVoices;
-    return () => { if ('speechSynthesis' in window) window.speechSynthesis.onvoiceschanged = null; stopAllAudio(); setIsJarvisPlaying(false); };
+    return () => { stopAllAudio(); };
   }, [isSettingsModalOpen]);
   if (!isSettingsModalOpen) return null;
 
@@ -88,156 +69,11 @@ export const SettingsMcpModal: React.FC = () => {
         </div>}
         {tab === 'appearance' && <div className="settings-section"><div className="settings-intro"><span className="settings-eyebrow">PREFERENZE</span><h3>Aspetto</h3><p>Il tema viene salvato su questo dispositivo.</p></div><div className="theme-grid">{[{ id: 'slate', label: 'Dark', detail: 'Predefinito', icon: 'dark_mode' }, { id: 'light', label: 'Light', detail: 'Chiaro e pulito', icon: 'light_mode' }, { id: 'oled', label: 'OLED', detail: 'Nero assoluto', icon: 'contrast' }].map((item) => <button key={item.id} className={`theme-choice ${theme === item.id ? 'active' : ''}`} onClick={() => setTheme(item.id as 'light' | 'slate' | 'oled')}><span className={`theme-preview ${item.id}`}><span /><span /><span /></span><strong><span className="material-symbols-outlined">{item.icon}</span>{item.label}</strong><small>{item.detail}</small></button>)}</div></div>}
         {tab === 'team' && canManage && <div className="settings-section"><div className="settings-intro"><span className="settings-eyebrow">COLLABORAZIONE</span><h3>Team e permessi</h3><p>Proprietario e amministratori gestiscono team, brand e archivio. I commerciali lavorano sulle trattative condivise, senza poter eliminare dati o modificare la configurazione.</p></div><div className="settings-card">{members.map((member) => <div className="settings-row" key={member.id}><div><strong>{member.name}</strong><small>{member.email} · {member.verified ? 'Verificato' : 'In verifica'}</small></div><div className="settings-row-actions">{user?.role === 'owner' && member.role !== 'owner' ? <select aria-label={`Ruolo di ${member.name}`} value={member.role} onChange={(event) => void request('PATCH', { userId: member.id, role: event.target.value })}><option value="admin">Amministratore</option><option value="member">Commerciale</option></select> : <span className="settings-pill">{member.role === 'owner' ? 'Proprietario' : member.role === 'admin' ? 'Amministratore' : 'Commerciale'}</span>}{member.id !== user?.id && member.role !== 'owner' && (user?.role === 'owner' || member.role === 'member') && <button className="settings-text-action" onClick={() => { if (window.confirm('Rimuovere questo membro dal workspace?')) void request('DELETE', { userId: member.id }); }}>Rimuovi</button>}</div></div>)}</div><div className="settings-card"><strong>Invita una persona</strong><p>L’invito viene inviato per email e scade dopo 7 giorni.</p><div className="settings-inline"><input type="email" aria-label="Email collega" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="collega@azienda.it" /><select aria-label="Ruolo invito" value={inviteRole} onChange={(event) => setInviteRole(event.target.value)}><option value="member">Commerciale</option>{user?.role === 'owner' && <option value="admin">Amministratore</option>}</select><button onClick={async () => { if (await request('POST', { email: inviteEmail, role: inviteRole })) setInviteEmail(''); }}>Invia invito</button></div>{invites.length > 0 && <div className="settings-pending"><strong>Inviti in attesa</strong>{invites.map((invite) => <small key={invite.email}>{invite.email} · {invite.role} · scade il {new Date(invite.expiresAt).toLocaleDateString('it-IT')}</small>)}</div>}</div></div>}
-        {tab === 'voice' && <div className="settings-section">
-          <div className="settings-intro">
-            <span className="settings-eyebrow">VOCE & JARVIS</span>
-            <h3>Sintesi Vocale Esecutiva</h3>
-            <p>Seleziona la voce neurale per il briefing commerciale intelligente e i riepiloghi audio del workspace.</p>
+        {tab === 'voice' && (
+          <div className="settings-section">
+            <VoiceAuraOrb />
           </div>
-
-          {/* Jarvis High Fidelity Neural Voices */}
-          <div className="settings-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <strong>Voci Neurali Jarvis (Alta Definizione)</strong>
-                <small className="block text-on-surface-variant text-[11px] mt-0.5">
-                  Voci ultra-realistiche ed espressive generate dal modello neurale di Jarvis.
-                </small>
-              </div>
-              <span className="settings-ok">Attivo</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2">
-              {JARVIS_VOICES.map((v) => {
-                const isSelected = selectedJarvisVoice === v.id;
-                return (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedJarvisVoice(v.id);
-                      saveJarvisVoice(v.id);
-                      setFeedback(`Voce ${v.name} impostata per il briefing.`);
-                    }}
-                    className={`flex flex-col text-left p-3 rounded-xl border transition-all ${
-                      isSelected
-                        ? 'border-primary bg-primary-container text-on-surface shadow-sm'
-                        : 'border-outline-variant bg-surface-container-low hover:border-outline text-on-surface-variant hover:text-on-surface'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full mb-1">
-                      <strong className="text-xs font-bold text-on-surface flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[16px] text-primary">
-                          {v.gender === 'female' ? 'record_voice_over' : 'mic'}
-                        </span>
-                        {v.name}
-                      </strong>
-                      {v.isDefault && (
-                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary">
-                          Jarvis
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[11px] text-primary font-medium">{v.tone}</span>
-                    <p className="text-[10px] text-on-surface-variant mt-1 leading-normal">
-                      {v.description}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-2.5 pt-2 border-t border-outline-variant/30 mt-1">
-              {!isJarvisPlaying ? (
-                <button
-                  type="button"
-                  className="settings-secondary flex items-center gap-1.5"
-                  onClick={async () => {
-                    setIsJarvisPlaying(true);
-                    setFeedback(`Riproduzione anteprima con voce ${selectedJarvisVoice}…`);
-                    await playVoiceSample(selectedJarvisVoice, {
-                      onStart: () => setIsJarvisPlaying(true),
-                      onEnd: () => {
-                        setIsJarvisPlaying(false);
-                        setFeedback('Anteprima terminata.');
-                      },
-                      onError: (err) => {
-                        setIsJarvisPlaying(false);
-                        setFeedback('Errore riproduzione voce.');
-                      },
-                    });
-                  }}
-                >
-                  <span className="material-symbols-outlined text-[16px] text-primary">play_arrow</span>
-                  <span>Ascolta prova vocale ({selectedJarvisVoice})</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="settings-danger flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-semibold cursor-pointer"
-                  onClick={() => {
-                    stopAllAudio();
-                    setIsJarvisPlaying(false);
-                    setFeedback('Riproduzione interrotta.');
-                  }}
-                >
-                  <span className="material-symbols-outlined text-[16px]">stop_circle</span>
-                  <span>Interrompi riproduzione</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Browser System Voices Fallback */}
-          <div className="settings-card">
-            <strong>Voci di sistema offline (Fallback)</strong>
-            <p>Usate come riserva quando il dispositivo è offline o senza connessione.</p>
-            <label className="settings-field">
-              Voce di sistema
-              <select
-                value={voiceName}
-                onChange={(event) => {
-                  setVoiceName(event.target.value);
-                  savePreferredVoice(event.target.value);
-                }}
-              >
-                {voices.length ? (
-                  voices.map((voice) => (
-                    <option key={voice.id} value={voice.name}>
-                      {voice.name} · {voice.lang}
-                    </option>
-                  ))
-                ) : (
-                  <option value="">Voce predefinita di sistema</option>
-                )}
-              </select>
-            </label>
-            <label className="settings-field">
-              Velocità di lettura · {voiceSpeed.toFixed(2)}×
-              <input
-                type="range"
-                min="0.8"
-                max="1.3"
-                step="0.05"
-                value={voiceSpeed}
-                onChange={(event) => {
-                  const value = Number(event.target.value);
-                  setVoiceSpeed(value);
-                  savePreferredVoiceSpeed(value);
-                }}
-              />
-            </label>
-            <button
-              type="button"
-              className="settings-secondary"
-              onClick={() =>
-                speakHumanVoice('Questa è una prova della voce di sistema per il tuo workspace.', undefined, voiceName)
-              }
-            >
-              Ascolta voce di sistema
-            </button>
-          </div>
-        </div>}
+        )}
         {tab === 'data' && canManage && <div className="settings-section"><div className="settings-intro"><span className="settings-eyebrow">ARCHIVIO</span><h3>Dati commerciali</h3><p>{opportunities.length} opportunità nello spazio condiviso. Le modifiche vengono salvate sul server.</p></div><div className="settings-card"><div className="settings-row"><div><strong>Importa dalla versione precedente</strong><small>Disponibile solo quando l’archivio è vuoto.</small></div><button className="settings-secondary" onClick={() => { const result = importLegacyData(); setFeedback(result.message); }}>Importa</button></div><div className="settings-row"><div><strong>Dati dimostrativi</strong><small>Carica dati di esempio per esplorare l’interfaccia.</small></div><button className="settings-secondary" onClick={() => { if (window.confirm('Caricare i dati dimostrativi nel workspace?')) loadDemoData(); }}>Carica</button></div><div className="settings-row"><div><strong>Svuota archivio</strong><small>Elimina opportunità e attività del workspace.</small></div><button className="settings-danger" onClick={() => { if (window.confirm('Confermi la rimozione dei dati commerciali del workspace?')) resetAllData(); }}>Svuota</button></div></div></div>}
         {tab === 'integrations' && canManage && <div className="settings-section"><div className="settings-intro"><span className="settings-eyebrow">AUTOMAZIONI</span><h3>Integrazioni</h3><p>Collega agenti e strumenti all’archivio condiviso con credenziali sul server.</p></div><div className="settings-card"><div className="settings-row"><div><strong>API per agenti</strong><small>Endpoint JSON protetto da token dedicato.</small></div><span className={mcpStatus === 'configured' ? 'settings-ok' : 'settings-pill'}>{mcpStatus === 'configured' ? 'Configurata' : 'Da configurare'}</span></div><div className="settings-row"><div><strong>Server MCP STDIO</strong><small>Usa lo stesso database del workspace.</small></div><span className="settings-pill">Disponibile</span></div><div className="settings-row"><div><strong>ID proprietario per MCP</strong><small className="settings-mono">{user?.workspaceId}</small></div></div></div><p className="settings-muted">Configura le variabili sul server Vercel. Non inserire token nel browser.</p></div>}
         {tab === 'catalog' && canManage && <div className="settings-section"><div className="settings-intro"><span className="settings-eyebrow">ORGANIZZAZIONE</span><h3>Brand e commerciali</h3><p>Gestisci i brand che la tua azienda segue e i membri del team commerciale.</p></div><div className="settings-card"><strong>Brand gestiti</strong><div className="settings-tags">{brands.map((brand) => <span key={brand} className="settings-tag-item"><span>{brand}</span><button type="button" className="settings-tag-remove" title={`Rimuovi ${brand}`} onClick={() => { if (window.confirm(`Rimuovere il brand "${brand}" dal workspace?`)) { deleteBrand(brand); setFeedback(`Brand "${brand}" rimosso.`); } }}>×</button></span>)}{brands.length === 0 && <small className="settings-muted">Nessun brand configurato. Aggiungi il tuo primo brand qui sotto.</small>}</div><form className="settings-inline" onSubmit={(e) => { e.preventDefault(); if (brandName.trim()) { addBrand(brandName.trim()); setBrandName(''); setFeedback('Brand aggiunto al workspace.'); } }}><input value={brandName} onChange={(event) => setBrandName(event.target.value)} placeholder="Nome nuovo brand (es: MioBrand)" aria-label="Nuovo brand" /><button type="submit">Aggiungi brand</button></form></div><div className="settings-card"><strong>Commerciali</strong><div className="settings-tags">{salesReps.map((rep) => <span key={rep.id}>{rep.name}</span>)}</div><div className="settings-inline"><input value={repName} onChange={(event) => setRepName(event.target.value)} placeholder="Nome commerciale" aria-label="Nome commerciale" /><button onClick={() => { if (repName.trim()) { addSalesRep(repName.trim(), 'Commerciale'); setRepName(''); } }}>Aggiungi</button></div></div></div>}

@@ -238,7 +238,19 @@ export async function sendAccountEmail(
   const resendApiKey = (process.env.RESEND_API_KEY || '').trim();
   if (resendApiKey) {
     try {
-      const resendFrom = (process.env.RESEND_FROM || from).trim();
+      let resendFrom = (process.env.RESEND_FROM || '').trim();
+      if (!resendFrom) {
+        // If SMTP_FROM contains a public webmail domain (e.g. @gmail.com, @yahoo, etc.),
+        // Resend will reject with 403 Forbidden because public domains cannot be custom verified.
+        // Fall back to Resend's official onboarding test sender so the account owner receives it instantly.
+        if (!from || /@(gmail|yahoo|hotmail|outlook|icloud|libero|live|aol)\./i.test(from)) {
+          resendFrom = 'Hub Commerciale <onboarding@resend.dev>';
+        } else {
+          resendFrom = from;
+        }
+      }
+
+      console.log(`[RESEND ATTEMPT] Invio email a: ${to} con mittente: ${resendFrom}`);
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -253,15 +265,21 @@ export async function sendAccountEmail(
           text: message,
         }),
       });
-      if (res.ok) return;
+
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.log(`[RESEND SUCCESS] Email consegnata con successo a ${to} (ID: ${data?.id || 'ok'})`);
+        return;
+      }
+
       const errText = await res.text().catch(() => '');
-      console.warn(`Resend API non riuscito (${res.status}): ${errText}. Tento fallback automatico su Brevo/SMTP...`);
+      console.warn(`[RESEND ERROR ${res.status}]: ${errText}. Tento fallback automatico su Brevo/SMTP...`);
       if (!pass && !process.env.BREVO_API_KEY) {
         throw new Error(`Errore invio Resend (${res.status}): ${errText}`);
       }
     } catch (e: any) {
       if (!pass && !process.env.BREVO_API_KEY) throw e;
-      console.warn('Eccezione invio Resend API, tento fallback su Brevo/SMTP:', e?.message || e);
+      console.warn('[RESEND EXCEPTION] Tento fallback su Brevo/SMTP:', e?.message || e);
     }
   }
 

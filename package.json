@@ -14,6 +14,7 @@
     "@modelcontextprotocol/sdk": "^1.32.0",
     "@simplewebauthn/browser": "^14.0.0",
     "@simplewebauthn/server": "^14.0.3",
+    "edge-tts-universal": "^1.4.0",
     "next": "^15.5.24",
     "nodemailer": "^10.0.14",
     "react": "^18.3.1",
