@@ -9,7 +9,8 @@ export function appOrigin() {
 }
 
 export function isRealSmtpConfigured() {
-  return !!(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASSWORD && process.env.SMTP_FROM);
+  const pass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
+  return !!(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && pass);
 }
 
 export function emailConfigured() {
@@ -37,12 +38,17 @@ export async function sendAccountEmail(to: string, subject: string, message: str
 
   const port = Number(process.env.SMTP_PORT);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('SMTP_PORT non valido');
+  const pass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
+  const from = (process.env.SMTP_FROM && process.env.SMTP_FROM.trim())
+    ? process.env.SMTP_FROM.trim()
+    : `Hub Commerciale <${process.env.SMTP_USER}>`;
+
   const transport = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port,
     secure: port === 465,
     requireTLS: port !== 465,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD },
+    auth: { user: process.env.SMTP_USER, pass },
   });
-  await transport.sendMail({ from: process.env.SMTP_FROM, to, subject, text: message });
+  await transport.sendMail({ from, to, subject, text: message });
 }
