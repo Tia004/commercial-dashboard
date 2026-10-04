@@ -153,10 +153,10 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
           {briefingState === 'idle' && (
             <button
               onClick={handleStartBriefing}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-white/10 bg-[#121316] hover:bg-[#181920] hover:border-[#a5b4fc]/50 text-white text-xs font-semibold transition-all group shadow-sm cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-white/10 bg-[#121316] hover:bg-[#16171d] hover:border-white/20 text-white text-xs font-medium transition-all group shadow-sm cursor-pointer"
               title="Avvia la sintesi vocale del briefing commerciale di oggi"
             >
-              <span className="material-symbols-outlined text-[17px] text-[#a5b4fc] group-hover:scale-110 transition-transform">
+              <span className="material-symbols-outlined text-[17px] text-zinc-300 group-hover:scale-105 transition-transform">
                 volume_up
               </span>
               <span>Briefing del Giorno</span>
@@ -164,22 +164,22 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
           )}
 
           {briefingState === 'generating' && (
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-[#a5b4fc]/40 bg-[#a5b4fc]/10 text-white text-xs font-medium animate-pulse">
-              <span className="material-symbols-outlined text-[16px] text-[#a5b4fc] animate-spin">progress_activity</span>
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-white/16 bg-white/[0.04] text-white text-xs font-medium animate-pulse">
+              <span className="material-symbols-outlined text-[16px] text-zinc-300 animate-spin">progress_activity</span>
               <span>Generazione briefing AI…</span>
             </div>
           )}
 
           {briefingState === 'playing' && (
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-[#a5b4fc]/40 bg-[#14151a] text-white text-xs font-medium shadow-[0_0_12px_rgba(165,180,252,0.2)]">
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-white/20 bg-[#14151a] text-white text-xs font-medium">
                 <div className="flex items-end gap-0.5 h-3.5 w-4 mr-0.5">
-                  <span className="w-1 bg-[#a5b4fc] rounded-full animate-wave-1 h-2" />
-                  <span className="w-1 bg-[#a5b4fc] rounded-full animate-wave-2 h-3.5" />
-                  <span className="w-1 bg-[#a5b4fc] rounded-full animate-wave-3 h-1.5" />
-                  <span className="w-1 bg-[#a5b4fc] rounded-full animate-wave-4 h-3" />
+                  <span className="w-1 bg-zinc-200 rounded-full animate-wave-1 h-2" />
+                  <span className="w-1 bg-zinc-200 rounded-full animate-wave-2 h-3.5" />
+                  <span className="w-1 bg-zinc-200 rounded-full animate-wave-3 h-1.5" />
+                  <span className="w-1 bg-zinc-200 rounded-full animate-wave-4 h-3" />
                 </div>
-                <span className="text-[#a5b4fc] font-bold">Briefing in riproduzione</span>
+                <span className="text-zinc-200 font-semibold">Briefing in riproduzione</span>
                 <span className="text-[10px] text-zinc-400 font-mono">({activeVoice})</span>
               </div>
               <button
@@ -188,7 +188,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
                   setBriefingState('idle');
                 }}
                 title="Interrompi riepilogo audio"
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-semibold transition-all cursor-pointer shadow-sm"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-medium transition-all cursor-pointer shadow-sm"
               >
                 <span className="material-symbols-outlined text-[16px]">stop_circle</span>
                 <span>Interrompi</span>
@@ -212,15 +212,15 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
 
       {/* AI Motivational Briefing Live Transcript Card */}
       {briefingText && briefingState !== 'idle' && (
-        <div className="relative overflow-hidden rounded-xl border border-[#a5b4fc]/30 bg-[#121316] p-4 text-xs shadow-md animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="relative overflow-hidden rounded-xl border border-white/10 bg-[#121316] p-4 text-xs shadow-md animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#a5b4fc]/10 border border-[#a5b4fc]/20 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[#a5b4fc] text-[18px]">format_quote</span>
+              <div className="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-zinc-300 text-[18px]">format_quote</span>
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-bold uppercase tracking-wider text-[10px] text-[#a5b4fc]">Riepilogo Esecutivo & Motivazione Commerciale</span>
+                  <span className="font-bold uppercase tracking-wider text-[10px] text-zinc-400">Riepilogo Esecutivo & Motivazione Commerciale</span>
                   <span className="text-[10px] text-zinc-400 font-mono">· Voce AI {activeVoice}</span>
                 </div>
                 <p className="text-on-surface leading-relaxed text-[13px] italic font-medium">

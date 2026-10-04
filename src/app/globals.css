@@ -201,22 +201,24 @@ textarea::selection {
   color: #000000 !important;
 }
 
-/* Accessibility keyboard ring for buttons, links, and tabs */
+/* Accessibility keyboard ring for buttons, links, and tabs - Subtle Linear border luminosity */
 button:focus-visible,
 a:focus-visible,
 [role="button"]:focus-visible,
 [role="tab"]:focus-visible {
   outline: none !important;
   outline-offset: 0 !important;
-  box-shadow: 0 0 0 1.5px #a5b4fc !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  box-shadow: none !important;
 }
 
 [data-theme="light"] button:focus-visible,
 [data-theme="light"] a:focus-visible {
-  box-shadow: 0 0 0 1.5px #4f46e5 !important;
+  border-color: rgba(0, 0, 0, 0.25) !important;
+  box-shadow: none !important;
 }
 
-/* Form inputs & textareas: Bespoke Linear aesthetic with crisp 1px highlight (no thick OS halos) */
+/* Form inputs & textareas: Bespoke Linear aesthetic with subtle 1px luminosity change (no thick OS halos or neon glow) */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea {
   outline: none !important;
@@ -226,7 +228,7 @@ textarea {
   color: #f4f4f5 !important;
   border-radius: 8px !important;
   font-size: 13px !important;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease !important;
 }
 
 input:not([type="checkbox"]):not([type="radio"]):focus,
@@ -235,8 +237,8 @@ textarea:focus,
 textarea:focus-visible {
   outline: none !important;
   outline-offset: 0 !important;
-  border-color: #a5b4fc !important;
-  box-shadow: 0 0 0 1px #a5b4fc, 0 0 8px -2px rgba(165, 180, 252, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  box-shadow: none !important;
   background-color: #14151a !important;
 }
 
@@ -251,15 +253,15 @@ textarea:focus-visible {
 [data-theme="light"] input:focus-visible,
 [data-theme="light"] textarea:focus,
 [data-theme="light"] textarea:focus-visible {
-  border-color: #4f46e5 !important;
-  box-shadow: 0 0 0 1px #4f46e5, 0 0 6px rgba(79, 70, 229, 0.2) !important;
+  border-color: rgba(0, 0, 0, 0.3) !important;
+  box-shadow: none !important;
 }
 
 input[type="checkbox"]:focus-visible,
 input[type="radio"]:focus-visible {
   outline: none !important;
   outline-offset: 0 !important;
-  box-shadow: 0 0 0 2px #a5b4fc !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22) !important;
 }
 
 /* ==========================================================================
@@ -317,9 +319,8 @@ section.bg-surface-container-lowest:hover,
   ) !important;
   border-color: rgba(255, 255, 255, 0.18) !important;
   box-shadow: 
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
-    0 8px 32px -4px rgba(0, 0, 0, 0.7),
-    0 0 24px -6px rgba(165, 180, 252, 0.12) !important;
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+    0 8px 32px -4px rgba(0, 0, 0, 0.7) !important;
 }
 
 /* Prevent calendar grid cells, table cells, headers and sub-containers from receiving card borders */
@@ -369,8 +370,9 @@ table th {
 .header-leading { flex-shrink: 0; }
 .header-section { color: var(--on-surface-variant); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .header-section span { color: var(--outline); margin: 0 6px; }
-.header-search { flex: 1; max-width: 360px; min-height: 38px; border: 1px solid var(--outline-variant); background: var(--surface-container-low); border-radius: 10px; display: flex; align-items: center; gap: 8px; padding: 0 11px; margin-left: auto; }
-.header-search:focus-within { border-color: var(--primary); }
+.header-search { flex: 1; max-width: 360px; min-height: 38px; border: 1px solid var(--outline-variant); background: var(--surface-container-low); border-radius: 10px; display: flex; align-items: center; gap: 8px; padding: 0 11px; margin-left: auto; transition: border-color 0.15s ease; }
+.header-search:hover { border-color: rgba(255, 255, 255, 0.16); }
+.header-search:focus-within { border-color: rgba(255, 255, 255, 0.22); }
 .header-search .material-symbols-outlined { font-size: 19px; color: var(--on-surface-variant); }
 .header-search input { width: 100%; background: none; border: 0; outline: 0; color: var(--on-surface); font-size: 12px; }
 .header-search input::placeholder { color: var(--on-surface-variant); opacity: .8; }
@@ -523,7 +525,7 @@ select,
 }
 
 select:hover {
-  border-color: var(--outline) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
   background-color: var(--surface-container) !important;
 }
 
@@ -531,14 +533,14 @@ select:focus,
 select:focus-visible {
   outline: none !important;
   outline-offset: 0 !important;
-  border-color: #a5b4fc !important;
-  box-shadow: 0 0 0 1px #a5b4fc, 0 0 14px rgba(165, 180, 252, 0.22) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  box-shadow: none !important;
 }
 
 [data-theme="light"] select:focus,
 [data-theme="light"] select:focus-visible {
-  border-color: #4f46e5 !important;
-  box-shadow: 0 0 0 1px #4f46e5 !important;
+  border-color: rgba(0, 0, 0, 0.25) !important;
+  box-shadow: none !important;
 }
 
 /* Header brand & rep compact dropdowns */
@@ -645,12 +647,12 @@ h1,h2,h3,h4,.font-headline { font-family:Inter,-apple-system,BlinkMacSystemFont,
 .nav-item.active .material-symbols-outlined { color:var(--primary); }
 .sidebar-create,.header-new { border-radius:8px; }
 .app-header { min-height:64px; gap:14px; }
-.header-search { max-width:300px; justify-content:flex-start; text-align:left; background:var(--surface-container-low); color:var(--on-surface-variant); font-size:12px; }
-.header-search:hover { border-color:var(--outline); color:var(--on-surface); }
+.header-search { max-width:300px; justify-content:flex-start; text-align:left; background:var(--surface-container-low); color:var(--on-surface-variant); font-size:12px; transition: border-color 0.15s ease; }
+.header-search:hover { border-color: rgba(255, 255, 255, 0.16); color:var(--on-surface); }
 .header-search > span:nth-child(2) { flex:1; }
 .header-search kbd,.command-dialog kbd { font:500 10px Inter,sans-serif; border:1px solid var(--outline-variant); border-radius:5px; padding:3px 5px; color:var(--on-surface-variant); white-space:nowrap; }
-.profile-trigger { display:grid; place-items:center; background:var(--surface-container-low); border:1px solid var(--outline-variant); border-radius:8px; color:var(--on-surface-variant); }
-.profile-trigger:hover { color:var(--on-surface); border-color:var(--outline); }
+.profile-trigger { display:grid; place-items:center; background:var(--surface-container-low); border:1px solid var(--outline-variant); border-radius:8px; color:var(--on-surface-variant); transition: border-color 0.15s ease; }
+.profile-trigger:hover { color:var(--on-surface); border-color: rgba(255, 255, 255, 0.16); }
 .profile-trigger .material-symbols-outlined { font-size:18px; }
 .brand-logo-container { position:relative; display:inline-flex; align-items:center; justify-content:center; flex:none; border-radius:8.5px; transition:transform .2s cubic-bezier(0.16,1,0.3,1); }
 .brand-logo-container:hover { transform:scale(1.05); }
@@ -659,7 +661,7 @@ h1,h2,h3,h4,.font-headline { font-family:Inter,-apple-system,BlinkMacSystemFont,
 .app-shell [class*="border-outline-variant"] { border-color:var(--outline-variant)!important; }
 .app-shell .rounded-2xl { border-radius:12px; }
 .app-shell .rounded-3xl { border-radius:14px; }
-.app-shell .group:hover { border-color:var(--outline)!important; }
+.app-shell .group:hover { border-color: rgba(255, 255, 255, 0.16) !important; }
 .app-shell .group[class*="bg-surface-container-lowest"] { position:relative; }
 .app-shell .group[class*="bg-surface-container-lowest"]::after { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; opacity:0; background:radial-gradient(circle at 80% 0%,color-mix(in srgb,var(--primary) 7%,transparent),transparent 55%); transition:opacity .2s; }
 .app-shell .group[class*="bg-surface-container-lowest"]:hover::after { opacity:1; }
@@ -685,16 +687,16 @@ h1,h2,h3,h4,.font-headline { font-family:Inter,-apple-system,BlinkMacSystemFont,
 .auth-form input:focus,
 .settings-content input:focus,
 .settings-content select:focus {
-  border-color: #a5b4fc !important;
-  box-shadow: 0 0 0 1px #a5b4fc, 0 0 8px -2px rgba(165, 180, 252, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  box-shadow: none !important;
   background-color: #14151a !important;
 }
 
 [data-theme="light"] .auth-form input:focus,
 [data-theme="light"] .settings-content input:focus,
 [data-theme="light"] .settings-content select:focus {
-  border-color: #4f46e5 !important;
-  box-shadow: 0 0 0 1px #4f46e5 !important;
+  border-color: rgba(0, 0, 0, 0.25) !important;
+  box-shadow: none !important;
   background-color: #ffffff !important;
 }
 

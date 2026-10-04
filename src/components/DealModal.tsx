@@ -231,13 +231,13 @@ export const DealModal: React.FC = () => {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center gap-4 px-6 pt-4 border-b border-outline-variant/20 text-xs font-bold">
+        <div className="flex items-center gap-4 px-6 pt-4 border-b border-white/[0.08] text-xs font-semibold">
           <button
             onClick={() => setActiveTab('timeline')}
-            className={`pb-2 border-b-2 transition-all flex items-center gap-1.5 ${
+            className={`pb-2.5 border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'timeline'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-on-surface-variant hover:text-on-surface'
+                ? 'border-white text-white font-bold'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">timeline</span>
@@ -246,10 +246,10 @@ export const DealModal: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('edit')}
-            className={`pb-2 border-b-2 transition-all flex items-center gap-1.5 ${
+            className={`pb-2.5 border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'edit'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-on-surface-variant hover:text-on-surface'
+                ? 'border-white text-white font-bold'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">edit_note</span>
@@ -258,10 +258,10 @@ export const DealModal: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('quote')}
-            className={`pb-2 border-b-2 transition-all flex items-center gap-1.5 ${
+            className={`pb-2.5 border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'quote'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-on-surface-variant hover:text-on-surface'
+                ? 'border-white text-white font-bold'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">receipt_long</span>
@@ -359,13 +359,13 @@ export const DealModal: React.FC = () => {
                   Cronologia Eventi ({selectedDeal.history?.length || 0})
                 </span>
 
-                <div className="relative pl-6 border-l-2 border-primary/30 flex flex-col gap-4 mt-2">
+                <div className="relative pl-6 border-l border-white/10 flex flex-col gap-4 mt-2">
                   {selectedDeal.history?.map((h) => (
                     <div key={h.id} className="relative flex flex-col gap-1 text-xs">
                       {/* Timeline dot */}
-                      <span className="absolute -left-[31px] top-0.5 w-3.5 h-3.5 rounded-full bg-primary border-2 border-surface-container-lowest" />
+                      <span className="absolute -left-[29px] top-1.5 w-2.5 h-2.5 rounded-full bg-zinc-300 border border-[#14151a]" />
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-primary text-[11px]">
+                        <span className="font-mono text-zinc-400 text-[11px]">
                           {h.date}
                         </span>
                         <span className="font-bold text-on-surface">{h.title}</span>

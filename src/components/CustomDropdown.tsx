@@ -73,8 +73,8 @@ export function CustomDropdown({
         onClick={() => setIsOpen((prev) => !prev)}
         className={`w-full flex items-center justify-between gap-2.5 rounded-lg border text-left font-medium transition-all cursor-pointer ${heightClasses} ${
           isOpen
-            ? 'border-[#a5b4fc] bg-[#14151a] shadow-[0_0_0_1px_#a5b4fc,0_0_8px_-2px_rgba(165,180,252,0.3)] text-white'
-            : 'border-white/10 bg-[#121316] hover:border-white/20 hover:bg-[#16171d] text-zinc-200'
+            ? 'border-white/25 bg-[#16171d] text-white shadow-none'
+            : 'border-white/10 bg-[#121316] hover:border-white/18 hover:bg-[#15161c] text-zinc-300'
         }`}
       >
         <span className="truncate flex items-center gap-2">
@@ -98,7 +98,7 @@ export function CustomDropdown({
           strokeLinecap="round"
           strokeLinejoin="round"
           className={`shrink-0 text-zinc-400 transition-transform duration-150 ${
-            isOpen ? 'rotate-180 text-[#a5b4fc]' : ''
+            isOpen ? 'rotate-180 text-zinc-200' : ''
           }`}
         >
           <path d="m6 9 6 6 6-6" />
@@ -107,7 +107,7 @@ export function CustomDropdown({
 
       {/* Custom Linear Floating Popover Menu */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-[100] max-h-60 overflow-y-auto rounded-xl border border-white/12 bg-[#14151a] p-1.5 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.06)] animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-[100] max-h-60 overflow-y-auto rounded-xl border border-white/10 bg-[#121316] p-1 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.7)] backdrop-blur-md animate-in fade-in zoom-in-95 duration-100">
           <div className="flex flex-col gap-0.5">
             {options.map((option) => {
               const isSelected = option.value === value;
@@ -121,7 +121,7 @@ export function CustomDropdown({
                       onChange(option.value);
                       setIsOpen(false);
                     }}
-                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold text-[#a5b4fc] hover:bg-[#a5b4fc]/10 transition-colors text-left border-t border-white/[0.06] mt-1 pt-1.5 cursor-pointer"
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors text-left border-t border-white/[0.06] mt-1 pt-1.5 cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-[15px]">add</span>
                     <span>{option.label}</span>
@@ -139,8 +139,8 @@ export function CustomDropdown({
                   }}
                   className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-left transition-colors cursor-pointer ${
                     isSelected
-                      ? 'bg-white/[0.08] text-white font-semibold'
-                      : 'text-zinc-300 hover:bg-white/[0.05] hover:text-white'
+                      ? 'bg-white/[0.07] text-white'
+                      : 'text-zinc-300 hover:bg-white/[0.04] hover:text-white'
                   }`}
                 >
                   <span className="flex items-center gap-2 truncate">
@@ -159,11 +159,11 @@ export function CustomDropdown({
                       height="14"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#a5b4fc"
+                      stroke="currentColor"
                       strokeWidth="2.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="shrink-0"
+                      className="shrink-0 text-zinc-300"
                     >
                       <polyline points="20 6 9 17 4 12" />
                     </svg>

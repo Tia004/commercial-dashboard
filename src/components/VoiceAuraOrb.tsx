@@ -263,7 +263,7 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
       <div className="flex items-center justify-between w-full mb-3 px-1">
         <div className="text-left">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#a5b4fc] px-2 py-0.5 rounded-full bg-[#a5b4fc]/15 border border-[#a5b4fc]/20">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-300 px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10">
               Voce Neurale AI
             </span>
             {status === 'playing' && (
@@ -273,7 +273,7 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
               </span>
             )}
             {status === 'generating' && (
-              <span className="text-[11px] font-semibold text-[#a5b4fc] animate-pulse">
+              <span className="text-[11px] font-medium text-zinc-300 animate-pulse">
                 Elaborazione sintesi…
               </span>
             )}
@@ -343,7 +343,7 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
             ({currentVoice.gender === 'male' ? 'Maschile' : 'Femminile'})
           </span>
         </div>
-        <p className="text-xs text-[#a5b4fc] font-semibold mt-0.5">
+        <p className="text-xs text-zinc-300 font-medium mt-0.5">
           {currentVoice.tone}
         </p>
         <p className="text-[11px] text-zinc-400 max-w-sm mx-auto mt-1 leading-relaxed">
@@ -355,7 +355,7 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
       <div className="w-full max-w-md bg-[#121316] border border-white/10 rounded-2xl p-4 shadow-lg mb-4 text-left">
         <div className="flex items-center justify-between text-xs mb-2">
           <span className="text-zinc-400 font-medium">Seleziona Voce</span>
-          <span className="text-[#a5b4fc] font-mono text-[11px] font-bold">
+          <span className="text-zinc-300 font-mono text-[11px] font-medium">
             {voiceIndex + 1} di {NEURAL_VOICES.length}
           </span>
         </div>
@@ -373,7 +373,7 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
               const v = NEURAL_VOICES[idx];
               if (v) handleSelectVoice(v.id, true);
             }}
-            className="w-full accent-[#a5b4fc] cursor-pointer h-2 bg-zinc-800 rounded-lg appearance-none"
+            className="w-full accent-zinc-200 cursor-pointer h-2 bg-zinc-800 rounded-lg appearance-none"
             aria-label="Slider selezione voce"
           />
         </div>
@@ -387,16 +387,16 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
                 key={v.id}
                 type="button"
                 onClick={() => handleSelectVoice(v.id, true)}
-                className={`py-2 px-2 rounded-xl text-center text-xs font-semibold transition-all border cursor-pointer ${
+                className={`py-2 px-2 rounded-xl text-center text-xs font-medium transition-all border cursor-pointer ${
                   isSelected
-                    ? 'border-[#a5b4fc] bg-[#a5b4fc]/15 text-white shadow-[0_0_12px_rgba(165,180,252,0.25)]'
-                    : 'border-white/10 bg-[#16171d] text-zinc-400 hover:text-zinc-200 hover:border-white/20'
+                    ? 'border-white/25 bg-[#181920] text-white shadow-none'
+                    : 'border-white/10 bg-[#14151a] text-zinc-400 hover:text-zinc-200 hover:border-white/16 hover:bg-[#16171d]'
                 }`}
               >
                 <div className="truncate flex items-center justify-center gap-1">
                   <span>{v.id}</span>
                   {isSelected && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#a5b4fc]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-200" />
                   )}
                 </div>
                 <div className="text-[10px] font-normal text-zinc-500 truncate mt-0.5">
@@ -451,10 +451,10 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
               type="button"
               disabled={status === 'generating'}
               onClick={handlePlayBriefing}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-[#a5b4fc]/40 bg-[#a5b4fc]/15 text-[#a5b4fc] hover:bg-[#a5b4fc]/25 text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-white/10 bg-[#14151a] hover:bg-[#181920] hover:border-white/20 text-white text-xs font-medium transition-all shadow-sm cursor-pointer disabled:opacity-50"
               title="Genera il riepilogo motivazionale con i numeri reali del CRM"
             >
-              <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+              <span className="material-symbols-outlined text-[18px] text-zinc-300">auto_awesome</span>
               <span>Briefing vendite di prova</span>
             </button>
           </>

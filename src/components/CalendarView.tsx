@@ -730,10 +730,10 @@ export const CalendarView: React.FC = () => {
                                     e.stopPropagation();
                                     completeTask(task.id);
                                   }}
-                                  className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1 ml-auto ${
+                                  className={`text-[11px] font-medium px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1 ml-auto cursor-pointer ${
                                     isDone
                                       ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10'
-                                      : 'border-outline-variant text-on-surface hover:border-primary'
+                                      : 'border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/[0.04] hover:text-white'
                                   }`}
                                 >
                                   <span className="material-symbols-outlined text-[14px]">
