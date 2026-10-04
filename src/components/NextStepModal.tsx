@@ -5,6 +5,7 @@ import { italianDateKey } from '@/lib/date';
 import React, { useState } from 'react';
 import { useCRM } from '@/lib/store';
 import { ActivityType, Priority } from '@/types/crm';
+import { CustomDropdown } from './CustomDropdown';
 
 export const NextStepModal: React.FC = () => {
   const { nextStepModalDeal, setNextStepModalDeal, setDealNextAction, salesReps } = useCRM();
@@ -53,7 +54,7 @@ export const NextStepModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-surface-container-lowest max-w-lg w-full rounded-3xl p-6 shadow-2xl border border-primary/40 flex flex-col gap-5 animate-scale-up">
+      <div className="modal-card bg-[#14151a] max-w-lg w-full rounded-2xl p-6 shadow-2xl border border-white/10 flex flex-col gap-5 animate-scale-up">
         {/* Header with rule badge */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -131,35 +132,29 @@ export const NextStepModal: React.FC = () => {
               <label className="font-bold text-on-surface-variant block mb-1">
                 Chi deve farlo? *
               </label>
-              <select
+              <CustomDropdown
                 value={who}
-                onChange={(e) => setWho(e.target.value)}
-                className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none cursor-pointer"
-              >
-                {salesReps.map((r) => (
-                  <option key={r.id} value={r.name}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setWho(val)}
+                options={salesReps.map((r) => ({ value: r.name, label: r.name, icon: 'person' }))}
+              />
             </div>
 
             <div>
               <label className="font-bold text-on-surface-variant block mb-1">
                 Tipologia Attività *
               </label>
-              <select
+              <CustomDropdown
                 value={type}
-                onChange={(e) => setType(e.target.value as any)}
-                className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none cursor-pointer"
-              >
-                <option value="chiamata">Chiamata Telefonica</option>
-                <option value="appuntamento">Video Call / Appuntamento</option>
-                <option value="preventivo">Invio Preventivo</option>
-                <option value="follow-up">Follow-up</option>
-                <option value="whatsapp">WhatsApp</option>
-                <option value="task">Task Commerciale</option>
-              </select>
+                onChange={(val) => setType(val as any)}
+                options={[
+                  { value: 'chiamata', label: 'Chiamata Telefonica', icon: 'call' },
+                  { value: 'appuntamento', label: 'Video Call / Appuntamento', icon: 'video_camera_front' },
+                  { value: 'preventivo', label: 'Invio Preventivo', icon: 'description' },
+                  { value: 'follow-up', label: 'Follow-up', icon: 'alarm_on' },
+                  { value: 'whatsapp', label: 'WhatsApp', icon: 'chat' },
+                  { value: 'task', label: 'Task Commerciale', icon: 'task_alt' },
+                ]}
+              />
             </div>
           </div>
 
@@ -173,7 +168,7 @@ export const NextStepModal: React.FC = () => {
                 required
                 value={when}
                 onChange={(e) => setWhen(e.target.value)}
-                className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none"
+                className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
               />
             </div>
 
@@ -185,7 +180,7 @@ export const NextStepModal: React.FC = () => {
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none"
+                className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
               />
             </div>
 
@@ -193,15 +188,15 @@ export const NextStepModal: React.FC = () => {
               <label className="font-bold text-on-surface-variant block mb-1">
                 Priorità
               </label>
-              <select
+              <CustomDropdown
                 value={priority}
-                onChange={(e) => setPriority(e.target.value as any)}
-                className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none cursor-pointer"
-              >
-                <option value="Alta">Alta</option>
-                <option value="Media">Media</option>
-                <option value="Bassa">Bassa</option>
-              </select>
+                onChange={(val) => setPriority(val as any)}
+                options={[
+                  { value: 'Alta', label: 'Alta' },
+                  { value: 'Media', label: 'Media' },
+                  { value: 'Bassa', label: 'Bassa' },
+                ]}
+              />
             </div>
           </div>
 

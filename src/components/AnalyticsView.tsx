@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useCRM } from '@/lib/store';
 import { Opportunity } from '@/types/crm';
+import { CustomDropdown, DropdownOption } from './CustomDropdown';
 
 export const AnalyticsView: React.FC = () => {
   const { opportunities, brands, salesReps } = useCRM();
@@ -120,28 +121,30 @@ export const AnalyticsView: React.FC = () => {
           </div>
 
           {/* Brand filter */}
-          <select
-            value={filterBrand}
-            onChange={(e) => setFilterBrand(e.target.value)}
-            className="bg-surface-container-lowest text-on-surface text-xs px-3 py-1.5 rounded-xl border border-outline-variant/30 font-semibold outline-none cursor-pointer"
-          >
-            <option value="all">Tutti i Brand</option>
-            {brands.map((b) => (
-              <option key={b} value={b}>{b}</option>
-            ))}
-          </select>
+          <div className="w-[155px]">
+            <CustomDropdown
+              size="sm"
+              value={filterBrand}
+              onChange={(val) => setFilterBrand(val)}
+              options={[
+                { value: 'all', label: 'Tutti i Brand' },
+                ...brands.map((b) => ({ value: b, label: b })),
+              ]}
+            />
+          </div>
 
           {/* Rep filter */}
-          <select
-            value={filterRep}
-            onChange={(e) => setFilterRep(e.target.value)}
-            className="bg-surface-container-lowest text-on-surface text-xs px-3 py-1.5 rounded-xl border border-outline-variant/30 font-semibold outline-none cursor-pointer"
-          >
-            <option value="all">Tutti i Commerciali</option>
-            {salesReps.map((r) => (
-              <option key={r.id} value={r.name}>{r.name}</option>
-            ))}
-          </select>
+          <div className="w-[165px]">
+            <CustomDropdown
+              size="sm"
+              value={filterRep}
+              onChange={(val) => setFilterRep(val)}
+              options={[
+                { value: 'all', label: 'Tutti i Commerciali' },
+                ...salesReps.map((r) => ({ value: r.name, label: r.name })),
+              ]}
+            />
+          </div>
         </div>
       </div>
 

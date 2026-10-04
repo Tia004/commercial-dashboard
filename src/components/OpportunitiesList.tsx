@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { useCRM } from '@/lib/store';
 import { DealStage, Opportunity } from '@/types/crm';
 import { getBrandBadge } from '@/lib/brandBadges';
+import { CustomDropdown } from './CustomDropdown';
 
 export const OpportunitiesList: React.FC = () => {
   const {
@@ -150,26 +151,29 @@ export const OpportunitiesList: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-outline">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
             Ordina per:
           </span>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="bg-surface-container text-on-surface text-xs px-2.5 py-1 rounded-lg font-medium outline-none cursor-pointer border border-outline-variant/30"
-          >
-            <option value="date">Data Ingresso (Più recente)</option>
-            <option value="value">Valore Economico (€)</option>
-            <option value="name">Nome Cliente (A-Z)</option>
-          </select>
+          <div className="w-[190px]">
+            <CustomDropdown
+              size="sm"
+              value={sortBy}
+              onChange={(val) => setSortBy(val as any)}
+              options={[
+                { value: 'date', label: 'Data Ingresso (Più recente)' },
+                { value: 'value', label: 'Valore Economico (€)' },
+                { value: 'name', label: 'Nome Cliente (A-Z)' },
+              ]}
+            />
+          </div>
         </div>
       </div>
 
       {/* Table view */}
-      <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-sm overflow-hidden">
+      <div className="resend-card rounded-2xl border border-white/[0.08] shadow-sm overflow-hidden bg-[#0e0f13]">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-surface-container-low border-b border-outline-variant/30 text-on-surface-variant uppercase text-[10px] tracking-wider font-bold">
+            <thead className="bg-[#121317] border-b border-white/[0.06] text-zinc-400 uppercase text-[10px] tracking-wider font-bold">
               <tr>
                 <th className="py-3 px-4">Cliente & Azienda</th>
                 <th className="py-3 px-3">Brand</th>

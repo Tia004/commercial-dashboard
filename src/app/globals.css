@@ -216,31 +216,35 @@ a:focus-visible,
   box-shadow: 0 0 0 1.5px #4f46e5 !important;
 }
 
-/* Form inputs & textareas: Site signature Linear lilla highlight directly on element border */
-input,
-textarea,
-select {
+/* Form inputs & textareas: Bespoke Linear aesthetic with crisp 1px highlight (no thick OS halos) */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea {
   outline: none !important;
   outline-offset: 0 !important;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background-color: #121316 !important;
+  color: #f4f4f5 !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease !important;
 }
 
-input:focus,
-input:focus-visible,
+input:not([type="checkbox"]):not([type="radio"]):focus,
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
 textarea:focus,
 textarea:focus-visible {
   outline: none !important;
   outline-offset: 0 !important;
   border-color: #a5b4fc !important;
-  box-shadow: 0 0 0 1px #a5b4fc, 0 0 14px rgba(165, 180, 252, 0.22) !important;
+  box-shadow: 0 0 0 1px #a5b4fc, 0 0 8px -2px rgba(165, 180, 252, 0.3) !important;
+  background-color: #14151a !important;
 }
 
-[data-theme="oled"] input:focus,
-[data-theme="oled"] input:focus-visible,
-[data-theme="oled"] textarea:focus,
-[data-theme="oled"] textarea:focus-visible {
-  border-color: #b6e7bd !important;
-  box-shadow: 0 0 0 1px #b6e7bd, 0 0 14px rgba(182, 231, 189, 0.25) !important;
+[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="light"] textarea {
+  background-color: #ffffff !important;
+  border-color: #dee2e6 !important;
+  color: #212529 !important;
 }
 
 [data-theme="light"] input:focus,
@@ -248,7 +252,7 @@ textarea:focus-visible {
 [data-theme="light"] textarea:focus,
 [data-theme="light"] textarea:focus-visible {
   border-color: #4f46e5 !important;
-  box-shadow: 0 0 0 1px #4f46e5, 0 0 8px rgba(79, 70, 229, 0.2) !important;
+  box-shadow: 0 0 0 1px #4f46e5, 0 0 6px rgba(79, 70, 229, 0.2) !important;
 }
 
 input[type="checkbox"]:focus-visible,
@@ -263,16 +267,17 @@ input[type="radio"]:focus-visible {
    ========================================================================== */
 
 /* Dark themes: Inner radial glow always visible even without hover */
-.bg-surface-container-lowest,
-.bg-surface-container-low,
+.resend-card,
+.linear-card,
 .settings-card,
 .auth-panel,
-.resend-card,
 .kpi-card,
 .app-card,
 .focus-queues,
 .focus-results,
-section.bg-surface-container-lowest {
+section.bg-surface-container-lowest,
+.cockpit-card,
+.modal-card {
   --glow-x: 50%;
   --glow-y: 0%;
   position: relative;
@@ -293,16 +298,17 @@ section.bg-surface-container-lowest {
 }
 
 /* Hover: Glow intensifies, moves smoothly with mouse, border illuminates */
-.bg-surface-container-lowest:hover,
-.bg-surface-container-low:hover,
+.resend-card:hover,
+.linear-card:hover,
 .settings-card:hover,
 .auth-panel:hover,
-.resend-card:hover,
 .kpi-card:hover,
 .app-card:hover,
 .focus-queues:hover,
 .focus-results:hover,
-section.bg-surface-container-lowest:hover {
+section.bg-surface-container-lowest:hover,
+.cockpit-card:hover,
+.modal-card:hover {
   background-image: radial-gradient(
     750px circle at var(--glow-x, 50%) var(--glow-y, 0%),
     rgba(255, 255, 255, 0.11),
@@ -314,6 +320,19 @@ section.bg-surface-container-lowest:hover {
     inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
     0 8px 32px -4px rgba(0, 0, 0, 0.7),
     0 0 24px -6px rgba(165, 180, 252, 0.12) !important;
+}
+
+/* Prevent calendar grid cells, table cells, headers and sub-containers from receiving card borders */
+.calendar-cell,
+.calendar-grid-cell,
+.grid-cols-7 > div,
+.calendar-month-grid > div,
+table tr,
+table td,
+table th {
+  border: none !important;
+  box-shadow: none !important;
+  background-image: none !important;
 }
 
 .app-shell { min-height: 100vh; background: var(--surface); color: var(--on-surface); }
@@ -667,8 +686,8 @@ h1,h2,h3,h4,.font-headline { font-family:Inter,-apple-system,BlinkMacSystemFont,
 .settings-content input:focus,
 .settings-content select:focus {
   border-color: #a5b4fc !important;
-  box-shadow: 0 0 0 1px #a5b4fc, 0 0 14px rgba(165, 180, 252, 0.22) !important;
-  background-color: var(--surface-container) !important;
+  box-shadow: 0 0 0 1px #a5b4fc, 0 0 8px -2px rgba(165, 180, 252, 0.3) !important;
+  background-color: #14151a !important;
 }
 
 [data-theme="light"] .auth-form input:focus,

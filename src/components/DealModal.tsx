@@ -5,6 +5,7 @@ import { italianDateAfterDays } from '@/lib/date';
 import React, { useState } from 'react';
 import { useCRM } from '@/lib/store';
 import { Opportunity, DealStage, ActivityType } from '@/types/crm';
+import { CustomDropdown, DropdownOption } from './CustomDropdown';
 
 export const DealModal: React.FC = () => {
   const {
@@ -321,18 +322,18 @@ export const DealModal: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <select
+                    <CustomDropdown
                       value={newLogType}
-                      onChange={(e) => setNewLogType(e.target.value as any)}
-                      className="w-full bg-surface-container p-2.5 rounded-xl border border-outline-variant/30 text-on-surface outline-none cursor-pointer"
-                    >
-                      <option value="chiamata">Chiamata Effettuata</option>
-                      <option value="appuntamento">Video Call / Meeting</option>
-                      <option value="preventivo">Preventivo Inviato</option>
-                      <option value="follow-up">Follow-up</option>
-                      <option value="whatsapp">WhatsApp Inviato</option>
-                      <option value="task">Nota Interna</option>
-                    </select>
+                      onChange={(val) => setNewLogType(val as any)}
+                      options={[
+                        { value: 'chiamata', label: 'Chiamata Effettuata', icon: 'call' },
+                        { value: 'appuntamento', label: 'Video Call / Meeting', icon: 'videocam' },
+                        { value: 'preventivo', label: 'Preventivo Inviato', icon: 'request_quote' },
+                        { value: 'follow-up', label: 'Follow-up', icon: 'history' },
+                        { value: 'whatsapp', label: 'WhatsApp Inviato', icon: 'chat' },
+                        { value: 'task', label: 'Nota Interna', icon: 'edit_note' },
+                      ]}
+                    />
                   </div>
                 </div>
                 <textarea

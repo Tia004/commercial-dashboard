@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { CommercialTask, ActivityType } from '@/types/crm';
 import { italianDateKey } from '@/lib/date';
 import { getBrandBadge } from '@/lib/brandBadges';
+import { CustomDropdown, DropdownOption } from './CustomDropdown';
 
 type CalendarViewMode = 'month' | 'week' | 'day';
 
@@ -274,31 +275,64 @@ export const CalendarView: React.FC = () => {
   const activeDayTasks = useMemo(() => tasksByDate.get(activeDayKey) || [], [tasksByDate, activeDayKey]);
   const completedTodayCount = useMemo(() => activeDayTasks.filter((t) => t.status === 'Completata').length, [activeDayTasks]);
 
+  // Dropdown options
+  const filterTypeOptions: DropdownOption[] = useMemo(() => [
+    { value: 'all', label: 'Tutte le attività' },
+    { value: 'appuntamento', label: 'Appuntamenti / Meeting', icon: 'video_camera_front' },
+    { value: 'chiamata', label: 'Chiamate', icon: 'call' },
+    { value: 'follow-up', label: 'Follow-up', icon: 'alarm_on' },
+    { value: 'preventivo', label: 'Preventivi', icon: 'description' },
+    { value: 'whatsapp', label: 'WhatsApp', icon: 'chat' },
+    { value: 'standby-wake', label: 'Sveglia Stand-by', icon: 'snooze' },
+  ], []);
+
+  const filterBrandOptions: DropdownOption[] = useMemo(() => [
+    { value: 'all', label: 'Tutti i brand' },
+    ...brands.map((b) => ({ value: b, label: b })),
+  ], [brands]);
+
+  const modalTypeOptions: DropdownOption[] = useMemo(() => [
+    { value: 'appuntamento', label: 'Video Call / Appuntamento', icon: 'video_camera_front' },
+    { value: 'chiamata', label: 'Chiamata', icon: 'call' },
+    { value: 'follow-up', label: 'Follow-up', icon: 'alarm_on' },
+    { value: 'preventivo', label: 'Invio Preventivo', icon: 'description' },
+    { value: 'whatsapp', label: 'Messaggio WhatsApp', icon: 'chat' },
+  ], []);
+
+  const modalBrandOptions: DropdownOption[] = useMemo(() => [
+    ...brands.map((b) => ({ value: b, label: b })),
+    { value: '__NEW__', label: '+ Aggiungi brand...', isAction: true },
+  ], [brands]);
+
+  const modalRepOptions: DropdownOption[] = useMemo(() => [
+    ...salesReps.map((r) => ({ value: r.name, label: r.name, icon: 'person' })),
+  ], [salesReps]);
+
   return (
     <div className="flex flex-col gap-5 w-full pb-16">
       {/* 1. Untitled UI Top Control Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface-container-lowest p-4 md:p-5 rounded-2xl border border-outline-variant/30 shadow-sm">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 resend-card bg-surface-container-lowest p-4 md:p-5 rounded-2xl border border-white/[0.08] shadow-sm">
         {/* Left: Navigation and Date Title */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-surface-container-low p-1 rounded-xl border border-outline-variant/30">
+          <div className="flex items-center gap-1 bg-[#121316] p-1 rounded-xl border border-white/10">
             <button
               onClick={handlePrev}
               title="Precedente"
-              className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all cursor-pointer"
+              className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-white/[0.06] transition-all cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]">chevron_left</span>
             </button>
             <button
               onClick={handleToday}
               title="Torna ad oggi"
-              className="px-2.5 py-1 text-xs font-semibold text-on-surface hover:bg-surface-container rounded-lg transition-all cursor-pointer"
+              className="px-2.5 py-1 text-xs font-semibold text-on-surface hover:bg-white/[0.06] rounded-lg transition-all cursor-pointer"
             >
               Oggi
             </button>
             <button
               onClick={handleNext}
               title="Successivo"
-              className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all cursor-pointer"
+              className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-white/[0.06] transition-all cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]">chevron_right</span>
             </button>
@@ -312,7 +346,7 @@ export const CalendarView: React.FC = () => {
         {/* Right: View Switcher, Filter & Action CTA */}
         <div className="flex items-center gap-3 flex-wrap">
           {/* Untitled UI Segmented View Switcher */}
-          <div className="flex items-center p-1 bg-surface-container-low rounded-xl border border-outline-variant/30 text-xs font-semibold">
+          <div className="flex items-center p-1 bg-[#121316] rounded-xl border border-white/10 text-xs font-semibold">
             {(['month', 'week', 'day'] as CalendarViewMode[]).map((mode) => {
               const label = mode === 'month' ? 'Mese' : mode === 'week' ? 'Settimana' : 'Giorno';
               const isSelected = viewMode === mode;
@@ -322,8 +356,8 @@ export const CalendarView: React.FC = () => {
                   onClick={() => setViewMode(mode)}
                   className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-surface-container-high text-on-surface shadow-xs font-bold'
-                      : 'text-on-surface-variant hover:text-on-surface'
+                      ? 'bg-white/10 text-white shadow-xs font-bold'
+                      : 'text-zinc-400 hover:text-white'
                   }`}
                 >
                   {label}
@@ -333,40 +367,33 @@ export const CalendarView: React.FC = () => {
           </div>
 
           {/* Activity Type Filter */}
-          <select
-            aria-label="Filtra per tipologia"
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="text-xs"
-          >
-            <option value="all">Tutte le attività</option>
-            <option value="appuntamento">Appuntamenti / Meeting</option>
-            <option value="chiamata">Chiamate</option>
-            <option value="follow-up">Follow-up</option>
-            <option value="preventivo">Preventivi</option>
-            <option value="whatsapp">WhatsApp</option>
-            <option value="standby-wake">Sveglia Stand-by</option>
-          </select>
+          <div className="w-[185px]">
+            <CustomDropdown
+              ariaLabel="Filtra per tipologia"
+              value={filterType}
+              onChange={(val) => setFilterType(val)}
+              options={filterTypeOptions}
+              size="sm"
+            />
+          </div>
 
           {/* Brand Filter */}
           {brands.length > 0 && (
-            <select
-              aria-label="Filtra per brand"
-              value={filterBrand}
-              onChange={(e) => setFilterBrand(e.target.value)}
-              className="text-xs"
-            >
-              <option value="all">Tutti i brand</option>
-              {brands.map((b) => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
+            <div className="w-[155px]">
+              <CustomDropdown
+                ariaLabel="Filtra per brand"
+                value={filterBrand}
+                onChange={(val) => setFilterBrand(val)}
+                options={filterBrandOptions}
+                size="sm"
+              />
+            </div>
           )}
 
           {/* Primary Action Button */}
           <button
             onClick={() => openNewTaskModal()}
-            className="flex items-center gap-1.5 bg-primary text-on-primary px-3.5 py-2 rounded-xl text-xs font-bold hover:opacity-90 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1.5 bg-white text-zinc-950 px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-zinc-200 transition-all shadow-sm cursor-pointer whitespace-nowrap"
           >
             <span className="material-symbols-outlined text-[16px]">add</span>
             <span>Nuova Attività</span>
@@ -380,16 +407,16 @@ export const CalendarView: React.FC = () => {
           A. MONTH VIEW (Untitled UI CalendarMonthView)
           ======================================================== */}
       {viewMode === 'month' && (
-        <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-sm overflow-hidden flex flex-col">
+        <div className="resend-card rounded-2xl border border-white/[0.08] shadow-sm overflow-hidden flex flex-col bg-[#0e0f13]">
           {/* Weekday Labels Header */}
-          <div className="grid grid-cols-7 border-b border-outline-variant/30 bg-surface-container-low text-center py-2.5 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
+          <div className="grid grid-cols-7 border-b border-white/[0.06] bg-[#121317] text-center py-2.5 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
             {WEEKDAY_NAMES_SHORT.map((day) => (
               <div key={day}>{day}</div>
             ))}
           </div>
 
           {/* 7-Columns Month Grid */}
-          <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-outline-variant/20 min-h-[640px]">
+          <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-white/[0.06] min-h-[640px]">
             {monthGrid.map((cell) => {
               const dayTasks = tasksByDate.get(cell.dateKey) || [];
               const isToday = cell.isToday;
@@ -397,12 +424,12 @@ export const CalendarView: React.FC = () => {
               return (
                 <div
                   key={cell.dateKey}
-                  className={`p-2 flex flex-col justify-between gap-1.5 min-h-[115px] group transition-colors relative ${
+                  className={`calendar-cell p-2 flex flex-col justify-between gap-1.5 min-h-[115px] group transition-colors relative !border-0 !shadow-none outline-none ${
                     cell.isCurrentMonth
                       ? isToday
-                        ? 'bg-primary/5'
-                        : 'bg-surface-container-lowest hover:bg-surface-container-low/40'
-                      : 'bg-surface-container-low/30 opacity-60'
+                        ? 'bg-[#a5b4fc]/[0.05]'
+                        : 'hover:bg-white/[0.03]'
+                      : 'bg-white/[0.01] opacity-40'
                   }`}
                 >
                   {/* Cell Header: Day Number and Quick Add Button */}
@@ -495,10 +522,10 @@ export const CalendarView: React.FC = () => {
           B. WEEK VIEW (Untitled UI CalendarWeekView)
           ======================================================== */}
       {viewMode === 'week' && (
-        <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-sm overflow-hidden flex flex-col">
+        <div className="resend-card rounded-2xl border border-white/[0.08] shadow-sm overflow-hidden flex flex-col bg-[#0e0f13]">
           {/* Weekday Headers */}
-          <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-outline-variant/30 bg-surface-container-low text-center">
-            <div className="py-3 text-[11px] font-bold text-on-surface-variant uppercase border-r border-outline-variant/20">
+          <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-white/[0.06] bg-[#121317] text-center">
+            <div className="py-3 text-[11px] font-bold text-zinc-400 uppercase border-r border-white/[0.06]">
               Ora
             </div>
             {weekDays.map((col) => (
@@ -508,8 +535,8 @@ export const CalendarView: React.FC = () => {
                   setCurrentDate(col.date);
                   setViewMode('day');
                 }}
-                className={`py-2.5 flex flex-col items-center justify-center gap-0.5 border-r border-outline-variant/20 last:border-r-0 cursor-pointer hover:bg-surface-container transition-colors ${
-                  col.isToday ? 'bg-primary/5' : ''
+                className={`py-2.5 flex flex-col items-center justify-center gap-0.5 border-r border-white/[0.06] last:border-r-0 cursor-pointer hover:bg-white/[0.03] transition-colors ${
+                  col.isToday ? 'bg-[#a5b4fc]/[0.05]' : ''
                 }`}
               >
                 <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
@@ -606,13 +633,13 @@ export const CalendarView: React.FC = () => {
       {viewMode === 'day' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Left Column (2/3): Hourly Schedule */}
-          <div className="lg:col-span-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-sm overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container-low">
+          <div className="lg:col-span-2 resend-card bg-[#0e0f13] rounded-2xl border border-white/[0.08] shadow-sm overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-white/[0.06] flex items-center justify-between bg-[#121317]">
               <div>
-                <h3 className="font-headline font-bold text-base text-on-surface">
+                <h3 className="font-headline font-bold text-base text-white">
                   Programma della Giornata
                 </h3>
-                <span className="text-xs text-on-surface-variant">
+                <span className="text-xs text-zinc-400">
                   {activeDayTasks.length} attività programmate
                 </span>
               </div>
@@ -729,21 +756,21 @@ export const CalendarView: React.FC = () => {
           {/* Right Column (1/3): Untitled UI Day Sidebar Summary */}
           <div className="flex flex-col gap-4">
             {/* Progress Card */}
-            <div className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col gap-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-outline">
+            <div className="resend-card bg-[#0e0f13] p-5 rounded-2xl border border-white/[0.08] shadow-sm flex flex-col gap-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                 STATO GIORNALISTICO
               </span>
               <div className="flex items-baseline justify-between">
-                <h4 className="font-headline font-bold text-2xl text-on-surface">
+                <h4 className="font-headline font-bold text-2xl text-white">
                   {completedTodayCount} / {activeDayTasks.length}
                 </h4>
-                <span className="text-xs font-semibold text-on-surface-variant">
+                <span className="text-xs font-semibold text-zinc-400">
                   {activeDayTasks.length > 0
                     ? `${Math.round((completedTodayCount / activeDayTasks.length) * 100)}% completato`
                     : 'Nessuna attività'}
                 </span>
               </div>
-              <div className="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-white/[0.06] rounded-full h-2 overflow-hidden">
                 <div
                   className="bg-primary h-full transition-all duration-500"
                   style={{
@@ -754,8 +781,8 @@ export const CalendarView: React.FC = () => {
             </div>
 
             {/* Activities Distribution */}
-            <div className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col gap-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-outline">
+            <div className="resend-card bg-[#0e0f13] p-5 rounded-2xl border border-white/[0.08] shadow-sm flex flex-col gap-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                 TIPOLOGIE DI OGGI
               </span>
               <div className="flex flex-col gap-2">
@@ -772,9 +799,9 @@ export const CalendarView: React.FC = () => {
                         <span className={`material-symbols-outlined text-[16px] ${item.color}`}>
                           {item.icon}
                         </span>
-                        <span className="text-on-surface">{item.label}</span>
+                        <span className="text-zinc-200">{item.label}</span>
                       </div>
-                      <span className="font-bold text-on-surface-variant font-mono">{count}</span>
+                      <span className="font-bold text-zinc-400 font-mono">{count}</span>
                     </div>
                   );
                 })}
@@ -782,13 +809,13 @@ export const CalendarView: React.FC = () => {
             </div>
 
             {/* Quick Checklist */}
-            <div className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col gap-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-outline">
+            <div className="resend-card bg-[#0e0f13] p-5 rounded-2xl border border-white/[0.08] shadow-sm flex flex-col gap-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                 ATTIVITÀ DA COMPLETARE
               </span>
               <div className="flex flex-col gap-2">
                 {activeDayTasks.filter((t) => t.status !== 'Completata').length === 0 ? (
-                  <div className="p-4 text-center text-xs text-on-surface-variant">
+                  <div className="p-4 text-center text-xs text-zinc-400">
                     🎉 Tutte le attività della giornata sono completate!
                   </div>
                 ) : (
@@ -822,52 +849,52 @@ export const CalendarView: React.FC = () => {
           3. TASK DETAILS MODAL (Untitled UI Inspect Drawer/Modal)
           ======================================================== */}
       {selectedTask && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-surface-container-lowest max-w-lg w-full rounded-2xl p-6 shadow-2xl border border-outline-variant/40 flex flex-col gap-4 animate-scale-up">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="modal-card bg-[#14151a] max-w-lg w-full rounded-2xl p-6 shadow-2xl border border-white/10 flex flex-col gap-4 animate-scale-up">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#a5b4fc]">
                   DETTAGLI ATTIVITÀ
                 </span>
-                <h3 className="font-headline font-bold text-lg text-on-surface mt-0.5">
+                <h3 className="font-headline font-bold text-lg text-white mt-0.5">
                   {selectedTask.title}
                 </h3>
               </div>
               <button
                 onClick={() => setSelectedTask(null)}
-                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg cursor-pointer"
+                className="text-zinc-400 hover:text-white p-1 rounded-lg cursor-pointer transition-colors"
               >
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 flex flex-col gap-1">
-                <span className="text-[10px] text-on-surface-variant font-bold uppercase">Cliente / Contatto</span>
-                <strong className="text-on-surface text-sm">{selectedTask.client}</strong>
+              <div className="p-3 rounded-xl bg-[#181920] border border-white/[0.06] flex flex-col gap-1">
+                <span className="text-[10px] text-zinc-400 font-bold uppercase">Cliente / Contatto</span>
+                <strong className="text-white text-sm">{selectedTask.client}</strong>
               </div>
-              <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 flex flex-col gap-1">
-                <span className="text-[10px] text-on-surface-variant font-bold uppercase">Brand</span>
-                <strong className="text-on-surface text-sm">{selectedTask.brand}</strong>
+              <div className="p-3 rounded-xl bg-[#181920] border border-white/[0.06] flex flex-col gap-1">
+                <span className="text-[10px] text-zinc-400 font-bold uppercase">Brand</span>
+                <strong className="text-white text-sm">{selectedTask.brand}</strong>
               </div>
-              <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 flex flex-col gap-1">
-                <span className="text-[10px] text-on-surface-variant font-bold uppercase">Data & Ora</span>
-                <strong className="text-on-surface text-sm">
+              <div className="p-3 rounded-xl bg-[#181920] border border-white/[0.06] flex flex-col gap-1">
+                <span className="text-[10px] text-zinc-400 font-bold uppercase">Data & Ora</span>
+                <strong className="text-white text-sm">
                   {selectedTask.date} {selectedTask.time ? `alle ${selectedTask.time}` : ''}
                 </strong>
               </div>
-              <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 flex flex-col gap-1">
-                <span className="text-[10px] text-on-surface-variant font-bold uppercase">Responsabile</span>
-                <strong className="text-on-surface text-sm">{selectedTask.assignedTo}</strong>
+              <div className="p-3 rounded-xl bg-[#181920] border border-white/[0.06] flex flex-col gap-1">
+                <span className="text-[10px] text-zinc-400 font-bold uppercase">Responsabile</span>
+                <strong className="text-white text-sm">{selectedTask.assignedTo}</strong>
               </div>
             </div>
 
             {selectedTask.description && (
-              <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 text-xs">
-                <span className="text-[10px] text-on-surface-variant font-bold uppercase block mb-1">
+              <div className="p-3 rounded-xl bg-[#181920] border border-white/[0.06] text-xs">
+                <span className="text-[10px] text-zinc-400 font-bold uppercase block mb-1">
                   Note & Istruzioni
                 </span>
-                <p className="text-on-surface leading-relaxed">{selectedTask.description}</p>
+                <p className="text-zinc-200 leading-relaxed">{selectedTask.description}</p>
               </div>
             )}
 
@@ -912,20 +939,20 @@ export const CalendarView: React.FC = () => {
           4. NEW TASK MODAL FORM (Untitled UI Dialog)
           ======================================================== */}
       {isNewTaskOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-surface-container-lowest max-w-md w-full rounded-2xl p-6 shadow-2xl border border-outline-variant/40 flex flex-col gap-4 animate-scale-up">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="modal-card bg-[#14151a] max-w-md w-full rounded-2xl p-6 shadow-2xl border border-white/10 flex flex-col gap-4 animate-scale-up">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#a5b4fc]">
                   PIANIFICAZIONE
                 </span>
-                <h3 className="font-headline font-bold text-lg text-on-surface mt-0.5">
+                <h3 className="font-headline font-bold text-lg text-white mt-0.5">
                   Nuova Attività Commerciale
                 </h3>
               </div>
               <button
                 onClick={() => setIsNewTaskOpen(false)}
-                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg cursor-pointer"
+                className="text-zinc-400 hover:text-white p-1 rounded-lg cursor-pointer transition-colors"
               >
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
@@ -933,7 +960,7 @@ export const CalendarView: React.FC = () => {
 
             <form onSubmit={handleCreateTask} className="flex flex-col gap-3 text-xs">
               <div>
-                <label className="font-bold text-on-surface-variant block mb-1">
+                <label className="font-semibold text-zinc-300 block mb-1">
                   Titolo Attività *
                 </label>
                 <input
@@ -942,13 +969,13 @@ export const CalendarView: React.FC = () => {
                   placeholder="Es: Telefonata conferma offerta finale"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full bg-surface-container-low p-2.5 rounded-xl border border-outline-variant text-on-surface outline-none"
+                  className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-on-surface-variant block mb-1">
+                  <label className="font-semibold text-zinc-300 block mb-1">
                     Cliente / Contatto
                   </label>
                   <input
@@ -956,12 +983,12 @@ export const CalendarView: React.FC = () => {
                     placeholder="Mario Rossi"
                     value={newClient}
                     onChange={(e) => setNewClient(e.target.value)}
-                    className="w-full bg-surface-container-low p-2.5 rounded-xl border border-outline-variant text-on-surface outline-none"
+                    className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
                   />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="font-bold text-on-surface-variant block">Brand</label>
+                    <label className="font-semibold text-zinc-300 block">Brand</label>
                     <button
                       type="button"
                       onClick={() => {
@@ -971,15 +998,15 @@ export const CalendarView: React.FC = () => {
                           setNewBrand(name.trim());
                         }
                       }}
-                      className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                      className="text-[11px] font-semibold text-[#a5b4fc] hover:underline cursor-pointer"
                     >
                       + Nuovo
                     </button>
                   </div>
-                  <select
+                  <CustomDropdown
                     value={newBrand}
-                    onChange={(e) => {
-                      if (e.target.value === '__NEW__') {
+                    onChange={(val) => {
+                      if (val === '__NEW__') {
                         const name = window.prompt('Nome nuovo brand:');
                         if (name && name.trim()) {
                           addBrand(name.trim());
@@ -987,95 +1014,77 @@ export const CalendarView: React.FC = () => {
                         }
                         return;
                       }
-                      setNewBrand(e.target.value);
+                      setNewBrand(val);
                     }}
-                    className="w-full"
-                  >
-                    {brands.length === 0 ? (
-                      <option value="">Nessun brand (clicca + Nuovo)</option>
-                    ) : (
-                      brands.map((b) => (
-                        <option key={b} value={b}>{b}</option>
-                      ))
-                    )}
-                    <option value="__NEW__">+ Aggiungi brand...</option>
-                  </select>
+                    options={modalBrandOptions}
+                    placeholder="Seleziona brand…"
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-on-surface-variant block mb-1">Tipologia</label>
-                  <select
+                  <label className="font-semibold text-zinc-300 block mb-1">Tipologia</label>
+                  <CustomDropdown
                     value={newType}
-                    onChange={(e) => setNewType(e.target.value as any)}
-                    className="w-full"
-                  >
-                    <option value="appuntamento">Video Call / Appuntamento</option>
-                    <option value="chiamata">Chiamata</option>
-                    <option value="follow-up">Follow-up</option>
-                    <option value="preventivo">Invio Preventivo</option>
-                    <option value="whatsapp">Messaggio WhatsApp</option>
-                  </select>
+                    onChange={(val) => setNewType(val as any)}
+                    options={modalTypeOptions}
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-on-surface-variant block mb-1">Responsabile</label>
-                  <select
+                  <label className="font-semibold text-zinc-300 block mb-1">Responsabile</label>
+                  <CustomDropdown
                     value={newRep}
-                    onChange={(e) => setNewRep(e.target.value)}
-                    className="w-full"
-                  >
-                    {salesReps.map((r) => (
-                      <option key={r.id} value={r.name}>{r.name}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setNewRep(val)}
+                    options={modalRepOptions}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-on-surface-variant block mb-1">Data *</label>
+                  <label className="font-semibold text-zinc-300 block mb-1">Data *</label>
                   <input
                     type="date"
                     required
                     value={newDate}
                     onChange={(e) => setNewDate(e.target.value)}
-                    className="w-full bg-surface-container-low p-2.5 rounded-xl border border-outline-variant text-on-surface outline-none"
+                    className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-on-surface-variant block mb-1">Ora</label>
+                  <label className="font-semibold text-zinc-300 block mb-1">Ora</label>
                   <input
                     type="time"
                     value={newTime}
                     onChange={(e) => setNewTime(e.target.value)}
-                    className="w-full bg-surface-container-low p-2.5 rounded-xl border border-outline-variant text-on-surface outline-none"
+                    className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="font-bold text-on-surface-variant block mb-1">Note / Descrizione</label>
+                <label className="font-semibold text-zinc-300 block mb-1">Note / Descrizione</label>
                 <textarea
                   rows={2}
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
                   placeholder="Dettagli aggiuntivi, agenda call o link meeting..."
-                  className="w-full bg-surface-container-low p-2.5 rounded-xl border border-outline-variant text-on-surface outline-none resize-none"
+                  className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none resize-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setIsNewTaskOpen(false)}
-                  className="px-4 py-2 rounded-xl text-on-surface-variant hover:text-on-surface font-semibold cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-zinc-400 hover:text-white font-medium cursor-pointer transition-colors"
                 >
                   Annulla
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-primary text-on-primary font-bold shadow-sm hover:opacity-90 cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-white text-zinc-950 font-semibold shadow-sm hover:bg-zinc-200 cursor-pointer transition-colors"
                 >
                   Salva Attività
                 </button>
