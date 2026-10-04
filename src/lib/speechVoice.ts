@@ -219,24 +219,37 @@ export async function playAiBriefing(params: {
   }
 }
 
+const VOICE_SAMPLES: Record<string, string> = {
+  Fenrir: 'Ciao! Sono la voce Fenrir. Ho analizzato tutte le trattative aperte nel tuo CRM: andiamo a vincere la giornata.',
+  Puck: 'Forza team! Sono Puck. Massima carica e determinazione sulle opportunità calde di oggi!',
+  Kore: 'Buongiorno. Sono Kore. Riepilogo commerciale pronto: concentriamoci subito sulle priorità strategiche ad alto valore.',
+  Aoede: 'Benvenuto. Sono Aoede. Il tuo workspace è perfettamente aggiornato e possiamo iniziare con slancio e precisione.',
+};
+
 /**
  * Play a short test sample for a specific neural voice
  */
 export async function playVoiceSample(
   voiceId: string,
   callbacks?: {
+    onGenerating?: () => void;
     onStart?: () => void;
     onEnd?: () => void;
     onError?: (err: Error) => void;
+    onText?: (text: string) => void;
   }
 ): Promise<void> {
-  const sampleText = `Ciao! Sono la voce neurale ${voiceId}. Ho sincronizzato le tue opportunità commerciali e siamo pronti per una giornata vincente.`;
+  const sampleText =
+    VOICE_SAMPLES[voiceId] ||
+    `Ciao! Sono la voce neurale ${voiceId}. Il tuo archivio vendite è sincronizzato e pronto.`;
   await playAiBriefing({
     text: sampleText,
     voice: voiceId,
+    onGenerating: callbacks?.onGenerating,
     onStart: callbacks?.onStart,
     onEnd: callbacks?.onEnd,
     onError: callbacks?.onError,
+    onText: callbacks?.onText,
   });
 }
 

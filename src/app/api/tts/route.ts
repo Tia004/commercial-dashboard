@@ -1,3 +1,7 @@
+// Disable native ws binary bindings that break in Next.js bundler
+process.env.WS_NO_BUFFER_UTIL = '1';
+process.env.WS_NO_UTF_8_VALIDATE = '1';
+
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import { Communicate } from 'edge-tts-universal';

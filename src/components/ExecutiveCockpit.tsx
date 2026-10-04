@@ -5,7 +5,6 @@ import { italianDateKey } from '@/lib/date';
 import React from 'react';
 import { useCRM } from '@/lib/store';
 import { playAiBriefing, stopAllAudio, getSavedVoice } from '@/lib/speechVoice';
-import { VoiceAuraOrb } from '@/components/VoiceAuraOrb';
 import { CommercialTask, Opportunity } from '@/types/crm';
 import { getBrandBadge } from '@/lib/brandBadges';
 
@@ -33,13 +32,48 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
   const [briefingState, setBriefingState] = React.useState<'idle' | 'generating' | 'playing'>('idle');
   const [briefingText, setBriefingText] = React.useState<string | null>(null);
   const [activeVoice, setActiveVoice] = React.useState<string>('Fenrir');
-  const [isVoiceOrbOpen, setIsVoiceOrbOpen] = React.useState(false);
 
   React.useEffect(() => {
     return () => {
       stopAllAudio();
     };
   }, []);
+
+  const handleStartBriefing = async () => {
+    if (briefingState === 'playing') {
+      stopAllAudio();
+      setBriefingState('idle');
+      return;
+    }
+
+    stopAllAudio();
+    setBriefingState('generating');
+    setBriefingText(null);
+    const chosenVoice = getSavedVoice();
+    setActiveVoice(chosenVoice);
+
+    await playAiBriefing({
+      voice: chosenVoice,
+      crmContext: {
+        pipelineTotal: kpis.pipelineTotal,
+        openDealsCount: kpis.openDealsCount,
+        todayTasksCount: todayTasks.length,
+        brands: brands,
+        urgentDeals: opportunities
+          .filter((o) => o.stage !== 'Venduta' && o.stage !== 'Persa')
+          .slice(0, 3)
+          .map((o) => `${o.company} (€${o.value})`),
+      },
+      onGenerating: () => setBriefingState('generating'),
+      onStart: () => setBriefingState('playing'),
+      onText: (text) => setBriefingText(text),
+      onEnd: () => setBriefingState('idle'),
+      onError: (err) => {
+        console.warn('Briefing error:', err);
+        setBriefingState('idle');
+      },
+    });
+  };
 
   const today = italianDateKey();
 
@@ -115,37 +149,38 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
         </div>
 
         <div className="flex items-center flex-wrap gap-2.5">
-          {/* AI Voice Orb & Briefing Button */}
+          {/* AI Voice Briefing Direct Button */}
           {briefingState === 'idle' && (
             <button
-              onClick={() => setIsVoiceOrbOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-outline-variant bg-surface-container-low hover:bg-surface-container hover:border-primary/50 text-on-surface text-xs font-semibold transition-all group shadow-sm cursor-pointer"
-              title="Apri l’esperienza vocale AI con animazione aurora boreale e briefing vendite"
+              onClick={handleStartBriefing}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-white/10 bg-[#121316] hover:bg-[#181920] hover:border-[#a5b4fc]/50 text-white text-xs font-semibold transition-all group shadow-sm cursor-pointer"
+              title="Avvia la sintesi vocale del briefing commerciale di oggi"
             >
-              <span className="material-symbols-outlined text-[16px] text-primary group-hover:scale-110 transition-transform">auto_awesome</span>
-              <span>Voce AI & Briefing</span>
-              <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary">Aura</span>
+              <span className="material-symbols-outlined text-[17px] text-[#a5b4fc] group-hover:scale-110 transition-transform">
+                volume_up
+              </span>
+              <span>Briefing del Giorno</span>
             </button>
           )}
 
           {briefingState === 'generating' && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary text-xs font-medium animate-pulse">
-              <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-[#a5b4fc]/40 bg-[#a5b4fc]/10 text-white text-xs font-medium animate-pulse">
+              <span className="material-symbols-outlined text-[16px] text-[#a5b4fc] animate-spin">progress_activity</span>
               <span>Generazione briefing AI…</span>
             </div>
           )}
 
           {briefingState === 'playing' && (
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-primary/40 bg-primary/10 text-on-surface text-xs font-medium">
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-[#a5b4fc]/40 bg-[#14151a] text-white text-xs font-medium shadow-[0_0_12px_rgba(165,180,252,0.2)]">
                 <div className="flex items-end gap-0.5 h-3.5 w-4 mr-0.5">
-                  <span className="w-1 bg-primary rounded-full animate-wave-1 h-2" />
-                  <span className="w-1 bg-primary rounded-full animate-wave-2 h-3.5" />
-                  <span className="w-1 bg-primary rounded-full animate-wave-3 h-1.5" />
-                  <span className="w-1 bg-primary rounded-full animate-wave-4 h-3" />
+                  <span className="w-1 bg-[#a5b4fc] rounded-full animate-wave-1 h-2" />
+                  <span className="w-1 bg-[#a5b4fc] rounded-full animate-wave-2 h-3.5" />
+                  <span className="w-1 bg-[#a5b4fc] rounded-full animate-wave-3 h-1.5" />
+                  <span className="w-1 bg-[#a5b4fc] rounded-full animate-wave-4 h-3" />
                 </div>
-                <span className="text-primary font-bold">Voce AI in riproduzione</span>
-                <span className="text-[10px] text-on-surface-variant font-mono">({activeVoice})</span>
+                <span className="text-[#a5b4fc] font-bold">Briefing in riproduzione</span>
+                <span className="text-[10px] text-zinc-400 font-mono">({activeVoice})</span>
               </div>
               <button
                 onClick={() => {
@@ -177,16 +212,16 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
 
       {/* AI Motivational Briefing Live Transcript Card */}
       {briefingText && briefingState !== 'idle' && (
-        <div className="relative overflow-hidden rounded-xl border border-primary/30 bg-surface-container-low p-4 text-xs shadow-md animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="relative overflow-hidden rounded-xl border border-[#a5b4fc]/30 bg-[#121316] p-4 text-xs shadow-md animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-primary text-[18px]">format_quote</span>
+              <div className="w-8 h-8 rounded-lg bg-[#a5b4fc]/10 border border-[#a5b4fc]/20 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[#a5b4fc] text-[18px]">format_quote</span>
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-bold uppercase tracking-wider text-[10px] text-primary">Riepilogo Esecutivo & Motivazione Commerciale</span>
-                  <span className="text-[10px] text-on-surface-variant font-mono">· Voce Jarvis {activeVoice}</span>
+                  <span className="font-bold uppercase tracking-wider text-[10px] text-[#a5b4fc]">Riepilogo Esecutivo & Motivazione Commerciale</span>
+                  <span className="text-[10px] text-zinc-400 font-mono">· Voce AI {activeVoice}</span>
                 </div>
                 <p className="text-on-surface leading-relaxed text-[13px] italic font-medium">
                   &ldquo;{briefingText}&rdquo;
@@ -625,27 +660,6 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
           </div>
         </div>
       </div>
-
-      {/* Voice Aura Orb Modal */}
-      {isVoiceOrbOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 max-w-md w-full shadow-2xl relative">
-            <VoiceAuraOrb
-              crmContext={{
-                pipelineTotal: kpis.pipelineTotal,
-                openDealsCount: kpis.openDealsCount,
-                todayTasksCount: todayTasks.length,
-                brands: brands,
-                urgentDeals: opportunities
-                  .filter((o) => o.stage !== 'Venduta' && o.stage !== 'Persa')
-                  .slice(0, 3)
-                  .map((o) => `${o.company} (€${o.value})`),
-              }}
-              onClose={() => setIsVoiceOrbOpen(false)}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 };
