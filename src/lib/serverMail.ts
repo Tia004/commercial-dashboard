@@ -65,6 +65,9 @@ export async function sendAccountEmail(to: string, subject: string, message: str
 
   let from = (process.env.SMTP_FROM || '').trim();
   if (!from) {
+    if (user.endsWith('@smtp-brevo.com')) {
+      throw new Error('Configura SMTP_FROM su Vercel con l’email con cui sei registrato su Brevo (es. "Hub Commerciale <tua_email>"). Il codice di accesso @smtp-brevo.com non è un mittente valido.');
+    }
     from = user.includes('@') ? `"Hub Commerciale" <${user}>` : user;
   }
 
