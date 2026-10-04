@@ -15,6 +15,7 @@ export const AuthScreen: React.FC = () => {
   const [inviteToken, setInviteToken] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [busy, setBusy] = useState(false);
+  const [hpCode, setHpCode] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -42,7 +43,7 @@ export const AuthScreen: React.FC = () => {
         const result = await loginWithPassword(email, password);
         if (!result.success) setError(result.error || 'Accesso non riuscito.');
       } else if (mode === 'register') {
-        const result = await registerUser(name, email, password, company, undefined, inviteToken);
+        const result = await registerUser(name, email, password, company, undefined, inviteToken, hpCode);
         if (!result.success) setError(result.error || 'Registrazione non riuscita.');
         else { setNotice(result.message || 'Controlla la tua email per verificare l’account.'); setMode('login'); setPassword(''); }
       } else {
@@ -64,16 +65,19 @@ export const AuthScreen: React.FC = () => {
 
   return <div className="auth-shell">
     <style dangerouslySetInnerHTML={{ __html: `
+      .auth-form input {
+        color-scheme: dark !important;
+      }
       .auth-form input:-webkit-autofill,
       .auth-form input:-webkit-autofill:hover,
       .auth-form input:-webkit-autofill:focus,
       .auth-form input:-webkit-autofill:active {
-        -webkit-box-shadow: 0 0 0 1000px #16171d inset !important;
-        box-shadow: 0 0 0 1000px #16171d inset !important;
-        -webkit-text-fill-color: #f1f5f9 !important;
-        color: #f1f5f9 !important;
-        caret-color: #f1f5f9 !important;
-        border-color: rgba(255, 255, 255, 0.15) !important;
+        -webkit-box-shadow: 0 0 0 1000px #172033 inset !important;
+        box-shadow: 0 0 0 1000px #172033 inset !important;
+        -webkit-text-fill-color: #f8fafc !important;
+        color: #f8fafc !important;
+        caret-color: #f8fafc !important;
+        border-color: #334155 !important;
         transition: background-color 5000000s ease-in-out 0s !important;
       }
     `}} />
@@ -86,6 +90,16 @@ export const AuthScreen: React.FC = () => {
       {notice && <div className="auth-message success" role="status"><span className="material-symbols-outlined">check_circle</span><span>{notice}</span></div>}
       {error && <div className="auth-message error" role="alert"><span className="material-symbols-outlined">error</span><span>{error}</span></div>}
       <form onSubmit={submit} className="auth-form">
+        <input
+          type="text"
+          name="hp_code"
+          value={hpCode}
+          onChange={(e) => setHpCode(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+          style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', height: 0, width: 0, margin: 0, padding: 0 }}
+          aria-hidden="true"
+        />
         {mode === 'register' && <><label>Nome e cognome<input required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Mario Rossi" /></label>{!inviteToken && <label>Azienda<input autoComplete="organization" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Nome azienda" /></label>}</>}
         {mode !== 'confirm-reset' && <label>Email<input required type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} readOnly={!!inviteToken && mode === 'register'} placeholder="nome@azienda.it" /></label>}
         {mode !== 'request-reset' && <label>Password<input required type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} minLength={mode === 'login' ? undefined : 12} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === 'login' ? 'La tua password' : 'Almeno 12 caratteri'} /></label>}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getServerDb } from '@/lib/serverDb';
+import { getServerDb, getClientIp, checkRateLimit, purgeExpiredUnverifiedAccounts } from '@/lib/serverDb';
 import { COOKIE_NAME, cookieOptions, createSession, createToken, getSessionUser, hashPassword, hashToken, publicUser, verifyPassword } from '@/lib/serverAuth';
 import { appOrigin, emailConfigured, sendAccountEmail } from '@/lib/serverMail';
 
@@ -17,6 +17,21 @@ export async function POST(req: NextRequest) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !password) return NextResponse.json({ error: 'Inserisci email e password valide.' }, { status: 400 });
     const db = await getServerDb();
     if (body.action === 'register') {
+      // 1. Anti-Bot Honeypot (if hidden field is filled, silently discard bot injection)
+      if (body.hp_code) {
+        return NextResponse.json({ pendingVerification: true, message: 'Account creato. Controlla la tua email per verificare l’account.' }, { status: 201 });
+      }
+
+      // 2. IP Rate Limiting (max 5 registrations per hour per IP address)
+      const clientIp = getClientIp(req);
+      const isAllowed = await checkRateLimit(db, clientIp, 'register', 5, 60);
+      if (!isAllowed) {
+        return NextResponse.json({ error: 'Troppi tentativi di registrazione da questo indirizzo IP. Riprova tra 1 ora.' }, { status: 429 });
+      }
+
+      // 3. Purge expired unverified accounts older than 24h to keep Turso db pristine
+      void purgeExpiredUnverifiedAccounts(db);
+
       const name = String(body.name || '').trim();
       if (!name || password.length < 8 || password.length > 256) return NextResponse.json({ error: 'Indica il nome e una password di almeno 8 caratteri.' }, { status: 400 });
       const userId = crypto.randomUUID();
@@ -29,34 +44,43 @@ export async function POST(req: NextRequest) {
         workspaceId = String(invite.rows[0].workspace_id);
         role = String(invite.rows[0].role);
       }
-      const existing = await db.execute({ sql: 'SELECT id FROM users WHERE email = ?', args: [email] });
+      const existing = await db.execute({ sql: 'SELECT id, email_verified FROM users WHERE email = ?', args: [email] });
       if (existing.rows.length) return NextResponse.json({ error: 'Account già presente per questa email. Clicca su "Accedi" per entrare.' }, { status: 409 });
-      
+
+      if (!emailConfigured()) {
+        return NextResponse.json({ error: 'La verifica email non è ancora configurata. Contatta l’amministratore per inserire le credenziali SMTP.' }, { status: 503 });
+      }
+
       if (!inviteToken) await db.execute({ sql: 'INSERT INTO workspaces(id,name,created_at) VALUES (?,?,?)', args: [workspaceId, String(body.company || name).trim(), new Date().toISOString()] });
-      
-      // Save directly into Turso database with active verified status
+
+      // Save user with email_verified = 0 (must confirm email before gaining access)
       await db.execute({ 
-        sql: 'INSERT INTO users (id,email,name,company,role,password_hash,created_at,workspace_id,email_verified) VALUES (?,?,?,?,?,?,?,?,1)', 
+        sql: 'INSERT INTO users (id,email,name,company,role,password_hash,created_at,workspace_id,email_verified) VALUES (?,?,?,?,?,?,?,?,0)', 
         args: [userId, email, name, String(body.company || '').trim(), role, hashPassword(password), new Date().toISOString(), workspaceId] 
       });
 
+      const verificationToken = createToken();
+      await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [hashToken(verificationToken), 'verify', email, userId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()] });
       if (inviteToken) await db.execute({ sql: 'UPDATE auth_tokens SET used_at = ? WHERE token_hash = ?', args: [new Date().toISOString(), hashToken(inviteToken)] });
 
-      // Optional welcome email in background (does not block registration if SMTP is not configured)
-      if (emailConfigured()) {
-        sendAccountEmail(
+      // Send verification link via Brevo SMTP
+      try {
+        await sendAccountEmail(
           email,
-          'Benvenuto su Hub Commerciale',
-          `Ciao ${name},\n\nil tuo account è stato creato con successo su Hub Commerciale!\nAccedi al tuo workspace da qui: ${appOrigin(req)}\n\nBuon lavoro con la gestione delle tue vendite!`
-        ).catch((err) => console.warn('Welcome email skipped:', err?.message));
+          'Verifica il tuo indirizzo email · Hub Commerciale',
+          `Ciao ${name},\n\ngrazie per esserti registrato su Hub Commerciale!\n\nPer attivare il tuo account e accedere al workspace, apri questo link:\n\n${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}\n\nIl link scade tra 24 ore. Se non hai richiesto la creazione di questo account, ignora questo messaggio.`
+        );
+      } catch (err: any) {
+        // Rollback creation so unverified spam does not linger
+        await db.execute({ sql: 'DELETE FROM auth_tokens WHERE user_id = ? AND purpose = ?', args: [userId, 'verify'] });
+        await db.execute({ sql: 'DELETE FROM users WHERE id = ?', args: [userId] });
+        if (!inviteToken) await db.execute({ sql: 'DELETE FROM workspaces WHERE id = ?', args: [workspaceId] });
+        if (inviteToken) await db.execute({ sql: 'UPDATE auth_tokens SET used_at = NULL WHERE token_hash = ?', args: [hashToken(inviteToken)] });
+        const reason = err?.message ? ` (${err.message})` : '';
+        return NextResponse.json({ error: `Invio email non riuscito: controlla la configurazione SMTP.${reason}` }, { status: 503 });
       }
 
-      // Log in immediately and create session
-      await db.execute({ sql: 'DELETE FROM login_attempts WHERE email = ?', args: [email] });
-      const token = await createSession(userId);
-      const response = NextResponse.json({ user: await publicUser(userId), message: 'Account creato con successo!' }, { status: 201 });
-      response.cookies.set(COOKIE_NAME, token, cookieOptions);
-      return response;
+      return NextResponse.json({ pendingVerification: true, message: 'Account creato! Ti abbiamo inviato un’email di verifica: clicca sul link per attivarlo.' }, { status: 201 });
     }
     if (body.action !== 'login') return NextResponse.json({ error: 'Azione non valida.' }, { status: 400 });
     const attempt = await db.execute({ sql: 'SELECT failures, window_started_at FROM login_attempts WHERE email = ?', args: [email] });
@@ -68,9 +92,8 @@ export async function POST(req: NextRequest) {
       await db.execute({ sql: 'INSERT INTO login_attempts(email,failures,window_started_at) VALUES (?,?,?) ON CONFLICT(email) DO UPDATE SET failures = ?, window_started_at = ?', args: [email, 1, new Date().toISOString(), windowActive ? Number(existing.failures) + 1 : 1, windowActive ? String(existing.window_started_at) : new Date().toISOString()] });
       return NextResponse.json({ error: 'Email o password non corretti.' }, { status: 401 });
     }
-    // Activate any user account directly
     if (Number(result.rows[0].email_verified) !== 1) {
-      await db.execute({ sql: 'UPDATE users SET email_verified = 1 WHERE email = ?', args: [email] });
+      return NextResponse.json({ error: 'Verifica prima la tua email cliccando sul link ricevuto nella tua casella di posta.' }, { status: 403 });
     }
     await db.execute({ sql: 'DELETE FROM login_attempts WHERE email = ?', args: [email] });
     const userId = String(result.rows[0].id);

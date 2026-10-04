@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerDb } from '@/lib/serverDb';
+import { getServerDb, getClientIp, checkRateLimit } from '@/lib/serverDb';
 import { createToken, hashToken } from '@/lib/serverAuth';
 import { appOrigin, emailConfigured, sendAccountEmail } from '@/lib/serverMail';
 
@@ -10,6 +10,9 @@ export async function POST(req: NextRequest) {
     if (!emailConfigured()) return NextResponse.json({ error: 'Servizio email non configurato.' }, { status: 503 });
     const generic = { ok: true, message: 'Se l’account deve essere verificato, riceverai un nuovo link.' };
     const db = await getServerDb();
+    const clientIp = getClientIp(req);
+    const isAllowed = await checkRateLimit(db, clientIp, 'resend', 5, 60);
+    if (!isAllowed) return NextResponse.json({ error: 'Troppe richieste di invio. Riprova più tardi.' }, { status: 429 });
     const user = await db.execute({ sql: 'SELECT id FROM users WHERE email = ? AND email_verified = 0', args: [email] });
     if (!user.rows.length) return NextResponse.json(generic);
     const userId = String(user.rows[0].id);

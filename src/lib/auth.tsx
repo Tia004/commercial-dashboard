@@ -8,7 +8,7 @@ type Result = { success: boolean; error?: string; message?: string; pendingVerif
 interface AuthContextType {
   user: AuthUser | null; isAuthenticated: boolean; isLoading: boolean;
   loginWithPassword: (email: string, pass: string) => Promise<Result>;
-  registerUser: (name: string, email: string, pass: string, company?: string, role?: string, inviteToken?: string) => Promise<Result>;
+  registerUser: (name: string, email: string, pass: string, company?: string, role?: string, inviteToken?: string, hpCode?: string) => Promise<Result>;
   logout: () => void;
   isPasskeySupported: boolean;
   registerPasskey: (name?: string) => Promise<Result & { passkey?: UserPasskey }>;
@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return <AuthContext.Provider value={{
     user, isAuthenticated: !!user, isLoading,
     loginWithPassword: (email, password) => submit({ action: 'login', email, password }),
-    registerUser: (name, email, password, company, _role, inviteToken) => submit({ action: 'register', name, email, password, company: company || '', inviteToken: inviteToken || '' }),
+    registerUser: (name, email, password, company, _role, inviteToken, hpCode) => submit({ action: 'register', name, email, password, company: company || '', inviteToken: inviteToken || '', hp_code: hpCode || '' }),
     logout, isPasskeySupported: passkeySupported, registerPasskey, loginWithPasskey, removePasskey,
   }}>{children}</AuthContext.Provider>;
 };

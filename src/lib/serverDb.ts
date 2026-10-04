@@ -30,7 +30,47 @@ export function getServerDb(): Promise<Client> {
     await client.execute('CREATE TABLE IF NOT EXISTS auth_tokens (token_hash TEXT PRIMARY KEY, purpose TEXT NOT NULL, email TEXT NOT NULL, user_id TEXT, workspace_id TEXT, role TEXT, expires_at TEXT NOT NULL, used_at TEXT)');
     await client.execute('CREATE TABLE IF NOT EXISTS passkeys (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, public_key TEXT NOT NULL, counter INTEGER NOT NULL, transports TEXT NOT NULL, device_type TEXT NOT NULL, backed_up INTEGER NOT NULL, created_at TEXT NOT NULL)');
     await client.execute('CREATE TABLE IF NOT EXISTS webauthn_challenges (key TEXT PRIMARY KEY, challenge TEXT NOT NULL, expires_at TEXT NOT NULL)');
+    await client.execute('CREATE TABLE IF NOT EXISTS ip_rate_limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL, window_started_at TEXT NOT NULL)');
     return client;
   })().catch((error) => { initialized = null; throw error; });
   return initialized;
+}
+
+export function getClientIp(req: Request): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (forwarded) return forwarded.split(',')[0].trim();
+  const realIp = req.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+  return '127.0.0.1';
+}
+
+export async function checkRateLimit(db: Client, ip: string, action: string, maxAttempts = 5, windowMinutes = 60): Promise<boolean> {
+  const windowMs = windowMinutes * 60 * 1000;
+  const now = Date.now();
+  const key = `${ip}:${action}`;
+  const res = await db.execute({ sql: 'SELECT count, window_started_at FROM ip_rate_limits WHERE key = ?', args: [key] });
+  if (res.rows.length) {
+    const started = Date.parse(String(res.rows[0].window_started_at));
+    const count = Number(res.rows[0].count);
+    if (now - started < windowMs) {
+      if (count >= maxAttempts) return false;
+      await db.execute({ sql: 'UPDATE ip_rate_limits SET count = count + 1 WHERE key = ?', args: [key] });
+      return true;
+    }
+  }
+  await db.execute({
+    sql: 'INSERT INTO ip_rate_limits (key, count, window_started_at) VALUES (?, 1, ?) ON CONFLICT(key) DO UPDATE SET count = 1, window_started_at = ?',
+    args: [key, new Date().toISOString(), new Date().toISOString()]
+  });
+  return true;
+}
+
+export async function purgeExpiredUnverifiedAccounts(db: Client) {
+  try {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    await db.execute({ sql: 'DELETE FROM auth_tokens WHERE expires_at < ?', args: [new Date().toISOString()] });
+    await db.execute({ sql: 'DELETE FROM users WHERE email_verified = 0 AND created_at < ?', args: [cutoff] });
+  } catch (e) {
+    console.warn('Purge skipped:', e);
+  }
 }
