@@ -397,7 +397,7 @@ h1,h2,h3,h4,.font-headline { font-family:Inter,-apple-system,BlinkMacSystemFont,
 @media(max-width:1050px){.app-main-wrap{margin-left:0}}
 @media(max-width:720px){.header-search{order:3;max-width:none;width:100%;flex-basis:100%}.header-search kbd{display:none}}
 
-.auth-shell { min-height:100vh; display:flex; flex-direction:column; background:var(--surface); color:var(--on-surface); }
+.auth-shell { min-height:100vh; display:flex; flex-direction:column; background:var(--surface); color:var(--on-surface); color-scheme: dark; }
 .auth-header,.auth-footer { width:min(1180px,100%); margin:auto; padding:26px 24px; display:flex; align-items:center; justify-content:space-between; }
 .auth-wordmark { display:flex; align-items:center; gap:10px; font-size:14px; font-weight:700; letter-spacing:-.03em; }
 .auth-header-note,.auth-footer { font-size:11px; color:var(--on-surface-variant); }
@@ -413,6 +413,39 @@ h1,h2,h3,h4,.font-headline { font-family:Inter,-apple-system,BlinkMacSystemFont,
 .auth-form label,.settings-field { display:grid; gap:7px; font-size:11px; font-weight:600; color:var(--on-surface-variant); }
 .auth-form input,.settings-content input:not([type="range"]),.settings-content select,.settings-field select { width:100%; min-height:40px; padding:0 11px; border:1px solid var(--outline-variant); border-radius:8px; background:var(--surface-container-low); color:var(--on-surface); outline:none; font-size:12px; }
 .auth-form input:focus,.settings-content input:focus,.settings-content select:focus { border-color:var(--primary); }
+
+/* Keep form inputs styled seamlessly when browser autocompletes */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--on-surface) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--surface-container-low) inset !important;
+  box-shadow: 0 0 0 1000px var(--surface-container-low) inset !important;
+  border-color: var(--outline-variant) !important;
+  transition: background-color 50000s ease-in-out 0s;
+  caret-color: var(--on-surface) !important;
+  font-family: inherit !important;
+}
+
+[data-theme="oled"] input:-webkit-autofill,
+[data-theme="oled"] input:-webkit-autofill:hover,
+[data-theme="oled"] input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #09090b inset !important;
+  box-shadow: 0 0 0 1000px #09090b inset !important;
+}
+
+[data-theme="light"] input:-webkit-autofill,
+[data-theme="light"] input:-webkit-autofill:hover,
+[data-theme="light"] input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #0b1c30 !important;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+}
 .auth-submit { min-height:42px; padding:0 13px; margin-top:3px; display:flex; align-items:center; justify-content:space-between; border-radius:8px; background:var(--primary); color:var(--on-primary); font-size:12px; font-weight:700; }
 .auth-submit:disabled,.settings-content button:disabled { opacity:.5; cursor:not-allowed; }
 .auth-passkey { min-height:40px; width:100%; border:1px solid var(--outline-variant); border-radius:8px; margin-top:12px; display:flex; justify-content:center; align-items:center; gap:8px; font-size:12px; }

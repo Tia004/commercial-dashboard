@@ -6,9 +6,11 @@ let initialized: Promise<Client> | null = null;
 export function getServerDb(): Promise<Client> {
   if (initialized) return initialized;
   initialized = (async () => {
-    const url = process.env.TURSO_DATABASE_URL || (process.env.NODE_ENV === 'development' ? 'file:data/commercial.sqlite' : '');
+    const rawUrl = (process.env.TURSO_DATABASE_URL || '').trim();
+    const url = rawUrl || (process.env.NODE_ENV === 'development' || !process.env.VERCEL ? 'file:data/commercial.sqlite' : '');
+    const authToken = (process.env.TURSO_AUTH_TOKEN || '').trim() || undefined;
     if (!url) throw new Error('Database non configurato: imposta TURSO_DATABASE_URL e TURSO_AUTH_TOKEN.');
-    client = createClient({ url, authToken: process.env.TURSO_AUTH_TOKEN });
+    client = createClient({ url, authToken });
     await client.execute('CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL, company TEXT, role TEXT, password_hash TEXT NOT NULL, created_at TEXT NOT NULL)');
     const userColumns = (await client.execute('PRAGMA table_info(users)')).rows.map((row) => String(row.name));
     if (!userColumns.includes('workspace_id')) await client.execute('ALTER TABLE users ADD COLUMN workspace_id TEXT');
