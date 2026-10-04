@@ -4,7 +4,7 @@ import { italianDateKey } from '@/lib/date';
 
 import React from 'react';
 import { useCRM } from '@/lib/store';
-import { speakHumanVoice } from '@/lib/speechVoice';
+import { playAiBriefing, stopAllAudio, getSavedJarvisVoice } from '@/lib/speechVoice';
 import { CommercialTask, Opportunity } from '@/types/crm';
 import { getBrandBadge } from '@/lib/brandBadges';
 
@@ -28,6 +28,16 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
     syncStatus,
     setIsNewDealModalOpen,
   } = useCRM();
+
+  const [briefingState, setBriefingState] = React.useState<'idle' | 'generating' | 'playing'>('idle');
+  const [briefingText, setBriefingText] = React.useState<string | null>(null);
+  const [activeVoice, setActiveVoice] = React.useState<string>('Charon');
+
+  React.useEffect(() => {
+    return () => {
+      stopAllAudio();
+    };
+  }, []);
 
   const today = italianDateKey();
 
@@ -102,8 +112,80 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button onClick={() => speakHumanVoice(`Pipeline attiva: ${kpis.pipelineTotal.toLocaleString('it-IT')} euro. ${kpis.openDealsCount} trattative aperte. ${todayTasks.length} attività da seguire oggi.`)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-outline-variant text-on-surface-variant text-xs hover:text-on-surface"><span className="material-symbols-outlined text-[16px]">volume_up</span> Ascolta riepilogo</button>
+        <div className="flex items-center flex-wrap gap-2.5">
+          {/* AI Briefing Button with States & Stop Button */}
+          {briefingState === 'idle' && (
+            <button
+              onClick={async () => {
+                const voiceId = getSavedJarvisVoice();
+                setActiveVoice(voiceId);
+                setBriefingState('generating');
+                const hotDeals = opportunities
+                  .filter((o) => o.stage !== 'Venduta' && o.stage !== 'Persa')
+                  .slice(0, 3)
+                  .map((o) => `${o.company} (€${o.value})`);
+
+                await playAiBriefing({
+                  voice: voiceId,
+                  crmContext: {
+                    pipelineTotal: kpis.pipelineTotal,
+                    openDealsCount: kpis.openDealsCount,
+                    todayTasksCount: todayTasks.length,
+                    brands: brands,
+                    urgentDeals: hotDeals,
+                  },
+                  onGenerating: () => setBriefingState('generating'),
+                  onStart: () => setBriefingState('playing'),
+                  onText: (text) => setBriefingText(text),
+                  onEnd: () => setBriefingState('idle'),
+                  onError: (err) => {
+                    console.warn('Briefing error:', err);
+                    setBriefingState('idle');
+                  },
+                });
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-outline-variant bg-surface-container-low hover:bg-surface-container hover:border-primary/50 text-on-surface text-xs font-semibold transition-all group shadow-sm cursor-pointer"
+              title="Genera un briefing vocale motivazionale intelligente basato sui dati in tempo reale"
+            >
+              <span className="material-symbols-outlined text-[16px] text-primary group-hover:scale-110 transition-transform">auto_awesome</span>
+              <span>Briefing vocale AI</span>
+              <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary">Jarvis</span>
+            </button>
+          )}
+
+          {briefingState === 'generating' && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary text-xs font-medium animate-pulse">
+              <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+              <span>Generazione briefing AI…</span>
+            </div>
+          )}
+
+          {briefingState === 'playing' && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-primary/40 bg-primary/10 text-on-surface text-xs font-medium">
+                <div className="flex items-end gap-0.5 h-3.5 w-4 mr-0.5">
+                  <span className="w-1 bg-primary rounded-full animate-wave-1 h-2" />
+                  <span className="w-1 bg-primary rounded-full animate-wave-2 h-3.5" />
+                  <span className="w-1 bg-primary rounded-full animate-wave-3 h-1.5" />
+                  <span className="w-1 bg-primary rounded-full animate-wave-4 h-3" />
+                </div>
+                <span className="text-primary font-bold">Jarvis in riproduzione</span>
+                <span className="text-[10px] text-on-surface-variant font-mono">({activeVoice})</span>
+              </div>
+              <button
+                onClick={() => {
+                  stopAllAudio();
+                  setBriefingState('idle');
+                }}
+                title="Interrompi riepilogo audio"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-semibold transition-all cursor-pointer shadow-sm"
+              >
+                <span className="material-symbols-outlined text-[16px]">stop_circle</span>
+                <span>Interrompi</span>
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center gap-1.5 bg-surface-container px-3 py-1.5 rounded-xl border border-outline-variant/30 text-xs">
             <span className="material-symbols-outlined text-outline text-[16px]">sync</span>
             <span className="font-mono text-on-surface-variant">{syncStatus === 'saved' ? 'Dati salvati' : syncStatus === 'error' ? 'Salvataggio non riuscito' : 'Sincronizzazione…'}</span>
@@ -117,6 +199,35 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
           </button>
         </div>
       </div>
+
+      {/* AI Motivational Briefing Live Transcript Card */}
+      {briefingText && briefingState !== 'idle' && (
+        <div className="relative overflow-hidden rounded-xl border border-primary/30 bg-surface-container-low p-4 text-xs shadow-md animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-primary text-[18px]">format_quote</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-bold uppercase tracking-wider text-[10px] text-primary">Riepilogo Esecutivo & Motivazione Commerciale</span>
+                  <span className="text-[10px] text-on-surface-variant font-mono">· Voce Jarvis {activeVoice}</span>
+                </div>
+                <p className="text-on-surface leading-relaxed text-[13px] italic font-medium">
+                  &ldquo;{briefingText}&rdquo;
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setBriefingText(null)}
+              className="text-on-surface-variant hover:text-on-surface p-1 rounded-md cursor-pointer"
+              title="Nascondi trascrizione"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

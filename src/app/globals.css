@@ -327,6 +327,128 @@ h1, h2, h3, h4, .font-headline {
   -webkit-backdrop-filter: blur(12px);
 }
 
+/* ==========================================================================
+   BESPOKE CUSTOM DROPDOWN MENUS (LINEAR AESTHETIC)
+   Completely replaces operating system default select menus
+   ========================================================================== */
+
+/* Force browser popups to adopt dark color scheme matching the app */
+:root, [data-theme="slate"], [data-theme="oled"], html.dark {
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Base custom styling for all <select> elements across the whole app */
+select,
+.custom-select,
+.app-shell select,
+.settings-dialog select,
+.auth-panel select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+
+  background-color: var(--surface-container-low) !important;
+  color: var(--on-surface) !important;
+  border: 1px solid var(--outline-variant) !important;
+  border-radius: 8px !important;
+
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+
+  /* Custom Linear minimal SVG Chevron arrow */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 11px center !important;
+  background-size: 13px 13px !important;
+
+  padding: 8px 32px 8px 11px !important;
+  min-height: 38px !important;
+  cursor: pointer !important;
+
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+[data-theme="light"] select,
+[data-theme="light"] .app-shell select,
+[data-theme="light"] .settings-dialog select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2360606b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+select:hover {
+  border-color: var(--outline) !important;
+  background-color: var(--surface-container) !important;
+}
+
+select:focus,
+select:focus-visible {
+  outline: none !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 1px var(--primary), 0 0 14px rgba(165, 180, 252, 0.22) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a5b4fc' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+/* Header brand & rep compact dropdowns */
+.header-select select {
+  min-height: 34px !important;
+  padding: 4px 26px 4px 8px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  border: 0 !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  background-position: right 4px center !important;
+  max-width: 140px !important;
+}
+
+/* Dropdown Option List styling (overrides OS menu styling) */
+select option,
+select optgroup {
+  background-color: #121217 !important;
+  color: #f4f4f5 !important;
+  padding: 10px 14px !important;
+  font-size: 12px !important;
+  font-family: inherit !important;
+  font-weight: 500 !important;
+}
+
+select option:hover,
+select option:focus,
+select option:checked {
+  background-color: #242338 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="oled"] select option,
+[data-theme="oled"] select optgroup {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="oled"] select option:hover,
+[data-theme="oled"] select option:checked {
+  background-color: #1c1c24 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] select option,
+[data-theme="light"] select optgroup {
+  background-color: #ffffff !important;
+  color: #18181b !important;
+}
+
+[data-theme="light"] select option:hover,
+[data-theme="light"] select option:checked {
+  background-color: #eeeeff !important;
+  color: #312e81 !important;
+}
+
 /* Linear inspired workspace: restrained surfaces, one-pixel structure, one accent. */
 [data-theme="slate"] {
   --surface:#09090b; --background:#09090b; --surface-container-lowest:#111114;
@@ -411,7 +533,8 @@ h1,h2,h3,h4,.font-headline { font-family:Inter,-apple-system,BlinkMacSystemFont,
 .auth-switch button.active { background:var(--surface-container-high); color:var(--on-surface); }
 .auth-form { display:grid; gap:16px; }
 .auth-form label,.settings-field { display:grid; gap:7px; font-size:11px; font-weight:600; color:var(--on-surface-variant); }
-.auth-form input,.settings-content input:not([type="range"]),.settings-content select,.settings-field select { width:100%; min-height:40px; padding:0 11px; border:1px solid var(--outline-variant); border-radius:8px; background:var(--surface-container-low); color:var(--on-surface); outline:none; font-size:12px; }
+.auth-form input,.settings-content input:not([type="range"]) { width:100%; min-height:40px; padding:0 11px; border:1px solid var(--outline-variant); border-radius:8px; background:var(--surface-container-low); color:var(--on-surface); outline:none; font-size:12px; }
+.settings-content select,.settings-field select { width:100%; min-height:40px; padding:0 32px 0 11px !important; }
 .auth-form input:focus,.settings-content input:focus,.settings-content select:focus { border-color:var(--primary); }
 
 /* Keep form inputs styled seamlessly when browser autocompletes */

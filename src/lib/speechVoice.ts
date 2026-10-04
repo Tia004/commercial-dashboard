@@ -1,18 +1,247 @@
 'use client';
 
+export interface JarvisVoice {
+  id: string;
+  name: string;
+  gender: 'male' | 'female';
+  tone: string;
+  description: string;
+  isDefault?: boolean;
+}
+
+export const JARVIS_VOICES: JarvisVoice[] = [
+  {
+    id: 'Charon',
+    name: 'Charon (Jarvis Originale)',
+    gender: 'male',
+    tone: 'Calda, naturale e carismatica',
+    description: 'La voce predefinita di Jarvis. Timbro caldo, autorevole e rassicurante.',
+    isDefault: true,
+  },
+  {
+    id: 'Puck',
+    name: 'Puck (Energica)',
+    gender: 'male',
+    tone: 'Brillante e dinamica',
+    description: 'Tono vivace ed energico, ideale per dare la carica alla squadra commerciale.',
+  },
+  {
+    id: 'Kore',
+    name: 'Kore (Esecutiva)',
+    gender: 'female',
+    tone: 'Limpida e professionale',
+    description: 'Voce femminile chiara ed elegante, eccellente per report esecutivi e sintesi.',
+  },
+  {
+    id: 'Fenrir',
+    name: 'Fenrir (Profonda)',
+    gender: 'male',
+    tone: 'Bassa e determinata',
+    description: 'Timbro basso, fermo e risoluto per decisioni strategiche importanti.',
+  },
+  {
+    id: 'Aoede',
+    name: 'Aoede (Armoniosa)',
+    gender: 'female',
+    tone: 'Fluida ed espressiva',
+    description: 'Voce femminile melodica, empatica e piacevole per ascolti prolungati.',
+  },
+];
+
 export interface VoiceOption {
   id: string;
   name: string;
   lang: string;
   gender: 'female' | 'male' | 'unknown';
   isNatural: boolean;
-  provider: 'browser' | 'cloud-hd';
+  provider: 'browser' | 'jarvis-hd';
   description: string;
 }
 
+const LOCAL_STORAGE_JARVIS_VOICE_KEY = 'hubc_crm_jarvis_voice_v1';
 const LOCAL_STORAGE_VOICE_KEY = 'hubc_crm_preferred_voice_v1';
 const LOCAL_STORAGE_VOICE_SPEED_KEY = 'hubc_crm_voice_speed_v1';
-const LOCAL_STORAGE_VOICE_MODE_KEY = 'hubc_crm_voice_mode_v1'; // 'browser' | 'cloud_hd'
+
+// Global audio element reference for cloud/Jarvis playback
+let currentAudioElement: HTMLAudioElement | null = null;
+let currentAudioUrl: string | null = null;
+let isAudioActive = false;
+
+export function getSavedJarvisVoice(): string {
+  if (typeof window === 'undefined') return 'Charon';
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_JARVIS_VOICE_KEY);
+    if (saved && JARVIS_VOICES.some((v) => v.id === saved)) return saved;
+  } catch {}
+  return 'Charon';
+}
+
+export function saveJarvisVoice(voiceId: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(LOCAL_STORAGE_JARVIS_VOICE_KEY, voiceId);
+  } catch {}
+}
+
+export function isSpeechPlaying(): boolean {
+  return isAudioActive;
+}
+
+/**
+ * Stop any ongoing audio playback immediately (both Jarvis cloud audio and browser speech synthesis)
+ */
+export function stopAllAudio(): void {
+  isAudioActive = false;
+
+  if (currentAudioElement) {
+    try {
+      currentAudioElement.pause();
+      currentAudioElement.currentTime = 0;
+    } catch {}
+    currentAudioElement = null;
+  }
+
+  if (currentAudioUrl) {
+    try {
+      URL.revokeObjectURL(currentAudioUrl);
+    } catch {}
+    currentAudioUrl = null;
+  }
+
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch {}
+  }
+}
+
+// Backward compatibility alias
+export const stopHumanVoice = stopAllAudio;
+
+/**
+ * Play an AI-generated briefing or custom text via Jarvis neural voices
+ */
+export async function playAiBriefing(params: {
+  crmContext?: {
+    pipelineTotal?: number;
+    openDealsCount?: number;
+    todayTasksCount?: number;
+    brands?: string[];
+    urgentDeals?: string[];
+  };
+  text?: string;
+  voice?: string;
+  onGenerating?: () => void;
+  onStart?: () => void;
+  onEnd?: () => void;
+  onError?: (err: Error) => void;
+  onText?: (text: string) => void;
+}): Promise<void> {
+  stopAllAudio();
+
+  const chosenVoice = params.voice || getSavedJarvisVoice();
+  params.onGenerating?.();
+
+  try {
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        generateBriefing: !params.text,
+        text: params.text || '',
+        voice: chosenVoice,
+        crmContext: params.crmContext || {},
+      }),
+    });
+
+    // Check for briefing text returned in headers or fallback json
+    const headerText = res.headers.get('x-briefing-text');
+    if (headerText) {
+      try {
+        const decoded = decodeURIComponent(headerText);
+        params.onText?.(decoded);
+      } catch {}
+    }
+
+    const contentType = res.headers.get('content-type') || '';
+
+    if (contentType.includes('audio/wav') && res.ok) {
+      const blob = await res.blob();
+      const audioUrl = URL.createObjectURL(blob);
+      currentAudioUrl = audioUrl;
+
+      const audio = new Audio(audioUrl);
+      currentAudioElement = audio;
+      isAudioActive = true;
+
+      audio.onplay = () => {
+        params.onStart?.();
+      };
+
+      audio.onended = () => {
+        isAudioActive = false;
+        if (currentAudioUrl) {
+          URL.revokeObjectURL(currentAudioUrl);
+          currentAudioUrl = null;
+        }
+        currentAudioElement = null;
+        params.onEnd?.();
+      };
+
+      audio.onerror = (e) => {
+        console.warn('Audio playback error:', e);
+        isAudioActive = false;
+        params.onError?.(new Error('Errore durante la riproduzione audio'));
+      };
+
+      await audio.play();
+      return;
+    }
+
+    // Fallback JSON scenario
+    const data = await res.json().catch(() => ({}));
+    if (data?.text) {
+      params.onText?.(data.text);
+      speakHumanVoice(
+        data.text,
+        {
+          onStart: params.onStart,
+          onEnd: params.onEnd,
+          onError: params.onError,
+        }
+      );
+      return;
+    }
+
+    throw new Error(data?.error || 'Sintesi vocale non riuscita');
+  } catch (err: any) {
+    console.warn('playAiBriefing error:', err);
+    isAudioActive = false;
+    params.onError?.(err instanceof Error ? err : new Error(String(err)));
+    params.onEnd?.();
+  }
+}
+
+/**
+ * Play a short test sample for a specific Jarvis voice
+ */
+export async function playVoiceSample(
+  voiceId: string,
+  callbacks?: {
+    onStart?: () => void;
+    onEnd?: () => void;
+    onError?: (err: Error) => void;
+  }
+): Promise<void> {
+  const sampleText = `Ciao! Sono la voce ${voiceId} di Jarvis. Ho sincronizzato le tue opportunità commerciali e siamo pronti a chiudere nuovi accordi.`;
+  await playAiBriefing({
+    text: sampleText,
+    voice: voiceId,
+    onStart: callbacks?.onStart,
+    onEnd: callbacks?.onEnd,
+    onError: callbacks?.onError,
+  });
+}
 
 // Helper to check if a voice name represents an Italian female voice
 function isItalianFemaleVoice(name: string): boolean {
@@ -72,7 +301,6 @@ export function getItalianVoices(): VoiceOption[] {
     };
   });
 
-  // Sort: Natural female voices first, then female voices, then others
   formatted.sort((a, b) => {
     const scoreA = (a.isNatural ? 10 : 0) + (a.gender === 'female' ? 5 : 0);
     const scoreB = (b.isNatural ? 10 : 0) + (b.gender === 'female' ? 5 : 0);
@@ -82,7 +310,6 @@ export function getItalianVoices(): VoiceOption[] {
   return formatted;
 }
 
-// Returns the best default female Italian voice
 export function getBestDefaultVoice(): SpeechSynthesisVoice | null {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
 
@@ -91,7 +318,6 @@ export function getBestDefaultVoice(): SpeechSynthesisVoice | null {
 
   if (italian.length === 0) return null;
 
-  // 1. Check preferred saved voice
   try {
     const savedName = localStorage.getItem(LOCAL_STORAGE_VOICE_KEY);
     if (savedName) {
@@ -100,7 +326,6 @@ export function getBestDefaultVoice(): SpeechSynthesisVoice | null {
     }
   } catch (e) {}
 
-  // 2. Look for known natural female Italian voices
   const naturalFemale = italian.find(
     (v) =>
       (v.name.toLowerCase().includes('natural') ||
@@ -110,7 +335,6 @@ export function getBestDefaultVoice(): SpeechSynthesisVoice | null {
   );
   if (naturalFemale) return naturalFemale;
 
-  // 3. Look for Alice, Elsa, Federica, Chiara
   const specificFemale = italian.find(
     (v) =>
       v.name.toLowerCase().includes('elsa') ||
@@ -121,11 +345,9 @@ export function getBestDefaultVoice(): SpeechSynthesisVoice | null {
   );
   if (specificFemale) return specificFemale;
 
-  // 4. Any female voice
   const anyFemale = italian.find((v) => isItalianFemaleVoice(v.name));
   if (anyFemale) return anyFemale;
 
-  // 5. Fallback to first Italian voice
   return italian[0];
 }
 
@@ -162,43 +384,21 @@ export function savePreferredVoiceSpeed(speed: number) {
   } catch (e) {}
 }
 
-export function getSavedVoiceMode(): 'browser' | 'cloud_hd' {
-  if (typeof window === 'undefined') return 'browser';
-  try {
-    const saved = localStorage.getItem(LOCAL_STORAGE_VOICE_MODE_KEY);
-    return 'browser';
-  } catch (e) {
-    return 'browser';
-  }
-}
-
-export function savePreferredVoiceMode(mode: 'browser' | 'cloud_hd') {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(LOCAL_STORAGE_VOICE_MODE_KEY, 'browser');
-  } catch (e) {}
-}
-
-// Clean text for speech synthesis so it doesn't read markdown bullets or symbols
 export function cleanTextForSpeech(raw: string): string {
   return raw
-    .replace(/\*\*(.*?)\*\*/g, '$1') // remove bold asterisks
-    .replace(/\*(.*?)\*/g, '$1') // remove italics
-    .replace(/#{1,6}\s?/g, '') // remove headings
-    .replace(/`([^`]+)`/g, '$1') // remove backticks
-    .replace(/[-*•]\s+/g, '') // remove bullet points
-    .replace(/\n\s*\n/g, '. ') // double newline to sentence stop
-    .replace(/\n/g, ', ') // newline to comma pause
-    .replace(/\s{2,}/g, ' ') // normalize spaces
-    .replace(/€\s?([0-9.]+)/g, '$1 euro') // pronounce currency naturally
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/#{1,6}\s?/g, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/[-*•]\s+/g, '')
+    .replace(/\n\s*\n/g, '. ')
+    .replace(/\n/g, ', ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/€\s?([0-9.]+)/g, '$1 euro')
     .replace(/([0-9.]+)€/g, '$1 euro')
     .trim();
 }
 
-// Global active audio instance for Cloud HD speech
-let activeCloudAudio: HTMLAudioElement | null = null;
-
-// Primary speech execution function
 export function speakHumanVoice(
   text: string,
   callbacks?: {
@@ -210,8 +410,7 @@ export function speakHumanVoice(
 ): void {
   if (typeof window === 'undefined') return;
 
-  // Stop any playing audio
-  stopHumanVoice();
+  stopAllAudio();
 
   const cleaned = cleanTextForSpeech(text);
   if (!cleaned) {
@@ -219,19 +418,6 @@ export function speakHumanVoice(
     return;
   }
 
-  // Browser speech synthesis fallback
-  fallbackBrowserSpeak(cleaned, callbacks, customVoiceName);
-}
-
-function fallbackBrowserSpeak(
-  cleaned: string,
-  callbacks?: {
-    onStart?: () => void;
-    onEnd?: () => void;
-    onError?: (err: any) => void;
-  },
-  customVoiceName?: string
-) {
   if (!('speechSynthesis' in window)) {
     callbacks?.onError?.(new Error('Sintesi vocale non supportata'));
     return;
@@ -241,10 +427,9 @@ function fallbackBrowserSpeak(
 
   const utterance = new SpeechSynthesisUtterance(cleaned);
   utterance.lang = 'it-IT';
-  utterance.rate = getSavedVoiceSpeed(); // 0.98 natural conversational cadence
-  utterance.pitch = 1.04; // Slightly elevated warm feminine pitch
+  utterance.rate = getSavedVoiceSpeed();
+  utterance.pitch = 1.04;
 
-  // Pick voice
   const allVoices = window.speechSynthesis.getVoices();
   let chosenVoice: SpeechSynthesisVoice | null = null;
 
@@ -259,28 +444,24 @@ function fallbackBrowserSpeak(
     utterance.voice = chosenVoice;
   }
 
-  utterance.onstart = () => callbacks?.onStart?.();
-  utterance.onend = () => callbacks?.onEnd?.();
+  isAudioActive = true;
+
+  utterance.onstart = () => {
+    callbacks?.onStart?.();
+  };
+
+  utterance.onend = () => {
+    isAudioActive = false;
+    callbacks?.onEnd?.();
+  };
+
   utterance.onerror = (err) => {
+    isAudioActive = false;
     callbacks?.onError?.(err);
   };
 
-  // Small timeout ensures Chrome/Safari speech synthesis initializes cleanly
   setTimeout(() => {
     window.speechSynthesis.speak(utterance);
   }, 50);
 }
 
-export function stopHumanVoice(): void {
-  if (typeof window === 'undefined') return;
-
-  if (activeCloudAudio) {
-    activeCloudAudio.pause();
-    activeCloudAudio.currentTime = 0;
-    activeCloudAudio = null;
-  }
-
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
-  }
-}
