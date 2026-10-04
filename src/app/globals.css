@@ -204,7 +204,7 @@ button, input, select, textarea { font: inherit; }
 ::-moz-selection,
 input::selection,
 textarea::selection {
-  background: rgba(255, 255, 255, 0.22) !important;
+  background: rgba(165, 180, 252, 0.28) !important;
   color: #ffffff !important;
 }
 
@@ -212,7 +212,7 @@ textarea::selection {
 [data-theme="light"] ::-moz-selection,
 [data-theme="light"] input::selection,
 [data-theme="light"] textarea::selection {
-  background: rgba(0, 0, 0, 0.14) !important;
+  background: rgba(79, 70, 229, 0.2) !important;
   color: #000000 !important;
 }
 
@@ -223,15 +223,15 @@ a:focus-visible,
 [role="tab"]:focus-visible {
   outline: none !important;
   outline-offset: 0 !important;
-  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 0 0 1.5px #a5b4fc !important;
 }
 
 [data-theme="light"] button:focus-visible,
 [data-theme="light"] a:focus-visible {
-  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 0 0 1.5px #4f46e5 !important;
 }
 
-/* Form inputs & textareas: Bespoke custom site highlight (no OS blue or purple) */
+/* Form inputs & textareas: Site signature Linear lilla highlight directly on element border */
 input,
 textarea,
 select {
@@ -246,34 +246,31 @@ textarea:focus,
 textarea:focus-visible {
   outline: none !important;
   outline-offset: 0 !important;
-  border-color: rgba(255, 255, 255, 0.32) !important;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15), 0 2px 10px rgba(0, 0, 0, 0.5) !important;
-  background-color: var(--surface-container) !important;
+  border-color: #a5b4fc !important;
+  box-shadow: 0 0 0 1px #a5b4fc, 0 0 14px rgba(165, 180, 252, 0.22) !important;
 }
 
 [data-theme="oled"] input:focus,
 [data-theme="oled"] input:focus-visible,
 [data-theme="oled"] textarea:focus,
 [data-theme="oled"] textarea:focus-visible {
-  border-color: rgba(255, 255, 255, 0.4) !important;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22), 0 2px 12px rgba(0, 0, 0, 0.8) !important;
-  background-color: #09090b !important;
+  border-color: #b6e7bd !important;
+  box-shadow: 0 0 0 1px #b6e7bd, 0 0 14px rgba(182, 231, 189, 0.25) !important;
 }
 
 [data-theme="light"] input:focus,
 [data-theme="light"] input:focus-visible,
 [data-theme="light"] textarea:focus,
 [data-theme="light"] textarea:focus-visible {
-  border-color: #71717a !important;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06) !important;
-  background-color: #ffffff !important;
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 1px #4f46e5, 0 0 8px rgba(79, 70, 229, 0.2) !important;
 }
 
 input[type="checkbox"]:focus-visible,
 input[type="radio"]:focus-visible {
   outline: none !important;
   outline-offset: 0 !important;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 0 0 2px #a5b4fc !important;
 }
 .app-shell { min-height: 100vh; background: var(--surface); color: var(--on-surface); }
 .app-sidebar { width: 248px; position: fixed; inset: 0 auto 0 0; z-index: 45; display: flex; flex-direction: column; background: var(--surface-container-lowest); border-right: 1px solid var(--outline-variant); }
@@ -470,14 +467,14 @@ select:focus,
 select:focus-visible {
   outline: none !important;
   outline-offset: 0 !important;
-  border-color: rgba(255, 255, 255, 0.32) !important;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15), 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+  border-color: #a5b4fc !important;
+  box-shadow: 0 0 0 1px #a5b4fc, 0 0 14px rgba(165, 180, 252, 0.22) !important;
 }
 
 [data-theme="light"] select:focus,
 [data-theme="light"] select:focus-visible {
-  border-color: #71717a !important;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12) !important;
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 1px #4f46e5 !important;
 }
 
 /* Header brand & rep compact dropdowns */
@@ -624,16 +621,16 @@ h1,h2,h3,h4,.font-headline { font-family:Inter,-apple-system,BlinkMacSystemFont,
 .auth-form input:focus,
 .settings-content input:focus,
 .settings-content select:focus {
-  border-color: rgba(255, 255, 255, 0.32) !important;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15), 0 2px 10px rgba(0, 0, 0, 0.5) !important;
+  border-color: #a5b4fc !important;
+  box-shadow: 0 0 0 1px #a5b4fc, 0 0 14px rgba(165, 180, 252, 0.22) !important;
   background-color: var(--surface-container) !important;
 }
 
 [data-theme="light"] .auth-form input:focus,
 [data-theme="light"] .settings-content input:focus,
 [data-theme="light"] .settings-content select:focus {
-  border-color: #71717a !important;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 1px #4f46e5 !important;
   background-color: #ffffff !important;
 }
 

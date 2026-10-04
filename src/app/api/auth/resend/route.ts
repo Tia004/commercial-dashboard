@@ -28,12 +28,11 @@ export async function POST(req: NextRequest) {
         'Verifica il tuo indirizzo email · Hub Commerciale',
         `Apri questo link per verificare il tuo account:\n\n${verifyUrl}\n\nIl link scade tra 24 ore.`,
         {
-          kicker: 'VERIFICA ACCOUNT',
           title: 'Verifica il tuo indirizzo email',
-          bodyText: 'Clicca sul pulsante qui sotto per confermare il tuo indirizzo email ed accedere al tuo workspace vendite.',
+          bodyText: 'Clicca sul pulsante qui sotto per confermare il tuo indirizzo email ed accedere al workspace commerciale.',
           actionUrl: verifyUrl,
-          actionLabel: 'Verifica account ed entra →',
-          expiryText: 'Il link scade tra 24 ore.'
+          actionLabel: 'Verifica email',
+          expiryText: 'Questo link scade tra 24 ore.'
         }
       );
     } catch (err: any) {

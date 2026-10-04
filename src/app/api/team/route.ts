@@ -39,13 +39,12 @@ export async function POST(req: NextRequest) {
         'Invito al team · Hub Commerciale',
         user.name + ' ti ha invitato nel workspace commerciale.\n\nApri questo link per creare il tuo account:\n' + inviteUrl + '\n\nL’invito scade tra 7 giorni.',
         {
-          kicker: 'COLLABORAZIONE WORKSPACE',
-          title: 'Sei stato invitato nel team',
+          title: 'Invito al workspace',
           intro: `${user.name} ti ha invitato a collaborare nel workspace commerciale.`,
-          bodyText: 'Unisciti al team per gestire opportunità, clienti e pipeline commerciali in un unico spazio condiviso.',
+          bodyText: 'Unisciti al team per gestire opportunità, clienti e pipeline in un unico spazio condiviso.',
           actionUrl: inviteUrl,
-          actionLabel: 'Accetta invito ed entra →',
-          expiryText: 'L’invito scade tra 7 giorni.'
+          actionLabel: 'Accetta invito',
+          expiryText: 'Questo link scade tra 7 giorni.'
         }
       );
     } catch {

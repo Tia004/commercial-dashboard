@@ -66,13 +66,12 @@ export async function POST(req: NextRequest) {
             'Verifica il tuo indirizzo email · Hub Commerciale',
             `Ciao ${name},\n\ngrazie per esserti registrato su Hub Commerciale!\n\nPer attivare il tuo account e accedere al workspace, apri questo link:\n\n${verifyUrl}\n\nIl link scade tra 24 ore.`,
             {
-              kicker: 'AUTENTICAZIONE & ACCESSO',
               title: 'Verifica il tuo indirizzo email',
               intro: `Ciao ${name},`,
-              bodyText: 'Grazie per esserti registrato su Hub Commerciale! Per attivare il tuo account e accedere direttamente al tuo workspace commerciale, clicca sul pulsante qui sotto.',
+              bodyText: 'Grazie per esserti registrato. Clicca sul pulsante qui sotto per confermare la tua email ed accedere al workspace.',
               actionUrl: verifyUrl,
-              actionLabel: 'Verifica account ed entra →',
-              expiryText: 'Il link di verifica scade tra 24 ore.'
+              actionLabel: 'Verifica email',
+              expiryText: 'Questo link scade tra 24 ore.'
             }
           );
         } catch (err: any) {
@@ -106,13 +105,12 @@ export async function POST(req: NextRequest) {
           'Verifica il tuo indirizzo email · Hub Commerciale',
           `Ciao ${name},\n\ngrazie per esserti registrato su Hub Commerciale!\n\nPer attivare il tuo account e accedere al workspace, apri questo link:\n\n${verifyUrl}\n\nIl link scade tra 24 ore. Se non hai richiesto la creazione di questo account, ignora questo messaggio.`,
           {
-            kicker: 'AUTENTICAZIONE & ACCESSO',
             title: 'Verifica il tuo indirizzo email',
             intro: `Ciao ${name},`,
-            bodyText: 'Grazie per esserti registrato su Hub Commerciale! Per attivare il tuo account e accedere direttamente al tuo workspace di vendita, clicca sul pulsante qui sotto.',
+            bodyText: 'Grazie per esserti registrato su Hub Commerciale. Clicca sul pulsante qui sotto per confermare la tua email ed entrare direttamente nel tuo workspace.',
             actionUrl: verifyUrl,
-            actionLabel: 'Verifica account ed entra →',
-            expiryText: 'Il link di verifica scade tra 24 ore.'
+            actionLabel: 'Verifica email',
+            expiryText: 'Questo link scade tra 24 ore.'
           }
         );
       } catch (err: any) {
