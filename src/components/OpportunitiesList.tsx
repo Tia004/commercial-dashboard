@@ -170,10 +170,10 @@ export const OpportunitiesList: React.FC = () => {
       </div>
 
       {/* Table view */}
-      <div className="resend-card rounded-2xl border border-white/[0.08] shadow-sm overflow-hidden bg-[#0e0f13]">
+      <div className="resend-card rounded-2xl border border-zinc-200 dark:border-white/[0.08] shadow-sm overflow-hidden bg-white dark:bg-[#0e0f13]">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#121317] border-b border-white/[0.06] text-zinc-400 uppercase text-[10px] tracking-wider font-bold">
+            <thead className="bg-zinc-50 dark:bg-[#121317] border-b border-zinc-200 dark:border-white/[0.06] text-zinc-500 dark:text-zinc-400 uppercase text-[10px] tracking-wider font-bold">
               <tr>
                 <th className="py-3 px-4">Cliente & Azienda</th>
                 <th className="py-3 px-3">Brand</th>

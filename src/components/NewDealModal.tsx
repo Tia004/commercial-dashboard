@@ -127,21 +127,21 @@ export const NewDealModal: React.FC = () => {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-3 md:p-6 overflow-y-auto">
-      <div className="modal-card bg-[#14151a] max-w-3xl w-full rounded-2xl p-6 shadow-2xl border border-white/10 flex flex-col gap-5 max-h-[90vh] overflow-y-auto animate-scale-up">
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 md:p-6 overflow-y-auto">
+      <div className="modal-card bg-white dark:bg-[#14151a] max-w-3xl w-full rounded-2xl p-6 shadow-xl dark:shadow-2xl border border-zinc-200 dark:border-white/10 flex flex-col gap-5 max-h-[90vh] overflow-y-auto animate-scale-up">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+        <div className="flex items-center justify-between pb-3 border-b border-zinc-200 dark:border-white/[0.08]">
           <div>
-            <h2 className="font-headline font-bold text-lg text-white">
+            <h2 className="font-headline font-bold text-lg text-zinc-900 dark:text-white">
               Nuova Opportunità Commerciale
             </h2>
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Inserisci i dati del lead. In base alla regola fondamentale, devi includere subito una prossima azione.
             </p>
           </div>
           <button
             onClick={() => setIsNewDealModalOpen(false)}
-            className="w-8 h-8 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-white/[0.05] dark:hover:bg-white/[0.1] flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors cursor-pointer"
           >
             ✕
           </button>
@@ -150,13 +150,13 @@ export const NewDealModal: React.FC = () => {
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 text-xs">
           {/* Section 1: Customer Details */}
           <div className="flex flex-col gap-3">
-            <span className="font-bold text-xs uppercase tracking-wider text-[#a5b4fc]">
+            <span className="font-bold text-xs uppercase tracking-wider text-zinc-600 dark:text-[#a5b4fc]">
               1. Dati Anagrafici & Contatto
             </span>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="font-semibold text-zinc-300 block mb-1">
+                <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
                   Nome e Cognome Referente *
                 </label>
                 <input
@@ -165,12 +165,12 @@ export const NewDealModal: React.FC = () => {
                   placeholder="Es: Dott. Mario Rossi"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
+                  className="w-full bg-white dark:bg-[#121316] p-2.5 rounded-lg border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-white/20"
                 />
               </div>
 
               <div>
-                <label className="font-semibold text-zinc-300 block mb-1">
+                <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
                   Ragione Sociale Azienda *
                 </label>
                 <input
@@ -179,57 +179,57 @@ export const NewDealModal: React.FC = () => {
                   placeholder="Es: TechSpa S.r.l."
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
-                  className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
+                  className="w-full bg-white dark:bg-[#121316] p-2.5 rounded-lg border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-white/20"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="font-semibold text-zinc-300 block mb-1">Telefono</label>
+                <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Telefono</label>
                 <input
                   type="text"
                   placeholder="+39 02 8934521"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
+                  className="w-full bg-white dark:bg-[#121316] p-2.5 rounded-lg border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-white/20"
                 />
               </div>
 
               <div>
-                <label className="font-semibold text-zinc-300 block mb-1">WhatsApp</label>
+                <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">WhatsApp</label>
                 <input
                   type="text"
                   placeholder="+39 340 1234567"
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
-                  className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
+                  className="w-full bg-white dark:bg-[#121316] p-2.5 rounded-lg border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-white/20"
                 />
               </div>
 
               <div>
-                <label className="font-semibold text-zinc-300 block mb-1">Email</label>
+                <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Email</label>
                 <input
                   type="email"
                   placeholder="m.rossi@azienda.it"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
+                  className="w-full bg-white dark:bg-[#121316] p-2.5 rounded-lg border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-white/20"
                 />
               </div>
             </div>
           </div>
 
           {/* Section 2: Commercial Scope */}
-          <div className="flex flex-col gap-3 pt-3 border-t border-white/[0.08]">
-            <span className="font-bold text-xs uppercase tracking-wider text-[#a5b4fc]">
+          <div className="flex flex-col gap-3 pt-3 border-t border-zinc-200 dark:border-white/[0.08]">
+            <span className="font-bold text-xs uppercase tracking-wider text-zinc-600 dark:text-[#a5b4fc]">
               2. Assegnazione & Valore Commerciale
             </span>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="font-semibold text-zinc-300 block">Brand *</label>
+                  <label className="font-semibold text-zinc-700 dark:text-zinc-300 block">Brand *</label>
                   <button
                     type="button"
                     onClick={() => {
@@ -239,7 +239,7 @@ export const NewDealModal: React.FC = () => {
                         setBrand(val.trim());
                       }
                     }}
-                    className="text-[11px] text-[#a5b4fc] hover:underline font-semibold cursor-pointer"
+                    className="text-[11px] text-zinc-900 dark:text-[#a5b4fc] hover:underline font-semibold cursor-pointer"
                   >
                     + Nuovo brand
                   </button>
@@ -251,7 +251,7 @@ export const NewDealModal: React.FC = () => {
                     value={brand}
                     onChange={(e) => setBrand(e.target.value)}
                     required
-                    className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
+                    className="w-full bg-white dark:bg-[#121316] p-2.5 rounded-lg border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-white/20"
                   />
                 ) : (
                   <CustomDropdown
@@ -274,7 +274,7 @@ export const NewDealModal: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-semibold text-zinc-300 block mb-1">Servizio Interessato *</label>
+                <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Servizio Interessato *</label>
                 <CustomDropdown
                   value={service}
                   onChange={(val) => setService(val)}
@@ -283,7 +283,7 @@ export const NewDealModal: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-semibold text-zinc-300 block mb-1">Fonte del Lead</label>
+                <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Fonte del Lead</label>
                 <CustomDropdown
                   value={leadSource}
                   onChange={(val) => setLeadSource(val)}
@@ -294,7 +294,7 @@ export const NewDealModal: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="font-semibold text-zinc-300 block mb-1">Responsabile Commerciale *</label>
+                <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Responsabile Commerciale *</label>
                 <CustomDropdown
                   value={salesRep}
                   onChange={(val) => setSalesRep(val)}
@@ -303,19 +303,19 @@ export const NewDealModal: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-semibold text-zinc-300 block mb-1">Valore Economico (€) *</label>
+                <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Valore Economico (€) *</label>
                 <input
                   type="number"
                   required
                   min="0"
                   value={value}
                   onChange={(e) => setValue(Number(e.target.value))}
-                  className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none tabular-nums"
+                  className="w-full bg-white dark:bg-[#121316] p-2.5 rounded-lg border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white outline-none tabular-nums focus:border-zinc-900 dark:focus:border-white/20"
                 />
               </div>
 
               <div>
-                <label className="font-semibold text-zinc-300 block mb-1">Tipologia Valore</label>
+                <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Tipologia Valore</label>
                 <CustomDropdown
                   value={valueType}
                   onChange={(val) => setValueType(val as any)}
@@ -326,16 +326,16 @@ export const NewDealModal: React.FC = () => {
           </div>
 
           {/* Section 3: REGOLA FONDAMENTALE (PROSSIMA AZIONE) */}
-          <div className="flex flex-col gap-3 p-4 bg-[#a5b4fc]/[0.04] rounded-xl border border-[#a5b4fc]/20">
+          <div className="flex flex-col gap-3 p-4 bg-zinc-50 dark:bg-[#a5b4fc]/[0.04] rounded-xl border border-zinc-200 dark:border-[#a5b4fc]/20">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#a5b4fc] text-[18px]">verified</span>
-              <span className="font-headline font-bold text-xs uppercase tracking-wider text-[#a5b4fc]">
+              <span className="material-symbols-outlined text-zinc-900 dark:text-[#a5b4fc] text-[18px]">verified</span>
+              <span className="font-headline font-bold text-xs uppercase tracking-wider text-zinc-800 dark:text-[#a5b4fc]">
                 3. Regola Fondamentale: Prossima Azione Obbligatoria
               </span>
             </div>
 
             <div>
-              <label className="font-semibold text-zinc-300 block mb-1">
+              <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
                 Cosa bisogna fare? *
               </label>
               <input
@@ -344,13 +344,13 @@ export const NewDealModal: React.FC = () => {
                 value={actionWhat}
                 onChange={(e) => setActionWhat(e.target.value)}
                 placeholder="Es: Telefonata conoscitiva e invio brochure"
-                className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none font-medium"
+                className="w-full bg-white dark:bg-[#121316] p-2.5 rounded-lg border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white outline-none font-medium focus:border-zinc-900 dark:focus:border-white/20"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
-                <label className="font-semibold text-zinc-300 block mb-1">Chi deve farlo?</label>
+                <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Chi deve farlo?</label>
                 <CustomDropdown
                   value={actionWho}
                   onChange={(val) => setActionWho(val)}
@@ -359,7 +359,7 @@ export const NewDealModal: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-semibold text-zinc-300 block mb-1">Tipologia</label>
+                <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Tipologia</label>
                 <CustomDropdown
                   value={actionType}
                   onChange={(val) => setActionType(val as any)}
@@ -368,18 +368,18 @@ export const NewDealModal: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-semibold text-zinc-300 block mb-1">Quando (Data) *</label>
+                <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Quando (Data) *</label>
                 <input
                   type="date"
                   required
                   value={actionWhen}
                   onChange={(e) => setActionWhen(e.target.value)}
-                  className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
+                  className="w-full bg-white dark:bg-[#121316] p-2.5 rounded-lg border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-white/20"
                 />
               </div>
 
               <div>
-                <label className="font-semibold text-zinc-300 block mb-1">Priorità</label>
+                <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Priorità</label>
                 <CustomDropdown
                   value={actionPriority}
                   onChange={(val) => setActionPriority(val as any)}
@@ -390,27 +390,27 @@ export const NewDealModal: React.FC = () => {
           </div>
 
           <div>
-            <label className="font-semibold text-zinc-300 block mb-1">Note Iniziali</label>
+            <label className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Note Iniziali</label>
             <textarea
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Esigenze espresse dal cliente, note della trattativa..."
-              className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none resize-none"
+              className="w-full bg-white dark:bg-[#121316] p-2.5 rounded-lg border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white outline-none resize-none focus:border-zinc-900 dark:focus:border-white/20"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.08]">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-200 dark:border-white/[0.08]">
             <button
               type="button"
               onClick={() => setIsNewDealModalOpen(false)}
-              className="px-4 py-2 rounded-lg text-zinc-400 hover:text-white font-medium cursor-pointer transition-colors"
+              className="px-4 py-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white font-medium cursor-pointer transition-colors"
             >
               Annulla
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-lg bg-white text-zinc-950 font-bold hover:bg-zinc-200 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2.5 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]">add_circle</span>
               <span>Crea Trattativa nel CRM</span>

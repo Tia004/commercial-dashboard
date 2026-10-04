@@ -154,10 +154,10 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
           {briefingState === 'idle' && (
             <button
               onClick={handleStartBriefing}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 bg-[#121316] hover:bg-[#16171d] hover:border-white/20 text-white text-xs font-medium transition-all group shadow-sm cursor-pointer"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300 text-zinc-900 dark:border-white/10 dark:bg-[#121316] dark:hover:bg-[#16171d] dark:hover:border-white/20 dark:text-white text-xs font-medium transition-all group shadow-xs cursor-pointer"
               title="Avvia la sintesi vocale del briefing commerciale di oggi"
             >
-              <span className="material-symbols-outlined text-[16px] text-zinc-300 group-hover:scale-105 transition-transform">
+              <span className="material-symbols-outlined text-[16px] text-zinc-500 dark:text-zinc-300 group-hover:scale-105 transition-transform">
                 volume_up
               </span>
               <span>Briefing del Giorno</span>
@@ -165,23 +165,23 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
           )}
 
           {briefingState === 'generating' && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/16 bg-white/[0.04] text-white text-xs font-medium animate-pulse">
-              <span className="material-symbols-outlined text-[15px] text-zinc-300 animate-spin">progress_activity</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-200 bg-zinc-50 text-zinc-900 dark:border-white/16 dark:bg-white/[0.04] dark:text-white text-xs font-medium animate-pulse">
+              <span className="material-symbols-outlined text-[15px] text-zinc-600 dark:text-zinc-300 animate-spin">progress_activity</span>
               <span>Generazione briefing AI…</span>
             </div>
           )}
 
           {briefingState === 'playing' && (
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/20 bg-[#14151a] text-white text-xs font-medium">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-200 bg-white text-zinc-900 dark:border-white/20 dark:bg-[#14151a] dark:text-white text-xs font-medium shadow-xs">
                 <div className="flex items-end gap-0.5 h-3.5 w-4 mr-0.5">
-                  <span className="w-1 bg-zinc-200 rounded-full animate-wave-1 h-2" />
-                  <span className="w-1 bg-zinc-200 rounded-full animate-wave-2 h-3.5" />
-                  <span className="w-1 bg-zinc-200 rounded-full animate-wave-3 h-1.5" />
-                  <span className="w-1 bg-zinc-200 rounded-full animate-wave-4 h-3" />
+                  <span className="w-1 bg-zinc-900 dark:bg-zinc-200 rounded-full animate-wave-1 h-2" />
+                  <span className="w-1 bg-zinc-900 dark:bg-zinc-200 rounded-full animate-wave-2 h-3.5" />
+                  <span className="w-1 bg-zinc-900 dark:bg-zinc-200 rounded-full animate-wave-3 h-1.5" />
+                  <span className="w-1 bg-zinc-900 dark:bg-zinc-200 rounded-full animate-wave-4 h-3" />
                 </div>
-                <span className="text-zinc-200 font-semibold text-xs">Briefing in riproduzione</span>
-                <span className="text-[10px] text-zinc-400 tabular-nums">({activeVoice})</span>
+                <span className="text-zinc-900 dark:text-zinc-200 font-semibold text-xs">Briefing in riproduzione</span>
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 tabular-nums">({activeVoice})</span>
               </div>
               <button
                 onClick={() => {
@@ -189,7 +189,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
                   setBriefingState('idle');
                 }}
                 title="Interrompi riepilogo audio"
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-medium transition-all cursor-pointer shadow-sm"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-500/30 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 text-xs font-medium transition-all cursor-pointer shadow-sm"
               >
                 <span className="material-symbols-outlined text-[15px]">stop_circle</span>
                 <span>Interrompi</span>
@@ -201,11 +201,11 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
 
       {/* AI Motivational Briefing Live Transcript Card */}
       {briefingText && briefingState !== 'idle' && (
-        <div className="relative overflow-hidden rounded-xl border border-white/10 bg-[#121316] p-3 text-xs shadow-md animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-3 text-xs shadow-sm dark:border-white/10 dark:bg-[#121316] dark:shadow-md animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-zinc-300 text-[16px]">format_quote</span>
+              <div className="w-7 h-7 rounded-lg bg-zinc-100 border border-zinc-200 dark:bg-white/[0.05] dark:border-white/10 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-zinc-700 dark:text-zinc-300 text-[16px]">format_quote</span>
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
@@ -332,7 +332,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
       <section className="bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-outline-variant/30 flex flex-col gap-3.5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 flex items-center justify-center shadow-xs">
               <span className="material-symbols-outlined text-[19px]">today</span>
             </div>
             <div>
@@ -340,7 +340,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
                 <h2 className="font-headline font-bold text-lg text-on-surface tracking-tight">
                   Da fare oggi
                 </h2>
-                <span className="px-2 py-0.5 rounded-full bg-primary text-on-primary font-bold text-[11px]">
+                <span className="px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-white/[0.08] text-zinc-700 dark:text-zinc-300 font-bold text-[11px] border border-zinc-200 dark:border-white/10">
                   {todayTasks.length + dealsWithoutAction.length} Attività
                 </span>
               </div>
@@ -353,7 +353,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
           <div className="flex items-center gap-2">
             <button
               onClick={() => onNavigateToTab('calendar')}
-              className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+              className="text-xs font-semibold text-zinc-900 dark:text-primary hover:underline flex items-center gap-1"
             >
               <span>Vista Completa Calendario</span>
               <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
@@ -393,7 +393,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
         {/* List of today's tasks */}
         {opportunities.length === 0 ? (
           <div className="p-6 text-center bg-surface-container-low rounded-xl border border-dashed border-outline-variant/50 flex flex-col items-center justify-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-surface-container text-primary flex items-center justify-center shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-surface-container text-zinc-900 dark:text-primary flex items-center justify-center border border-zinc-200 dark:border-white/10 shadow-xs">
               <span className="material-symbols-outlined text-[24px]">rocket_launch</span>
             </div>
             <div>
@@ -421,7 +421,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
               )}
               <button
                 onClick={() => setIsNewDealModalOpen(true)}
-                className="px-3 py-1.5 rounded-lg bg-primary text-on-primary font-bold text-xs uppercase tracking-wider shadow-sm hover:opacity-90 flex items-center gap-1.5 transition-all"
+                className="px-3.5 py-2 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 font-bold text-xs uppercase tracking-wider shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[15px]">add</span>
                 <span>Inserisci Prima Opportunità</span>

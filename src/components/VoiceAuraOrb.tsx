@@ -263,25 +263,25 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
       <div className="flex items-center justify-between w-full mb-3 px-1">
         <div className="text-left">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-300 px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300 px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-white/[0.05] border border-zinc-200 dark:border-white/10">
               Voce Neurale AI
             </span>
             {status === 'playing' && (
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                 In riproduzione
               </span>
             )}
             {status === 'generating' && (
-              <span className="text-[11px] font-medium text-zinc-300 animate-pulse">
+              <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-300 animate-pulse">
                 Elaborazione sintesi…
               </span>
             )}
           </div>
-          <h2 className="text-base sm:text-lg font-bold text-white mt-1">
+          <h2 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white mt-1">
             Personalizzazione Voce & Briefing
           </h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
             Seleziona la voce desiderata: verrà utilizzata automaticamente per i briefing giornalieri.
           </p>
         </div>
@@ -292,7 +292,7 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
               stopAllAudio();
               onClose();
             }}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             title="Chiudi"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
@@ -337,34 +337,34 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
 
       {/* Voice Name & Feedback */}
       <div className="mb-4">
-        <div className="text-sm font-bold text-white flex items-center justify-center gap-1.5 flex-wrap">
+        <div className="text-sm font-bold text-zinc-900 dark:text-white flex items-center justify-center gap-1.5 flex-wrap">
           <span>{currentVoice.name}</span>
-          <span className="text-[11px] text-zinc-400 font-normal">
+          <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-normal">
             ({currentVoice.gender === 'male' ? 'Maschile' : 'Femminile'})
           </span>
           {currentVoice.isDefault ? (
-            <span className="text-[9px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-white/[0.08] text-zinc-300 border border-white/10">
+            <span className="text-[9px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-white/[0.08] text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-white/10">
               Modello Predefinito
             </span>
           ) : (
-            <span className="text-[9px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-white/[0.04] text-zinc-400 border border-white/[0.06]">
+            <span className="text-[9px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-white/[0.04] text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06]">
               Alternativa
             </span>
           )}
         </div>
-        <p className="text-xs text-zinc-300 font-medium mt-0.5">
+        <p className="text-xs text-zinc-700 dark:text-zinc-300 font-medium mt-0.5">
           {currentVoice.tone}
         </p>
-        <p className="text-[11px] text-zinc-400 max-w-sm mx-auto mt-1 leading-relaxed">
+        <p className="text-[11px] text-zinc-600 dark:text-zinc-400 max-w-sm mx-auto mt-1 leading-relaxed">
           {currentVoice.description}
         </p>
       </div>
 
       {/* Interactive Voice Range Slider & Cards */}
-      <div className="w-full max-w-md bg-[#121316] border border-white/10 rounded-2xl p-4 shadow-lg mb-4 text-left">
+      <div className="w-full max-w-md bg-white dark:bg-[#121316] border border-zinc-200 dark:border-white/10 rounded-2xl p-4 shadow-sm dark:shadow-lg mb-4 text-left">
         <div className="flex items-center justify-between text-xs mb-2">
-          <span className="text-zinc-400 font-medium">Modello Vocale & Alternative</span>
-          <span className="text-zinc-300 tabular-nums text-[11px] font-medium">
+          <span className="text-zinc-700 dark:text-zinc-400 font-medium">Modello Vocale & Alternative</span>
+          <span className="text-zinc-900 dark:text-zinc-300 tabular-nums text-[11px] font-semibold">
             {voiceIndex + 1} di {NEURAL_VOICES.length}
           </span>
         </div>
@@ -382,7 +382,7 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
               const v = NEURAL_VOICES[idx];
               if (v) handleSelectVoice(v.id, true);
             }}
-            className="w-full accent-zinc-200 cursor-pointer h-2 bg-zinc-800 rounded-lg appearance-none"
+            className="w-full accent-zinc-900 dark:accent-zinc-200 cursor-pointer h-2 bg-zinc-200 dark:bg-zinc-800 rounded-lg appearance-none"
             aria-label="Slider selezione voce"
           />
         </div>
@@ -398,17 +398,17 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
                 onClick={() => handleSelectVoice(v.id, true)}
                 className={`py-2 px-2 rounded-xl text-center text-xs font-medium transition-all border cursor-pointer ${
                   isSelected
-                    ? 'border-white/25 bg-[#181920] text-white shadow-none'
-                    : 'border-white/10 bg-[#14151a] text-zinc-400 hover:text-zinc-200 hover:border-white/16 hover:bg-[#16171d]'
+                    ? 'border-zinc-900 bg-zinc-900 text-white shadow-sm dark:border-white/25 dark:bg-[#181920] dark:text-white'
+                    : 'border-zinc-200 bg-zinc-50/80 hover:bg-zinc-100 text-zinc-700 hover:text-zinc-900 hover:border-zinc-300 dark:border-white/10 dark:bg-[#14151a] dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:border-white/16 dark:hover:bg-[#16171d]'
                 }`}
               >
                 <div className="truncate flex items-center justify-center gap-1">
                   <span>{v.id}</span>
                   {isSelected && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-200" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-zinc-200" />
                   )}
                 </div>
-                <div className="text-[10px] font-normal text-zinc-500 truncate mt-0.5">
+                <div className={`text-[10px] font-normal truncate mt-0.5 ${isSelected ? 'text-zinc-300' : 'text-zinc-500'}`}>
                   {v.isDefault ? 'Predefinita' : 'Alternativa'} · {v.gender === 'male' ? 'M' : 'F'}
                 </div>
               </button>
@@ -419,11 +419,11 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
 
       {/* Spoken Text live subtitle if available */}
       {spokenText && (
-        <div className="w-full max-w-md bg-[#121316] border border-white/10 rounded-xl p-3 mb-4 text-left">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+        <div className="w-full max-w-md bg-zinc-50 dark:bg-[#121316] border border-zinc-200 dark:border-white/10 rounded-xl p-3 mb-4 text-left">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block mb-1">
             Testo pronunciato
           </span>
-          <p className="text-xs text-zinc-200 leading-relaxed italic">
+          <p className="text-xs text-zinc-800 dark:text-zinc-200 leading-relaxed italic">
             &ldquo;{spokenText}&rdquo;
           </p>
         </div>
@@ -439,7 +439,7 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
               setStatus('idle');
               setFeedback('Riproduzione interrotta.');
             }}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-red-500/40 bg-red-500/15 text-red-300 hover:bg-red-500/25 text-xs font-bold transition-all shadow-sm cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-red-500/30 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-300 dark:hover:bg-red-500/25 text-xs font-bold transition-all shadow-sm cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">stop_circle</span>
             <span>Interrompi riproduzione</span>
@@ -450,7 +450,7 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
               type="button"
               disabled={status === 'generating'}
               onClick={handlePlaySample}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-white/20 bg-white text-zinc-950 hover:bg-zinc-200 text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800 dark:border-white/20 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-[18px]">volume_up</span>
               <span>Ascolta prova ({currentVoice.id})</span>
@@ -460,10 +460,10 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
               type="button"
               disabled={status === 'generating'}
               onClick={handlePlayBriefing}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-white/10 bg-[#14151a] hover:bg-[#181920] hover:border-white/20 text-white text-xs font-medium transition-all shadow-sm cursor-pointer disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50 hover:border-zinc-300 dark:border-white/10 dark:bg-[#14151a] dark:hover:bg-[#181920] dark:hover:border-white/20 dark:text-white text-xs font-medium transition-all shadow-sm cursor-pointer disabled:opacity-50"
               title="Genera il riepilogo motivazionale con i numeri reali del CRM"
             >
-              <span className="material-symbols-outlined text-[18px] text-zinc-300">auto_awesome</span>
+              <span className="material-symbols-outlined text-[18px] text-zinc-600 dark:text-zinc-300">auto_awesome</span>
               <span>Briefing vendite di prova</span>
             </button>
           </>
@@ -471,7 +471,7 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
       </div>
 
       {feedback && (
-        <span className="text-[11px] text-zinc-400 mt-2 block animate-fade-in">
+        <span className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-2 block animate-fade-in">
           {feedback}
         </span>
       )}

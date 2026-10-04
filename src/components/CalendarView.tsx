@@ -314,25 +314,25 @@ export const CalendarView: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 resend-card bg-surface-container-lowest p-3 rounded-xl border border-white/[0.08] shadow-sm">
         {/* Left: Navigation and Date Title */}
         <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-1 bg-[#121316] p-1 rounded-lg border border-white/10">
+          <div className="flex items-center gap-1 bg-white dark:bg-[#121316] p-1 rounded-lg border border-zinc-200 dark:border-white/10 shadow-xs">
             <button
               onClick={handlePrev}
               title="Precedente"
-              className="p-1 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-white/[0.06] transition-all cursor-pointer"
+              className="p-1 rounded-md text-zinc-500 hover:text-zinc-900 dark:text-on-surface-variant dark:hover:text-on-surface hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-all cursor-pointer"
             >
               <span className="material-symbols-outlined text-[17px]">chevron_left</span>
             </button>
             <button
               onClick={handleToday}
               title="Torna ad oggi"
-              className="px-2 py-0.5 text-xs font-semibold text-on-surface hover:bg-white/[0.06] rounded-md transition-all cursor-pointer"
+              className="px-2 py-0.5 text-xs font-semibold text-zinc-900 dark:text-on-surface hover:bg-zinc-100 dark:hover:bg-white/[0.06] rounded-md transition-all cursor-pointer"
             >
               Oggi
             </button>
             <button
               onClick={handleNext}
               title="Successivo"
-              className="p-1 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-white/[0.06] transition-all cursor-pointer"
+              className="p-1 rounded-md text-zinc-500 hover:text-zinc-900 dark:text-on-surface-variant dark:hover:text-on-surface hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-all cursor-pointer"
             >
               <span className="material-symbols-outlined text-[17px]">chevron_right</span>
             </button>
@@ -346,7 +346,7 @@ export const CalendarView: React.FC = () => {
         {/* Right: View Switcher, Filter & Action CTA */}
         <div className="flex items-center gap-2.5 flex-wrap">
           {/* Untitled UI Segmented View Switcher */}
-          <div className="flex items-center p-0.5 bg-[#121316] rounded-lg border border-white/10 text-xs font-semibold">
+          <div className="flex items-center p-0.5 bg-zinc-100 dark:bg-[#121316] rounded-lg border border-zinc-200 dark:border-white/10 text-xs font-semibold">
             {(['month', 'week', 'day'] as CalendarViewMode[]).map((mode) => {
               const label = mode === 'month' ? 'Mese' : mode === 'week' ? 'Settimana' : 'Giorno';
               const isSelected = viewMode === mode;
@@ -356,8 +356,8 @@ export const CalendarView: React.FC = () => {
                   onClick={() => setViewMode(mode)}
                   className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-white/10 text-white shadow-xs font-bold'
-                      : 'text-zinc-400 hover:text-white'
+                      ? 'bg-white text-zinc-950 shadow-xs dark:bg-white/10 dark:text-white font-bold'
+                      : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
                   }`}
                 >
                   {label}
@@ -393,7 +393,7 @@ export const CalendarView: React.FC = () => {
           {/* Primary Action Button */}
           <button
             onClick={() => openNewTaskModal()}
-            className="flex items-center gap-1.5 bg-white text-zinc-950 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-zinc-200 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer whitespace-nowrap"
           >
             <span className="material-symbols-outlined text-[15px]">add</span>
             <span>Nuova Attività</span>

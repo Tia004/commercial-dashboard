@@ -53,19 +53,19 @@ export const NextStepModal: React.FC = () => {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="modal-card bg-[#14151a] max-w-lg w-full rounded-2xl p-6 shadow-2xl border border-white/10 flex flex-col gap-5 animate-scale-up">
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="modal-card bg-white dark:bg-[#14151a] max-w-lg w-full rounded-2xl p-6 shadow-xl dark:shadow-2xl border border-zinc-200 dark:border-white/10 flex flex-col gap-5 animate-scale-up">
         {/* Header with rule badge */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-primary text-on-primary flex items-center justify-center shadow-sm">
-              <span className="material-symbols-outlined text-[24px]">verified</span>
+            <div className="w-11 h-11 rounded-xl bg-zinc-100 dark:bg-white/[0.08] text-zinc-900 dark:text-white border border-zinc-200 dark:border-white/10 flex items-center justify-center shadow-xs">
+              <span className="material-symbols-outlined text-[22px]">verified</span>
             </div>
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                 Regola Fondamentale del CRM
               </span>
-              <h3 className="font-headline font-bold text-xl text-on-surface">
+              <h3 className="font-headline font-bold text-xl text-zinc-900 dark:text-white">
                 Qual è il prossimo step?
               </h3>
             </div>
@@ -73,28 +73,28 @@ export const NextStepModal: React.FC = () => {
           {canDismiss && <button
             onClick={() => setNextStepModalDeal(null)}
             aria-label="Chiudi"
-            className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-outline hover:text-on-surface"
+            className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-surface-container dark:hover:bg-surface-container-high flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-outline dark:hover:text-on-surface transition-colors cursor-pointer"
           >
             ✕
           </button>}
         </div>
 
         {/* Deal Context Info */}
-        <div className="p-3.5 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-center justify-between text-xs">
+        <div className="p-3.5 bg-zinc-50 dark:bg-surface-container-low rounded-xl border border-zinc-200 dark:border-outline-variant/30 flex items-center justify-between text-xs">
           <div className="flex flex-col">
-            <span className="font-bold text-on-surface text-sm">{nextStepModalDeal.name}</span>
-            <span className="text-[11px] text-on-surface-variant">
+            <span className="font-bold text-zinc-900 dark:text-on-surface text-sm">{nextStepModalDeal.name}</span>
+            <span className="text-[11px] text-zinc-500 dark:text-on-surface-variant">
               {nextStepModalDeal.company} • {nextStepModalDeal.brand} ({nextStepModalDeal.stage})
             </span>
           </div>
-          <span className="tabular-nums font-bold text-primary text-xs">
+          <span className="tabular-nums font-bold text-zinc-900 dark:text-primary text-xs">
             Valore: € {nextStepModalDeal.value.toLocaleString()}
           </span>
         </div>
 
         {/* Quick template suggestions */}
         <div className="flex flex-col gap-1.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-outline">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-outline">
             Suggerimenti Rapidi:
           </span>
           <div className="flex flex-wrap gap-1.5">
@@ -103,7 +103,7 @@ export const NextStepModal: React.FC = () => {
                 key={i}
                 type="button"
                 onClick={() => setWhat(tpl)}
-                className="text-[11px] px-2.5 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors border border-outline-variant/20"
+                className="text-[11px] px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-surface-container dark:hover:bg-surface-container-high text-zinc-700 dark:text-on-surface-variant hover:text-zinc-900 dark:hover:text-on-surface transition-colors border border-zinc-200 dark:border-outline-variant/20 cursor-pointer"
               >
                 + {tpl}
               </button>
@@ -114,7 +114,7 @@ export const NextStepModal: React.FC = () => {
         {/* Next Step Form */}
         <form onSubmit={handleSave} className="flex flex-col gap-3.5 text-xs">
           <div>
-            <label className="font-bold text-on-surface-variant block mb-1">
+            <label className="font-bold text-zinc-700 dark:text-on-surface-variant block mb-1">
               Cosa bisogna fare? *
             </label>
             <input
@@ -123,13 +123,13 @@ export const NextStepModal: React.FC = () => {
               placeholder="Es: Richiamare Mario Rossi per conferma preventivo"
               value={what}
               onChange={(e) => setWhat(e.target.value)}
-              className="w-full bg-surface-container p-3 rounded-xl border border-outline-variant/30 text-on-surface outline-none font-medium focus:border-primary"
+              className="w-full bg-white dark:bg-surface-container p-2.5 rounded-lg border border-zinc-200 dark:border-outline-variant/30 text-zinc-900 dark:text-on-surface outline-none font-medium focus:border-zinc-900 dark:focus:border-primary"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="font-bold text-on-surface-variant block mb-1">
+              <label className="font-bold text-zinc-700 dark:text-on-surface-variant block mb-1">
                 Chi deve farlo? *
               </label>
               <CustomDropdown
@@ -140,7 +140,7 @@ export const NextStepModal: React.FC = () => {
             </div>
 
             <div>
-              <label className="font-bold text-on-surface-variant block mb-1">
+              <label className="font-bold text-zinc-700 dark:text-on-surface-variant block mb-1">
                 Tipologia Attività *
               </label>
               <CustomDropdown
@@ -160,7 +160,7 @@ export const NextStepModal: React.FC = () => {
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="font-bold text-on-surface-variant block mb-1">
+              <label className="font-bold text-zinc-700 dark:text-on-surface-variant block mb-1">
                 Quando (Data) *
               </label>
               <input
@@ -168,24 +168,24 @@ export const NextStepModal: React.FC = () => {
                 required
                 value={when}
                 onChange={(e) => setWhen(e.target.value)}
-                className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
+                className="w-full bg-white dark:bg-[#121316] p-2.5 rounded-lg border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-white/20"
               />
             </div>
 
             <div>
-              <label className="font-bold text-on-surface-variant block mb-1">
+              <label className="font-bold text-zinc-700 dark:text-on-surface-variant block mb-1">
                 Ora
               </label>
               <input
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full bg-[#121316] p-2.5 rounded-lg border border-white/10 text-white outline-none"
+                className="w-full bg-white dark:bg-[#121316] p-2.5 rounded-lg border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-white/20"
               />
             </div>
 
             <div>
-              <label className="font-bold text-on-surface-variant block mb-1">
+              <label className="font-bold text-zinc-700 dark:text-on-surface-variant block mb-1">
                 Priorità
               </label>
               <CustomDropdown
@@ -200,17 +200,17 @@ export const NextStepModal: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-outline-variant/20 mt-2">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-200 dark:border-outline-variant/20 mt-2">
             {canDismiss && <button
               type="button"
               onClick={() => setNextStepModalDeal(null)}
-              className="px-4 py-2.5 rounded-xl text-on-surface-variant hover:text-on-surface font-semibold"
+              className="px-4 py-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-on-surface-variant dark:hover:text-on-surface font-semibold cursor-pointer"
             >
               Posticipa
             </button>}
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-primary text-on-primary font-bold shadow-md hover:opacity-90 flex items-center gap-1.5"
+              className="px-5 py-2.5 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]">check</span>
               <span>Salva Prossimo Step</span>

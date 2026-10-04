@@ -13,8 +13,11 @@ export async function POST(req: NextRequest) {
     const clientIp = getClientIp(req);
     const isAllowed = await checkRateLimit(db, clientIp, 'resend', 5, 60);
     if (!isAllowed) return NextResponse.json({ error: 'Troppe richieste di invio. Riprova più tardi.' }, { status: 429 });
-    const user = await db.execute({ sql: 'SELECT id FROM users WHERE email = ? AND email_verified = 0', args: [email] });
+    const user = await db.execute({ sql: 'SELECT id, email_verified FROM users WHERE email = ?', args: [email] });
     if (!user.rows.length) return NextResponse.json(generic);
+    if (Number(user.rows[0].email_verified) === 1) {
+      return NextResponse.json({ ok: true, message: 'La tua email risulta già verificata! Puoi accedere direttamente inserendo la tua password.' });
+    }
     const userId = String(user.rows[0].id);
     const recent = await db.execute({ sql: 'SELECT token_hash FROM auth_tokens WHERE user_id = ? AND purpose = ? AND used_at IS NULL AND expires_at > ?', args: [userId, 'verify', new Date(Date.now() + 23 * 60 * 60 * 1000 + 59 * 60 * 1000).toISOString()] });
     if (recent.rows.length) return NextResponse.json(generic);
