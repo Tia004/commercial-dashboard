@@ -192,8 +192,49 @@ body {
 }
 * { min-width: 0; }
 button, input, select, textarea { font: inherit; }
-button { cursor: pointer; }
-:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+/* Clean modern focus management - eliminate macOS/WebKit detached double borders & halos */
+:focus,
+:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
+/* Accessibility keyboard ring for buttons, links, and tabs */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: 0 0 0 1.5px var(--primary) !important;
+}
+
+/* Form inputs & textareas: Seamless inline Linear highlight directly on element border */
+input,
+textarea,
+select {
+  outline: none !important;
+  outline-offset: 0 !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 1px var(--primary), 0 0 12px color-mix(in srgb, var(--primary) 22%, transparent) !important;
+}
+
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: 0 0 0 2px var(--primary) !important;
+}
+
 ::selection { background: var(--primary-container); color: var(--on-surface); }
 .app-shell { min-height: 100vh; background: var(--surface); color: var(--on-surface); }
 .app-sidebar { width: 248px; position: fixed; inset: 0 auto 0 0; z-index: 45; display: flex; flex-direction: column; background: var(--surface-container-lowest); border-right: 1px solid var(--outline-variant); }
@@ -389,8 +430,9 @@ select:hover {
 select:focus,
 select:focus-visible {
   outline: none !important;
+  outline-offset: 0 !important;
   border-color: var(--primary) !important;
-  box-shadow: 0 0 0 1px var(--primary), 0 0 14px rgba(165, 180, 252, 0.22) !important;
+  box-shadow: 0 0 0 1px var(--primary), 0 0 14px color-mix(in srgb, var(--primary) 22%, transparent) !important;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a5b4fc' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
 }
 
@@ -553,6 +595,13 @@ select:-webkit-autofill {
   transition: background-color 50000s ease-in-out 0s;
   caret-color: var(--on-surface) !important;
   font-family: inherit !important;
+}
+
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill:focus {
+  border-color: var(--primary) !important;
+  outline: none !important;
+  outline-offset: 0 !important;
 }
 
 [data-theme="oled"] input:-webkit-autofill,
