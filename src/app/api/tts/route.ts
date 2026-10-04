@@ -91,7 +91,7 @@ Regole ferree:
           const textData = await textRes.json();
           const candidateText = textData.candidates?.[0]?.content?.parts?.[0]?.text;
           if (candidateText) {
-            textToSpeak = candidateText.replace(/[*_#]/g, '').trim();
+            textToSpeak = candidateText.replace(/[*_#]/g, '').replace(/\s+/g, ' ').trim();
           }
         }
       } catch (err) {
@@ -148,6 +148,7 @@ Regole ferree:
 
     const pcmBuffer = Buffer.from(candidate.inlineData.data, 'base64');
     const wavBuffer = pcmToWav(pcmBuffer, 24000);
+    const base64Briefing = Buffer.from(textToSpeak, 'utf-8').toString('base64');
 
     return new NextResponse(new Uint8Array(wavBuffer), {
       status: 200,
@@ -155,7 +156,7 @@ Regole ferree:
         'Content-Type': 'audio/wav',
         'Content-Length': String(wavBuffer.length),
         'Cache-Control': 'no-store',
-        'x-briefing-text': encodeURIComponent(textToSpeak),
+        'x-briefing-text': base64Briefing,
         'x-voice-name': chosenVoice
       }
     });

@@ -158,8 +158,19 @@ export async function playAiBriefing(params: {
     const headerText = res.headers.get('x-briefing-text');
     if (headerText) {
       try {
-        const decoded = decodeURIComponent(headerText);
-        params.onText?.(decoded);
+        let decoded = '';
+        if (headerText.startsWith('%') || headerText.includes(' ')) {
+          decoded = decodeURIComponent(headerText);
+        } else {
+          try {
+            const binStr = atob(headerText);
+            const bytes = Uint8Array.from(binStr, (c) => c.charCodeAt(0));
+            decoded = new TextDecoder('utf-8').decode(bytes);
+          } catch {
+            decoded = decodeURIComponent(headerText);
+          }
+        }
+        if (decoded) params.onText?.(decoded);
       } catch {}
     }
 
