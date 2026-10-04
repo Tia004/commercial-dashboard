@@ -45,7 +45,32 @@ export async function POST(req: NextRequest) {
         role = String(invite.rows[0].role);
       }
       const existing = await db.execute({ sql: 'SELECT id, email_verified FROM users WHERE email = ?', args: [email] });
-      if (existing.rows.length) return NextResponse.json({ error: 'Account già presente per questa email. Clicca su "Accedi" per entrare.' }, { status: 409 });
+      if (existing.rows.length) {
+        if (Number(existing.rows[0].email_verified) === 1) {
+          return NextResponse.json({ error: 'Account già registrato con questa email. Clicca su "Accedi" per entrare.' }, { status: 409 });
+        }
+        // Account exists but is unverified: update details and resend verification email
+        const existingUserId = String(existing.rows[0].id);
+        await db.execute({
+          sql: 'UPDATE users SET name = ?, password_hash = ?, company = ? WHERE id = ?',
+          args: [name, hashPassword(password), String(body.company || '').trim(), existingUserId]
+        });
+        const verificationToken = createToken();
+        await db.execute({ sql: 'DELETE FROM auth_tokens WHERE user_id = ? AND purpose = ?', args: [existingUserId, 'verify'] });
+        await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [hashToken(verificationToken), 'verify', email, existingUserId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()] });
+        
+        try {
+          await sendAccountEmail(
+            email,
+            'Verifica il tuo indirizzo email · Hub Commerciale',
+            `Ciao ${name},\n\ngrazie per esserti registrato su Hub Commerciale!\n\nPer attivare il tuo account e accedere al workspace, apri questo link:\n\n${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}\n\nIl link scade tra 24 ore.`
+          );
+        } catch (err: any) {
+          const reason = err?.message ? ` (${err.message})` : '';
+          return NextResponse.json({ error: `Invio email non riuscito: controlla la configurazione SMTP.${reason}` }, { status: 503 });
+        }
+        return NextResponse.json({ pendingVerification: true, message: 'Account aggiornato! Ti abbiamo inviato un’email di verifica: clicca sul link per attivarlo.' }, { status: 201 });
+      }
 
       if (!emailConfigured()) {
         return NextResponse.json({ error: 'La verifica email non è ancora configurata. Contatta l’amministratore per inserire le credenziali SMTP.' }, { status: 503 });

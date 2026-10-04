@@ -12,18 +12,41 @@ export async function POST(req: NextRequest) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: 'Email non valida.' }, { status: 400 });
       if (!emailConfigured()) return NextResponse.json({ error: 'Il servizio email non è configurato.' }, { status: 503 });
       const generic = { ok: true, message: 'Se l’indirizzo è registrato, riceverai un link per impostare una nuova password.' };
-      const user = await db.execute({ sql: 'SELECT id FROM users WHERE email = ? AND email_verified = 1', args: [email] });
+      const user = await db.execute({ sql: 'SELECT id, name, email_verified FROM users WHERE email = ?', args: [email] });
       if (!user.rows.length) return NextResponse.json(generic);
+
+      const isVerified = Number(user.rows[0].email_verified) === 1;
+      const userId = String(user.rows[0].id);
+      const userName = String(user.rows[0].name || 'Utente');
+
+      if (!isVerified) {
+        const verificationToken = createToken();
+        await db.execute({ sql: 'DELETE FROM auth_tokens WHERE user_id = ? AND purpose = ?', args: [userId, 'verify'] });
+        await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [hashToken(verificationToken), 'verify', email, userId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()] });
+        try {
+          await sendAccountEmail(
+            email,
+            'Verifica il tuo indirizzo email · Hub Commerciale',
+            `Ciao ${userName},\n\nil tuo account su Hub Commerciale non è ancora stato verificato.\n\nPer attivarlo ed entrare direttamente nel tuo workspace, apri questo link:\n\n${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}\n\nIl link scade tra 24 ore.`
+          );
+        } catch (err: any) {
+          const reason = err?.message ? ` (${err.message})` : '';
+          return NextResponse.json({ error: `Invio email non riuscito: controlla la configurazione SMTP.${reason}` }, { status: 503 });
+        }
+        return NextResponse.json({ ok: true, message: 'L’account non era ancora verificato: ti abbiamo inviato un’email con il link per attivarlo ed entrare.' });
+      }
+
       const recent = await db.execute({ sql: 'SELECT token_hash FROM auth_tokens WHERE purpose = ? AND email = ? AND used_at IS NULL AND expires_at > ?', args: ['reset', email, new Date().toISOString()] });
       if (recent.rows.length) return NextResponse.json(generic);
       const token = createToken();
       const tokenHash = hashToken(token);
-      await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [tokenHash, 'reset', email, String(user.rows[0].id), new Date(Date.now() + 30 * 60 * 1000).toISOString()] });
+      await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [tokenHash, 'reset', email, userId, new Date(Date.now() + 30 * 60 * 1000).toISOString()] });
       try {
         await sendAccountEmail(email, 'Reimposta la password · Hub Commerciale', 'Apri questo link per impostare una nuova password:\n\n' + appOrigin(req) + '/?reset=' + encodeURIComponent(token) + '\n\nIl link scade tra 30 minuti. Se non hai richiesto il recupero, ignora questa email.');
       } catch (err: any) {
         await db.execute({ sql: 'DELETE FROM auth_tokens WHERE token_hash = ?', args: [tokenHash] });
-        return NextResponse.json({ error: `Invio email non riuscito${err?.message ? `: ${err.message}` : ''}` }, { status: 503 });
+        const reason = err?.message ? ` (${err.message})` : '';
+        return NextResponse.json({ error: `Invio email non riuscito: controlla la configurazione SMTP.${reason}` }, { status: 503 });
       }
       return NextResponse.json(generic);
     }
