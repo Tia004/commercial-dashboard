@@ -646,7 +646,10 @@ h1,h2,h3,h4,.font-headline { font-family:Inter,-apple-system,BlinkMacSystemFont,
 .nav-item.active { background:var(--surface-container-high); color:var(--on-surface); }
 .nav-item.active .material-symbols-outlined { color:var(--primary); }
 .sidebar-create,.header-new { border-radius:8px; }
-.app-header { min-height:64px; gap:14px; }
+.app-header { min-height:50px; gap:12px; }
+.app-main { padding: 10px clamp(14px, 1.8vw, 24px) 14px; max-width: 1720px; margin: auto; }
+.focus-results { min-height: 300px; }
+.focus-empty { min-height: 190px; }
 .header-search { max-width:300px; justify-content:flex-start; text-align:left; background:var(--surface-container-low); color:var(--on-surface-variant); font-size:12px; transition: border-color 0.15s ease; }
 .header-search:hover { border-color: rgba(255, 255, 255, 0.16); color:var(--on-surface); }
 .header-search > span:nth-child(2) { flex:1; }

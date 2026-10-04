@@ -181,7 +181,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
                   <span className="w-1 bg-zinc-200 rounded-full animate-wave-4 h-3" />
                 </div>
                 <span className="text-zinc-200 font-semibold text-xs">Briefing in riproduzione</span>
-                <span className="text-[10px] text-zinc-400 font-mono">({activeVoice})</span>
+                <span className="text-[10px] text-zinc-400 tabular-nums">({activeVoice})</span>
               </div>
               <button
                 onClick={() => {
@@ -210,7 +210,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="font-bold uppercase tracking-wider text-[10px] text-zinc-400">Riepilogo Esecutivo & Motivazione Commerciale</span>
-                  <span className="text-[10px] text-zinc-400 font-mono">· Voce AI {activeVoice}</span>
+                  <span className="text-[10px] text-zinc-400 tabular-nums">· Voce AI {activeVoice}</span>
                 </div>
                 <p className="text-on-surface leading-relaxed text-xs italic font-medium">
                   &ldquo;{briefingText}&rdquo;
@@ -250,7 +250,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
               <span className="material-symbols-outlined text-[16px]">trending_up</span>
               {closedSales.length} trattative concluse
             </span>
-            <span className="text-on-surface-variant font-mono">{closedSales.length} chiusure</span>
+            <span className="text-on-surface-variant tabular-nums">{closedSales.length} chiusure</span>
           </div>
         </div>
 
@@ -461,7 +461,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
                           {task.client}
                         </span>
                         {task.time && (
-                          <span className="text-[11px] font-mono text-on-surface-variant bg-surface-container px-1.5 py-0.2 rounded">
+                          <span className="text-[11px] tabular-nums text-on-surface-variant bg-surface-container px-1.5 py-0.2 rounded">
                             {task.time}
                           </span>
                         )}
@@ -533,7 +533,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
                 Avvisi da seguire
               </h3>
             </div>
-            <span className="px-2 py-0.5 rounded-full bg-surface-container text-on-surface font-mono font-bold text-[11px]">
+            <span className="px-2 py-0.5 rounded-full bg-surface-container text-on-surface tabular-nums font-bold text-[11px]">
               {alerts.length} Totali
             </span>
           </div>
@@ -632,7 +632,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
                         {deal.company} • Sveglia: {deal.standbyReactivationDate || 'Da definire'}
                       </span>
                     </div>
-                    <span className="font-mono text-xs font-bold text-primary">
+                    <span className="tabular-nums text-xs font-bold text-primary">
                       € {deal.value.toLocaleString()}
                     </span>
                   </div>
