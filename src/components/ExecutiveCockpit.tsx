@@ -31,9 +31,10 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
 
   const [briefingState, setBriefingState] = React.useState<'idle' | 'generating' | 'playing'>('idle');
   const [briefingText, setBriefingText] = React.useState<string | null>(null);
-  const [activeVoice, setActiveVoice] = React.useState<string>('Fenrir');
+  const [activeVoice, setActiveVoice] = React.useState<string>('Aoede');
 
   React.useEffect(() => {
+    setActiveVoice(getSavedVoice());
     return () => {
       stopAllAudio();
     };

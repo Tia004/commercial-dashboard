@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     let textToSpeak = String(body.text || '').trim();
-    const voice = String(body.voice || 'Fenrir').trim();
+    const voice = String(body.voice || 'Aoede').trim();
     const rate = String(body.rate || '+0%').trim();
     const pitch = String(body.pitch || '+0Hz').trim();
 
@@ -102,7 +102,7 @@ Regole ferree:
     }
 
     // 2. Synthesize High-Definition Neural Speech with Microsoft Edge Neural Voices
-    const edgeVoice = NEURAL_VOICE_MAP[voice] || 'it-IT-GiuseppeNeural';
+    const edgeVoice = NEURAL_VOICE_MAP[voice] || 'it-IT-IsabellaNeural';
     const comm = new Communicate(textToSpeak, {
       voice: edgeVoice,
       rate: rate.startsWith('+') || rate.startsWith('-') ? rate : '+0%',

@@ -29,7 +29,7 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
   onClose,
   standalone = false,
 }) => {
-  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('Fenrir');
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('Aoede');
   const [status, setStatus] = useState<'idle' | 'generating' | 'playing'>('idle');
   const [spokenText, setSpokenText] = useState<string>('');
   const [feedback, setFeedback] = useState<string>('');
@@ -337,11 +337,20 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
 
       {/* Voice Name & Feedback */}
       <div className="mb-4">
-        <div className="text-sm font-bold text-white flex items-center justify-center gap-1.5">
+        <div className="text-sm font-bold text-white flex items-center justify-center gap-1.5 flex-wrap">
           <span>{currentVoice.name}</span>
           <span className="text-[11px] text-zinc-400 font-normal">
             ({currentVoice.gender === 'male' ? 'Maschile' : 'Femminile'})
           </span>
+          {currentVoice.isDefault ? (
+            <span className="text-[9px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-white/[0.08] text-zinc-300 border border-white/10">
+              Modello Predefinito
+            </span>
+          ) : (
+            <span className="text-[9px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-white/[0.04] text-zinc-400 border border-white/[0.06]">
+              Alternativa
+            </span>
+          )}
         </div>
         <p className="text-xs text-zinc-300 font-medium mt-0.5">
           {currentVoice.tone}
@@ -354,7 +363,7 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
       {/* Interactive Voice Range Slider & Cards */}
       <div className="w-full max-w-md bg-[#121316] border border-white/10 rounded-2xl p-4 shadow-lg mb-4 text-left">
         <div className="flex items-center justify-between text-xs mb-2">
-          <span className="text-zinc-400 font-medium">Seleziona Voce</span>
+          <span className="text-zinc-400 font-medium">Modello Vocale & Alternative</span>
           <span className="text-zinc-300 font-mono text-[11px] font-medium">
             {voiceIndex + 1} di {NEURAL_VOICES.length}
           </span>
@@ -400,7 +409,7 @@ export const VoiceAuraOrb: React.FC<VoiceAuraOrbProps> = ({
                   )}
                 </div>
                 <div className="text-[10px] font-normal text-zinc-500 truncate mt-0.5">
-                  {v.gender === 'male' ? 'Maschile' : 'Femminile'}
+                  {v.isDefault ? 'Predefinita' : 'Alternativa'} · {v.gender === 'male' ? 'M' : 'F'}
                 </div>
               </button>
             );

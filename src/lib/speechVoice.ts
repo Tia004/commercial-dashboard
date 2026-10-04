@@ -12,33 +12,33 @@ export interface NeuralVoice {
 // Studio-Grade Neural Voices (Microsoft Edge Neural in Italian)
 export const NEURAL_VOICES: NeuralVoice[] = [
   {
+    id: 'Aoede',
+    name: 'Aoede (Armoniosa)',
+    gender: 'female',
+    tone: 'Fluida, calorosa ed empatica',
+    description: 'Modello vocale predefinito. Timbro melodico, naturale e accogliente, perfetto per l’ascolto continuativo dei dati.',
+    isDefault: true,
+  },
+  {
     id: 'Fenrir',
     name: 'Fenrir (Profonda)',
     gender: 'male',
     tone: 'Bassa, autorevole e determinata',
-    description: 'Timbro maschile profondo, carismatico e sicuro. Ideale per briefing strategici e decisioni ad alto impatto.',
-    isDefault: true,
+    description: 'Alternativa maschile profonda, carismatica e sicura. Ideale per briefing strategici e decisioni ad alto impatto.',
   },
   {
     id: 'Puck',
     name: 'Puck (Energica)',
     gender: 'male',
     tone: 'Brillante, vivace e dinamica',
-    description: 'Tono maschile energico ed entusiasta, perfetto per dare la carica alla squadra commerciale ogni mattina.',
+    description: 'Alternativa maschile brillante ed entusiasta, perfetta per dare la carica alla squadra commerciale.',
   },
   {
     id: 'Kore',
     name: 'Kore (Esecutiva)',
     gender: 'female',
     tone: 'Limpida, precisa e professionale',
-    description: 'Voce femminile chiara ed elegante, eccellente per report esecutivi, sintesi dati e KPI di vendita.',
-  },
-  {
-    id: 'Aoede',
-    name: 'Aoede (Armoniosa)',
-    gender: 'female',
-    tone: 'Fluida, calorosa ed empatica',
-    description: 'Timbro femminile melodico e naturale, molto piacevole e accogliente per ascolti prolungati.',
+    description: 'Alternativa femminile chiara ed elegante, eccellente per report esecutivi, sintesi dati e KPI di vendita.',
   },
 ];
 
@@ -65,12 +65,12 @@ let currentAudioUrl: string | null = null;
 let isAudioActive = false;
 
 export function getSavedVoice(): string {
-  if (typeof window === 'undefined') return 'Fenrir';
+  if (typeof window === 'undefined') return 'Aoede';
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_VOICE_KEY);
     if (saved && NEURAL_VOICES.some((v) => v.id === saved)) return saved;
   } catch {}
-  return 'Fenrir';
+  return 'Aoede';
 }
 
 export function saveVoice(voiceId: string) {
