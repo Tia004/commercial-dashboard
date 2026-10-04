@@ -256,23 +256,32 @@ export async function sendAccountEmail(
   // 1. Resend REST API (Instant delivery < 1s)
   const resendApiKey = (process.env.RESEND_API_KEY || '').trim();
   if (resendApiKey) {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from,
-        to: [to],
-        subject,
-        html,
-        text: message,
-      }),
-    });
-    if (res.ok) return;
-    const errText = await res.text().catch(() => '');
-    throw new Error(`Errore invio Resend (${res.status}): ${errText}`);
+    try {
+      const resendFrom = (process.env.RESEND_FROM || from).trim();
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: resendFrom,
+          to: [to],
+          subject,
+          html,
+          text: message,
+        }),
+      });
+      if (res.ok) return;
+      const errText = await res.text().catch(() => '');
+      console.warn(`Resend API non riuscito (${res.status}): ${errText}. Tento fallback automatico su Brevo/SMTP...`);
+      if (!pass && !process.env.BREVO_API_KEY) {
+        throw new Error(`Errore invio Resend (${res.status}): ${errText}`);
+      }
+    } catch (e: any) {
+      if (!pass && !process.env.BREVO_API_KEY) throw e;
+      console.warn('Eccezione invio Resend API, tento fallback su Brevo/SMTP:', e?.message || e);
+    }
   }
 
   // 2. Brevo REST API v3 (Instant high-priority transactional delivery, bypasses slow SMTP queue)
