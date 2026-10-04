@@ -90,26 +90,26 @@ export const AnalyticsView: React.FC = () => {
   });
 
   return (
-    <div className="flex flex-col gap-6 w-full pb-16">
+    <div className="flex flex-col gap-3.5 w-full">
       {/* Top Header & Filters */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface-container-low p-4 rounded-2xl border border-outline-variant/30 shadow-sm">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-surface-container-low p-3 rounded-xl border border-outline-variant/30 shadow-sm">
         <div>
-          <h1 className="font-headline font-bold text-xl md:text-2xl text-on-surface tracking-tight">
+          <h1 className="font-headline font-bold text-lg md:text-xl text-on-surface tracking-tight">
             Analytics & Performance Commerciale
           </h1>
-          <p className="text-xs text-on-surface-variant mt-0.5">
+          <p className="text-xs text-on-surface-variant">
             Analisi approfondita del venduto, pipeline, conversioni per brand, fonte lead e rendimento sales rep
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* Period selector */}
-          <div className="flex items-center gap-1 bg-surface-container-lowest p-1 rounded-xl border border-outline-variant/30 shadow-sm text-xs">
+          <div className="flex items-center gap-1 bg-surface-container-lowest p-1 rounded-lg border border-outline-variant/30 shadow-sm text-xs">
             {['YTD', 'Q1', 'Q2', 'Q3', 'Q4'].map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-3 py-1 rounded-lg font-semibold transition-all ${
+                className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
                   period === p
                     ? 'bg-primary text-on-primary shadow-sm'
                     : 'text-on-surface-variant hover:text-on-surface'
@@ -121,7 +121,7 @@ export const AnalyticsView: React.FC = () => {
           </div>
 
           {/* Brand filter */}
-          <div className="w-[155px]">
+          <div className="w-[150px]">
             <CustomDropdown
               size="sm"
               value={filterBrand}
@@ -134,7 +134,7 @@ export const AnalyticsView: React.FC = () => {
           </div>
 
           {/* Rep filter */}
-          <div className="w-[165px]">
+          <div className="w-[160px]">
             <CustomDropdown
               size="sm"
               value={filterRep}
@@ -149,60 +149,60 @@ export const AnalyticsView: React.FC = () => {
       </div>
 
       {/* 4 Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-surface-container-lowest p-5 rounded-2xl shadow-sm border border-outline-variant/30">
-          <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-surface-container-lowest p-3.5 rounded-xl shadow-sm border border-outline-variant/30">
+          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
             Venduto Concluso
           </span>
-          <div className="font-headline font-bold text-2xl text-on-surface mt-1 font-mono">
+          <div className="font-headline font-bold text-xl text-on-surface mt-0.5 font-mono">
             € {soldTotal.toLocaleString()}
           </div>
-          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-2 block">
+          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-1.5 block">
             {closedWon} accordi vinti
           </span>
         </div>
 
-        <div className="bg-surface-container-lowest p-5 rounded-2xl shadow-sm border border-outline-variant/30">
-          <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
+        <div className="bg-surface-container-lowest p-3.5 rounded-xl shadow-sm border border-outline-variant/30">
+          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
             Valore Pipeline Attiva
           </span>
-          <div className="font-headline font-bold text-2xl text-on-surface mt-1 font-mono">
+          <div className="font-headline font-bold text-xl text-on-surface mt-0.5 font-mono">
             € {pipelineTotal.toLocaleString()}
           </div>
-          <span className="text-xs text-primary font-semibold mt-2 block">
+          <span className="text-xs text-primary font-semibold mt-1.5 block">
             {filtered.filter((d) => d.stage !== 'Venduta' && d.stage !== 'Persa').length} trattative aperte
           </span>
         </div>
 
-        <div className="bg-surface-container-lowest p-5 rounded-2xl shadow-sm border border-outline-variant/30">
-          <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
+        <div className="bg-surface-container-lowest p-3.5 rounded-xl shadow-sm border border-outline-variant/30">
+          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
             Win-Rate Globale
           </span>
-          <div className="font-headline font-bold text-2xl text-on-surface mt-1 font-mono">
+          <div className="font-headline font-bold text-xl text-on-surface mt-0.5 font-mono">
             {winRate}%
           </div>
-          <span className="text-xs text-on-surface-variant font-medium mt-2 block">
+          <span className="text-xs text-on-surface-variant font-medium mt-1.5 block">
             Su {totalClosed} trattative concluse
           </span>
         </div>
 
-        <div className="bg-surface-container-lowest p-5 rounded-2xl shadow-sm border border-outline-variant/30">
-          <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
+        <div className="bg-surface-container-lowest p-3.5 rounded-xl shadow-sm border border-outline-variant/30">
+          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
             Ticket Medio Vinto
           </span>
-          <div className="font-headline font-bold text-2xl text-on-surface mt-1 font-mono">
+          <div className="font-headline font-bold text-xl text-on-surface mt-0.5 font-mono">
             € {avgTicket.toLocaleString()}
           </div>
-          <span className="text-xs text-on-surface-variant font-medium mt-2 block">
+          <span className="text-xs text-on-surface-variant font-medium mt-1.5 block">
             Per accordo commercializzato
           </span>
         </div>
       </div>
 
       {/* Grid: Funnel & Brand Comparison */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
         {/* Stage Funnel Distribution */}
-        <div className="lg:col-span-6 bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col gap-4">
+        <div className="lg:col-span-6 bg-surface-container-lowest p-4 rounded-xl shadow-sm border border-outline-variant/30 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h3 className="font-headline font-bold text-base text-on-surface">
               Distribuzione Trattative per Fase (Funnel)
@@ -235,7 +235,7 @@ export const AnalyticsView: React.FC = () => {
         </div>
 
         {/* Brand Comparison */}
-        <div className="lg:col-span-6 bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col gap-4">
+        <div className="lg:col-span-6 bg-surface-container-lowest p-4 rounded-xl shadow-sm border border-outline-variant/30 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h3 className="font-headline font-bold text-base text-on-surface">
               Confronto Portfolio Brand
@@ -243,11 +243,11 @@ export const AnalyticsView: React.FC = () => {
             <span className="text-xs text-on-surface-variant">{brands.length ? `${brands.length} brand gestiti` : 'Portfolio'}</span>
           </div>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             {brandStats.map((item) => (
               <div
                 key={item.brand}
-                className="p-4 bg-surface-container-low rounded-xl border border-outline-variant/20 flex flex-col gap-2"
+                className="p-3 bg-surface-container-low rounded-lg border border-outline-variant/20 flex flex-col gap-2"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-headline font-bold text-sm text-on-surface">
@@ -283,7 +283,7 @@ export const AnalyticsView: React.FC = () => {
       </div>
 
       {/* Rep Performance Table */}
-      <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col gap-4">
+      <div className="bg-surface-container-lowest p-4 rounded-xl shadow-sm border border-outline-variant/30 flex flex-col gap-3">
         <h3 className="font-headline font-bold text-base text-on-surface">
           Performance Commerciali del Team
         </h3>

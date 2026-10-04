@@ -39,28 +39,28 @@ export const StandbyAlerts: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full pb-16">
+    <div className="flex flex-col gap-3.5 w-full">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-container-low p-4 rounded-2xl border border-outline-variant/30 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-surface-container-low p-3 rounded-xl border border-outline-variant/30 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-headline font-bold text-xl md:text-2xl text-on-surface tracking-tight">
+            <h1 className="font-headline font-bold text-lg md:text-xl text-on-surface tracking-tight">
               Controllo Stand-by & Alert Automatici
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-surface-container font-mono text-xs font-semibold text-primary">
+            <span className="px-2 py-0.5 rounded-full bg-surface-container font-mono text-[11px] font-semibold text-primary">
               {alerts.length} Segnalazioni Attive
             </span>
           </div>
-          <p className="text-xs text-on-surface-variant mt-0.5">
+          <p className="text-xs text-on-surface-variant">
             Monitoraggio continuo di anomalie di vendita, trattative congelate con data sveglia e task scaduti
           </p>
         </div>
       </div>
 
       {/* Grid: 2 Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
         {/* Left Column: Alerts Feed */}
-        <div className="lg:col-span-6 bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/30 flex flex-col gap-4">
+        <div className="lg:col-span-6 bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-outline-variant/30 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-rose-500 text-[22px]">warning</span>
@@ -160,7 +160,7 @@ export const StandbyAlerts: React.FC = () => {
         </div>
 
         {/* Right Column: Stand-by Management */}
-        <div className="lg:col-span-6 bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/30 flex flex-col gap-4">
+        <div className="lg:col-span-6 bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-outline-variant/30 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-[22px]">snooze</span>

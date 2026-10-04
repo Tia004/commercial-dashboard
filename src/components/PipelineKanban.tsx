@@ -64,37 +64,37 @@ export const PipelineKanban: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full pb-16">
+    <div className="flex flex-col gap-3.5 w-full">
       {/* Top Bar Kanban Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-container-low p-4 rounded-2xl border border-outline-variant/30 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-surface-container-low p-3 rounded-xl border border-outline-variant/30 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-headline font-bold text-xl md:text-2xl text-on-surface tracking-tight">
+            <h1 className="font-headline font-bold text-lg md:text-xl text-on-surface tracking-tight">
               Pipeline Commerciale Kanban
             </h1>
-            <span className="px-2 py-0.5 rounded-full bg-surface-container font-mono text-xs font-semibold text-primary">
+            <span className="px-2 py-0.5 rounded-full bg-surface-container font-mono text-[11px] font-semibold text-primary">
               {filteredDeals.length} Opportunità
             </span>
           </div>
-          <p className="text-xs text-on-surface-variant mt-0.5">
+          <p className="text-xs text-on-surface-variant">
             Trascina le card tra le fasi per avanzare le trattative. Ogni avanzamento richiede un prossimo step.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setIsNewDealModalOpen(true)}
-            className="flex items-center gap-1.5 bg-primary text-on-primary px-3.5 py-2 rounded-xl text-xs font-semibold hover:opacity-90 transition-all shadow-sm"
+            className="flex items-center gap-1.5 bg-primary text-on-primary px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all shadow-sm"
           >
-            <span className="material-symbols-outlined text-[16px]">add</span>
+            <span className="material-symbols-outlined text-[15px]">add</span>
             <span>Nuovo Lead</span>
           </button>
         </div>
       </div>
 
       {/* Horizontal Scrollable Kanban Columns */}
-      <div className="overflow-x-auto pb-6">
-        <div className="flex gap-4 min-w-[2100px] items-start">
+      <div className="overflow-x-auto pb-2">
+        <div className="flex gap-3 min-w-[2100px] items-start">
           {KANBAN_STAGES.map((stage) => {
             const stageDeals = filteredDeals.filter((d) => d.stage === stage.key);
             const stageTotal = stageDeals.reduce((sum, d) => sum + d.value, 0);
@@ -104,19 +104,19 @@ export const PipelineKanban: React.FC = () => {
                 key={stage.key}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, stage.key)}
-                className="w-[280px] flex-shrink-0 flex flex-col gap-3 bg-surface-container-low rounded-2xl p-3 border border-outline-variant/30 min-h-[500px]"
+                className="w-[270px] flex-shrink-0 flex flex-col gap-2.5 bg-surface-container-low rounded-xl p-2.5 border border-outline-variant/30 min-h-[420px]"
               >
                 {/* Stage Header */}
-                <div className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-sm flex flex-col gap-1">
+                <div className="p-2.5 bg-surface-container-lowest rounded-lg border border-outline-variant/30 shadow-sm flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-on-surface">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface">
                       {stage.label}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-surface-container text-xs font-bold font-mono text-primary">
+                    <span className="px-1.5 py-0.2 rounded-full bg-surface-container text-[11px] font-bold font-mono text-primary">
                       {stageDeals.length}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-on-surface-variant font-mono">
+                  <div className="flex items-center justify-between text-[11px] text-on-surface-variant font-mono">
                     <span>Totale:</span>
                     <span className="font-bold text-on-surface">
                       € {stageTotal.toLocaleString()}
@@ -125,9 +125,9 @@ export const PipelineKanban: React.FC = () => {
                 </div>
 
                 {/* Stage Cards List */}
-                <div className="flex flex-col gap-3 flex-1">
+                <div className="flex flex-col gap-2 flex-1">
                   {stageDeals.length === 0 ? (
-                    <div className="h-32 border-2 border-dashed border-outline-variant/40 rounded-xl flex items-center justify-center text-xs text-outline text-center p-2">
+                    <div className="h-28 border-2 border-dashed border-outline-variant/40 rounded-lg flex items-center justify-center text-xs text-outline text-center p-2">
                       Trascina qui le trattative per spostarle in {stage.label}
                     </div>
                   ) : (
@@ -140,7 +140,7 @@ export const PipelineKanban: React.FC = () => {
                           draggable
                           onDragStart={(e) => handleDragStart(e, deal.id)}
                           onClick={() => setSelectedDeal(deal)}
-                          className="bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-outline-variant/30 hover:border-primary/50 cursor-pointer transition-all hover:shadow-md flex flex-col gap-2.5 group"
+                          className="bg-surface-container-lowest rounded-lg p-3 shadow-sm border border-outline-variant/30 hover:border-primary/50 cursor-pointer transition-all hover:shadow-md flex flex-col gap-2 group"
                         >
                           {/* Brand & Value Header */}
                           <div className="flex items-center justify-between">

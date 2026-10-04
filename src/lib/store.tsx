@@ -57,6 +57,10 @@ interface CRMContextType {
   // Settings & MCP modal
   isSettingsModalOpen: boolean;
   setIsSettingsModalOpen: (open: boolean) => void;
+  isUserSettingsOnly: boolean;
+  setIsUserSettingsOnly: (userOnly: boolean) => void;
+  openUserSettings: () => void;
+  openWorkspaceSettings: () => void;
 
   // Actions
   setSelectedBrand: (b: string) => void;
@@ -122,6 +126,17 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const [nextStepModalDeal, setNextStepModalDeal] = useState<Opportunity | null>(null);
   const [isNewDealModalOpen, setIsNewDealModalOpen] = useState<boolean>(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
+  const [isUserSettingsOnly, setIsUserSettingsOnly] = useState<boolean>(false);
+
+  const openUserSettings = () => {
+    setIsUserSettingsOnly(true);
+    setIsSettingsModalOpen(true);
+  };
+
+  const openWorkspaceSettings = () => {
+    setIsUserSettingsOnly(false);
+    setIsSettingsModalOpen(true);
+  };
 
   // Load from local storage on mount
   useEffect(() => {
@@ -727,6 +742,10 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         setIsNewDealModalOpen,
         isSettingsModalOpen,
         setIsSettingsModalOpen,
+        isUserSettingsOnly,
+        setIsUserSettingsOnly,
+        openUserSettings,
+        openWorkspaceSettings,
         setSelectedBrand,
         setSelectedRep,
         setSearchQuery,

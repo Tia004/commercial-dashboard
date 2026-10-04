@@ -18,7 +18,7 @@ export const Header: React.FC<Props> = ({ onMenu, onOpenSearch }) => {
     setSelectedBrand,
     setSelectedRep,
     setIsNewDealModalOpen,
-    setIsSettingsModalOpen
+    openUserSettings,
   } = useCRM();
   const { user } = useAuth();
 
@@ -96,14 +96,6 @@ export const Header: React.FC<Props> = ({ onMenu, onOpenSearch }) => {
         )}
 
         <button
-          className="header-icon settings-trigger cursor-pointer"
-          onClick={() => setIsSettingsModalOpen(true)}
-          aria-label="Impostazioni"
-        >
-          <span className="material-symbols-outlined">settings</span>
-        </button>
-
-        <button
           className="header-new cursor-pointer"
           onClick={() => setIsNewDealModalOpen(true)}
         >
@@ -113,9 +105,9 @@ export const Header: React.FC<Props> = ({ onMenu, onOpenSearch }) => {
 
         <button
           className="profile-trigger cursor-pointer"
-          onClick={() => setIsSettingsModalOpen(true)}
-          aria-label="Gestisci account"
-          title={user?.name}
+          onClick={() => openUserSettings()}
+          aria-label="Profilo e Account personale"
+          title={user?.name ? `${user.name} (Profilo)` : 'Profilo e Account'}
         >
           <span className="material-symbols-outlined">person_outline</span>
         </button>

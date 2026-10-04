@@ -93,19 +93,19 @@ export const OpportunitiesList: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full pb-16">
+    <div className="flex flex-col gap-3.5 w-full">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-container-low p-4 rounded-2xl border border-outline-variant/30 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-surface-container-low p-3 rounded-xl border border-outline-variant/30 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-headline font-bold text-xl md:text-2xl text-on-surface tracking-tight">
+            <h1 className="font-headline font-bold text-lg md:text-xl text-on-surface tracking-tight">
               Registro Opportunità Commerciali
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-surface-container font-mono text-xs font-semibold text-primary">
+            <span className="px-2 py-0.5 rounded-full bg-surface-container font-mono text-[11px] font-semibold text-primary">
               {filteredDeals.length} Risultati
             </span>
           </div>
-          <p className="text-xs text-on-surface-variant mt-0.5">
+          <p className="text-xs text-on-surface-variant">
             Database completo di tutti i lead e clienti con contatti diretti, stato, storico e prossimi step
           </p>
         </div>
@@ -113,17 +113,17 @@ export const OpportunitiesList: React.FC = () => {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-container-highest hover:bg-surface-container-high text-on-surface text-xs font-semibold border border-outline-variant/30 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-surface-container-highest hover:bg-surface-container-high text-on-surface text-xs font-semibold border border-outline-variant/30 transition-colors"
           >
-            <span className="material-symbols-outlined text-[16px]">download</span>
+            <span className="material-symbols-outlined text-[15px]">download</span>
             <span>Esporta CSV</span>
           </button>
 
           <button
             onClick={() => setIsNewDealModalOpen(true)}
-            className="flex items-center gap-1.5 bg-primary text-on-primary px-3.5 py-2 rounded-xl text-xs font-semibold hover:opacity-90 transition-all shadow-sm"
+            className="flex items-center gap-1.5 bg-primary text-on-primary px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all shadow-sm"
           >
-            <span className="material-symbols-outlined text-[16px]">add</span>
+            <span className="material-symbols-outlined text-[15px]">add</span>
             <span>Nuova Opportunità</span>
           </button>
         </div>

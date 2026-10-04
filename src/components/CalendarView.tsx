@@ -309,44 +309,44 @@ export const CalendarView: React.FC = () => {
   ], [salesReps]);
 
   return (
-    <div className="flex flex-col gap-5 w-full pb-16">
+    <div className="flex flex-col gap-3 w-full">
       {/* 1. Untitled UI Top Control Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 resend-card bg-surface-container-lowest p-4 md:p-5 rounded-2xl border border-white/[0.08] shadow-sm">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 resend-card bg-surface-container-lowest p-3 rounded-xl border border-white/[0.08] shadow-sm">
         {/* Left: Navigation and Date Title */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-[#121316] p-1 rounded-xl border border-white/10">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1 bg-[#121316] p-1 rounded-lg border border-white/10">
             <button
               onClick={handlePrev}
               title="Precedente"
-              className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-white/[0.06] transition-all cursor-pointer"
+              className="p-1 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-white/[0.06] transition-all cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+              <span className="material-symbols-outlined text-[17px]">chevron_left</span>
             </button>
             <button
               onClick={handleToday}
               title="Torna ad oggi"
-              className="px-2.5 py-1 text-xs font-semibold text-on-surface hover:bg-white/[0.06] rounded-lg transition-all cursor-pointer"
+              className="px-2 py-0.5 text-xs font-semibold text-on-surface hover:bg-white/[0.06] rounded-md transition-all cursor-pointer"
             >
               Oggi
             </button>
             <button
               onClick={handleNext}
               title="Successivo"
-              className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-white/[0.06] transition-all cursor-pointer"
+              className="p-1 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-white/[0.06] transition-all cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+              <span className="material-symbols-outlined text-[17px]">chevron_right</span>
             </button>
           </div>
 
-          <h2 className="font-headline font-bold text-lg md:text-xl text-on-surface tracking-tight">
+          <h2 className="font-headline font-bold text-base md:text-lg text-on-surface tracking-tight">
             {headerTitle}
           </h2>
         </div>
 
         {/* Right: View Switcher, Filter & Action CTA */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
           {/* Untitled UI Segmented View Switcher */}
-          <div className="flex items-center p-1 bg-[#121316] rounded-xl border border-white/10 text-xs font-semibold">
+          <div className="flex items-center p-0.5 bg-[#121316] rounded-lg border border-white/10 text-xs font-semibold">
             {(['month', 'week', 'day'] as CalendarViewMode[]).map((mode) => {
               const label = mode === 'month' ? 'Mese' : mode === 'week' ? 'Settimana' : 'Giorno';
               const isSelected = viewMode === mode;
@@ -354,7 +354,7 @@ export const CalendarView: React.FC = () => {
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
-                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-white/10 text-white shadow-xs font-bold'
                       : 'text-zinc-400 hover:text-white'
@@ -367,7 +367,7 @@ export const CalendarView: React.FC = () => {
           </div>
 
           {/* Activity Type Filter */}
-          <div className="w-[185px]">
+          <div className="w-[170px]">
             <CustomDropdown
               ariaLabel="Filtra per tipologia"
               value={filterType}
@@ -379,7 +379,7 @@ export const CalendarView: React.FC = () => {
 
           {/* Brand Filter */}
           {brands.length > 0 && (
-            <div className="w-[155px]">
+            <div className="w-[145px]">
               <CustomDropdown
                 ariaLabel="Filtra per brand"
                 value={filterBrand}
@@ -393,9 +393,9 @@ export const CalendarView: React.FC = () => {
           {/* Primary Action Button */}
           <button
             onClick={() => openNewTaskModal()}
-            className="flex items-center gap-1.5 bg-white text-zinc-950 px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-zinc-200 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1.5 bg-white text-zinc-950 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-zinc-200 transition-all shadow-sm cursor-pointer whitespace-nowrap"
           >
-            <span className="material-symbols-outlined text-[16px]">add</span>
+            <span className="material-symbols-outlined text-[15px]">add</span>
             <span>Nuova Attività</span>
           </button>
         </div>
@@ -407,16 +407,16 @@ export const CalendarView: React.FC = () => {
           A. MONTH VIEW (Untitled UI CalendarMonthView)
           ======================================================== */}
       {viewMode === 'month' && (
-        <div className="resend-card rounded-2xl border border-white/[0.08] shadow-sm overflow-hidden flex flex-col bg-[#0e0f13]">
+        <div className="resend-card rounded-xl border border-white/[0.08] shadow-sm overflow-hidden flex flex-col bg-[#0e0f13]">
           {/* Weekday Labels Header */}
-          <div className="grid grid-cols-7 border-b border-white/[0.06] bg-[#121317] text-center py-2.5 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+          <div className="grid grid-cols-7 border-b border-white/[0.06] bg-[#121317] text-center py-1.5 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
             {WEEKDAY_NAMES_SHORT.map((day) => (
               <div key={day}>{day}</div>
             ))}
           </div>
 
           {/* 7-Columns Month Grid */}
-          <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-white/[0.06] min-h-[640px]">
+          <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-white/[0.06] min-h-[440px] md:min-h-[480px]">
             {monthGrid.map((cell) => {
               const dayTasks = tasksByDate.get(cell.dateKey) || [];
               const isToday = cell.isToday;
@@ -424,7 +424,7 @@ export const CalendarView: React.FC = () => {
               return (
                 <div
                   key={cell.dateKey}
-                  className={`calendar-cell p-2 flex flex-col justify-between gap-1.5 min-h-[115px] group transition-colors relative !border-0 !shadow-none outline-none ${
+                  className={`calendar-cell p-1.5 flex flex-col justify-between gap-1 min-h-[72px] md:min-h-[78px] group transition-colors relative !border-0 !shadow-none outline-none ${
                     cell.isCurrentMonth
                       ? isToday
                         ? 'bg-[#a5b4fc]/[0.05]'
@@ -439,7 +439,7 @@ export const CalendarView: React.FC = () => {
                         setCurrentDate(cell.date);
                         setViewMode('day');
                       }}
-                      className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full transition-transform hover:scale-110 cursor-pointer ${
+                      className={`text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full transition-transform hover:scale-110 cursor-pointer ${
                         isToday
                           ? 'bg-primary text-on-primary font-mono'
                           : cell.isCurrentMonth
@@ -456,12 +456,12 @@ export const CalendarView: React.FC = () => {
                       title={`Aggiungi attività per il ${cell.dateKey}`}
                       className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-surface-container text-on-surface-variant hover:text-primary transition-all cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-[14px]">add</span>
+                      <span className="material-symbols-outlined text-[13px]">add</span>
                     </button>
                   </div>
 
                   {/* Tasks List in Cell */}
-                  <div className="flex flex-col gap-1 overflow-y-auto max-h-[95px] pr-0.5">
+                  <div className="flex flex-col gap-1 overflow-y-auto max-h-[58px] pr-0.5">
                     {dayTasks.slice(0, 3).map((task) => {
                       const style = getActivityStyles(task.type);
                       const isDone = task.status === 'Completata';

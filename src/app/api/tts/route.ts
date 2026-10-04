@@ -36,9 +36,14 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     let textToSpeak = String(body.text || '').trim();
+    if (textToSpeak.length > 2000) {
+      textToSpeak = textToSpeak.slice(0, 2000);
+    }
     const voice = String(body.voice || 'Aoede').trim();
-    const rate = String(body.rate || '+0%').trim();
-    const pitch = String(body.pitch || '+0Hz').trim();
+    const rawRate = String(body.rate || '+0%').trim();
+    const rawPitch = String(body.pitch || '+0Hz').trim();
+    const rate = /^[+-]\d{1,3}%$/.test(rawRate) ? rawRate : '+0%';
+    const pitch = /^[+-]\d{1,3}Hz$/.test(rawPitch) ? rawPitch : '+0Hz';
 
     // 1. If generateBriefing is requested or no text provided, generate an energetic sales briefing
     if (body.generateBriefing || !textToSpeak) {

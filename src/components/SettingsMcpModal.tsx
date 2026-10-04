@@ -23,7 +23,7 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
 ];
 
 export const SettingsMcpModal: React.FC = () => {
-  const { isSettingsModalOpen, setIsSettingsModalOpen, theme, setTheme, brands, addBrand, deleteBrand, salesReps, addSalesRep, opportunities, importLegacyData, loadDemoData, resetAllData } = useCRM();
+  const { isSettingsModalOpen, setIsSettingsModalOpen, isUserSettingsOnly, theme, setTheme, brands, addBrand, deleteBrand, salesReps, addSalesRep, opportunities, importLegacyData, loadDemoData, resetAllData } = useCRM();
   const { user, isPasskeySupported, registerPasskey, removePasskey, logout } = useAuth();
   const [tab, setTab] = useState<Tab>('account');
   const [feedback, setFeedback] = useState('');
@@ -37,16 +37,27 @@ export const SettingsMcpModal: React.FC = () => {
   const [mcpStatus, setMcpStatus] = useState('not_configured');
   const canManage = user?.role === 'owner' || user?.role === 'admin';
 
-  const refreshTeam = async () => {
+  const userOnlyTabs: Tab[] = ['account', 'appearance', 'voice'];
+  const visibleTabs = tabs.filter((item) => {
+    if (isUserSettingsOnly) return userOnlyTabs.includes(item.id);
+    return canManage || !['team', 'data', 'integrations', 'catalog'].includes(item.id);
+  });
+
+  const refreshTeam = React.useCallback(async () => {
+    if (isUserSettingsOnly) return;
     const response = await fetch('/api/team', { cache: 'no-store' });
     if (response.ok) { const data = await response.json(); setMembers(data.members); setInvites(data.invites); }
-  };
+  }, [isUserSettingsOnly]);
+
   useEffect(() => {
     if (!isSettingsModalOpen) return;
-    void refreshTeam();
-    fetch('/api/mcp').then((r) => r.json()).then((data) => setMcpStatus(data.status || 'not_configured')).catch(() => {});
+    setTab('account');
+    if (!isUserSettingsOnly) {
+      void refreshTeam();
+      fetch('/api/mcp').then((r) => r.json()).then((data) => setMcpStatus(data.status || 'not_configured')).catch(() => {});
+    }
     return () => { stopAllAudio(); };
-  }, [isSettingsModalOpen]);
+  }, [isSettingsModalOpen, isUserSettingsOnly, refreshTeam]);
   if (!isSettingsModalOpen) return null;
 
   const request = async (method: string, body: object) => {
@@ -58,9 +69,15 @@ export const SettingsMcpModal: React.FC = () => {
   };
   const close = () => { setIsSettingsModalOpen(false); setFeedback(''); };
   return <div className="settings-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
-    <section className="settings-dialog" role="dialog" aria-modal="true" aria-label="Impostazioni workspace">
-      <div className="settings-top"><div><span className="settings-eyebrow">WORKSPACE</span><h2>Impostazioni</h2></div><button onClick={close} aria-label="Chiudi impostazioni"><span className="material-symbols-outlined">close</span></button></div>
-      <div className="settings-layout"><nav className="settings-nav" aria-label="Sezioni impostazioni">{tabs.filter((item) => canManage || !['team', 'data', 'integrations', 'catalog'].includes(item.id)).map((item) => <button key={item.id} onClick={() => { setTab(item.id); setFeedback(''); }} className={tab === item.id ? 'active' : ''}><span className="material-symbols-outlined">{item.icon}</span>{item.label}</button>)}</nav>
+    <section className="settings-dialog" role="dialog" aria-modal="true" aria-label={isUserSettingsOnly ? "Profilo e impostazioni personali" : "Impostazioni workspace"}>
+      <div className="settings-top">
+        <div>
+          <span className="settings-eyebrow">{isUserSettingsOnly ? 'ACCOUNT PERSONALE' : 'WORKSPACE'}</span>
+          <h2>{isUserSettingsOnly ? 'Profilo e Preferenze' : 'Impostazioni'}</h2>
+        </div>
+        <button onClick={close} aria-label="Chiudi impostazioni"><span className="material-symbols-outlined">close</span></button>
+      </div>
+      <div className="settings-layout"><nav className="settings-nav" aria-label="Sezioni impostazioni">{visibleTabs.map((item) => <button key={item.id} onClick={() => { setTab(item.id); setFeedback(''); }} className={tab === item.id ? 'active' : ''}><span className="material-symbols-outlined">{item.icon}</span>{item.label}</button>)}</nav>
       <div className="settings-content">
         {feedback && <div className="settings-feedback" role="status">{feedback}</div>}
         {tab === 'account' && <div className="settings-section"><div className="settings-intro"><span className="settings-eyebrow">IDENTITÀ</span><h3>Account e sicurezza</h3><p>Gestisci l’accesso personale al workspace.</p></div>
