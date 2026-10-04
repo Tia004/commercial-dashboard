@@ -24,10 +24,20 @@ export async function POST(req: NextRequest) {
         await db.execute({ sql: 'DELETE FROM auth_tokens WHERE user_id = ? AND purpose = ?', args: [userId, 'verify'] });
         await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [hashToken(verificationToken), 'verify', email, userId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()] });
         try {
+          const verifyUrl = `${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}`;
           await sendAccountEmail(
             email,
             'Verifica il tuo indirizzo email · Hub Commerciale',
-            `Ciao ${userName},\n\nil tuo account su Hub Commerciale non è ancora stato verificato.\n\nPer attivarlo ed entrare direttamente nel tuo workspace, apri questo link:\n\n${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}\n\nIl link scade tra 24 ore.`
+            `Ciao ${userName},\n\nil tuo account su Hub Commerciale non è ancora stato verificato.\n\nPer attivarlo ed entrare direttamente nel tuo workspace, apri questo link:\n\n${verifyUrl}\n\nIl link scade tra 24 ore.`,
+            {
+              kicker: 'ATTIVAZIONE WORKSPACE',
+              title: 'Attiva il tuo account',
+              intro: `Ciao ${userName},`,
+              bodyText: 'Il tuo account su Hub Commerciale non era ancora stato verificato. Clicca sul pulsante qui sotto per attivarlo ed entrare direttamente nel tuo workspace.',
+              actionUrl: verifyUrl,
+              actionLabel: 'Attiva account ed entra →',
+              expiryText: 'Il link scade tra 24 ore.'
+            }
           );
         } catch (err: any) {
           const reason = err?.message ? ` (${err.message})` : '';
@@ -42,7 +52,22 @@ export async function POST(req: NextRequest) {
       const tokenHash = hashToken(token);
       await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [tokenHash, 'reset', email, userId, new Date(Date.now() + 30 * 60 * 1000).toISOString()] });
       try {
-        await sendAccountEmail(email, 'Reimposta la password · Hub Commerciale', 'Apri questo link per impostare una nuova password:\n\n' + appOrigin(req) + '/?reset=' + encodeURIComponent(token) + '\n\nIl link scade tra 30 minuti. Se non hai richiesto il recupero, ignora questa email.');
+        const resetUrl = `${appOrigin(req)}/?reset=${encodeURIComponent(token)}`;
+        await sendAccountEmail(
+          email,
+          'Reimposta la password · Hub Commerciale',
+          `Apri questo link per impostare una nuova password:\n\n${resetUrl}\n\nIl link scade tra 30 minuti. Se non hai richiesto il recupero, ignora questa email.`,
+          {
+            kicker: 'SICUREZZA ACCOUNT',
+            title: 'Reimposta la tua password',
+            intro: `Ciao ${userName},`,
+            bodyText: 'Abbiamo ricevuto una richiesta di reimpostazione della password per il tuo account su Hub Commerciale. Clicca sul pulsante qui sotto per impostare subito una nuova password.',
+            actionUrl: resetUrl,
+            actionLabel: 'Reimposta password →',
+            expiryText: 'Il link scade tra 30 minuti.',
+            footnote: 'Se non hai richiesto il recupero della password, il tuo account è al sicuro e puoi ignorare questa email.'
+          }
+        );
       } catch (err: any) {
         await db.execute({ sql: 'DELETE FROM auth_tokens WHERE token_hash = ?', args: [tokenHash] });
         const reason = err?.message ? ` (${err.message})` : '';

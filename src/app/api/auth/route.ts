@@ -60,10 +60,20 @@ export async function POST(req: NextRequest) {
         await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [hashToken(verificationToken), 'verify', email, existingUserId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()] });
         
         try {
+          const verifyUrl = `${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}`;
           await sendAccountEmail(
             email,
             'Verifica il tuo indirizzo email · Hub Commerciale',
-            `Ciao ${name},\n\ngrazie per esserti registrato su Hub Commerciale!\n\nPer attivare il tuo account e accedere al workspace, apri questo link:\n\n${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}\n\nIl link scade tra 24 ore.`
+            `Ciao ${name},\n\ngrazie per esserti registrato su Hub Commerciale!\n\nPer attivare il tuo account e accedere al workspace, apri questo link:\n\n${verifyUrl}\n\nIl link scade tra 24 ore.`,
+            {
+              kicker: 'AUTENTICAZIONE & ACCESSO',
+              title: 'Verifica il tuo indirizzo email',
+              intro: `Ciao ${name},`,
+              bodyText: 'Grazie per esserti registrato su Hub Commerciale! Per attivare il tuo account e accedere direttamente al tuo workspace commerciale, clicca sul pulsante qui sotto.',
+              actionUrl: verifyUrl,
+              actionLabel: 'Verifica account ed entra →',
+              expiryText: 'Il link di verifica scade tra 24 ore.'
+            }
           );
         } catch (err: any) {
           const reason = err?.message ? ` (${err.message})` : '';
@@ -90,10 +100,20 @@ export async function POST(req: NextRequest) {
 
       // Send verification link via Brevo SMTP
       try {
+        const verifyUrl = `${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}`;
         await sendAccountEmail(
           email,
           'Verifica il tuo indirizzo email · Hub Commerciale',
-          `Ciao ${name},\n\ngrazie per esserti registrato su Hub Commerciale!\n\nPer attivare il tuo account e accedere al workspace, apri questo link:\n\n${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}\n\nIl link scade tra 24 ore. Se non hai richiesto la creazione di questo account, ignora questo messaggio.`
+          `Ciao ${name},\n\ngrazie per esserti registrato su Hub Commerciale!\n\nPer attivare il tuo account e accedere al workspace, apri questo link:\n\n${verifyUrl}\n\nIl link scade tra 24 ore. Se non hai richiesto la creazione di questo account, ignora questo messaggio.`,
+          {
+            kicker: 'AUTENTICAZIONE & ACCESSO',
+            title: 'Verifica il tuo indirizzo email',
+            intro: `Ciao ${name},`,
+            bodyText: 'Grazie per esserti registrato su Hub Commerciale! Per attivare il tuo account e accedere direttamente al tuo workspace di vendita, clicca sul pulsante qui sotto.',
+            actionUrl: verifyUrl,
+            actionLabel: 'Verifica account ed entra →',
+            expiryText: 'Il link di verifica scade tra 24 ore.'
+          }
         );
       } catch (err: any) {
         // Rollback creation so unverified spam does not linger

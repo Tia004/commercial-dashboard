@@ -33,7 +33,21 @@ export async function POST(req: NextRequest) {
     const tokenHash = hashToken(token);
     await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,workspace_id,role,expires_at) VALUES (?,?,?,?,?,?)', args: [tokenHash, 'invite', email, user.workspaceId, role, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()] });
     try {
-      await sendAccountEmail(email, 'Invito al team · Hub Commerciale', user.name + ' ti ha invitato nel workspace commerciale.\n\nApri questo link per creare il tuo account:\n' + appOrigin() + '/?invite=' + encodeURIComponent(token) + '\n\nL’invito scade tra 7 giorni.');
+      const inviteUrl = appOrigin() + '/?invite=' + encodeURIComponent(token);
+      await sendAccountEmail(
+        email,
+        'Invito al team · Hub Commerciale',
+        user.name + ' ti ha invitato nel workspace commerciale.\n\nApri questo link per creare il tuo account:\n' + inviteUrl + '\n\nL’invito scade tra 7 giorni.',
+        {
+          kicker: 'COLLABORAZIONE WORKSPACE',
+          title: 'Sei stato invitato nel team',
+          intro: `${user.name} ti ha invitato a collaborare nel workspace commerciale.`,
+          bodyText: 'Unisciti al team per gestire opportunità, clienti e pipeline commerciali in un unico spazio condiviso.',
+          actionUrl: inviteUrl,
+          actionLabel: 'Accetta invito ed entra →',
+          expiryText: 'L’invito scade tra 7 giorni.'
+        }
+      );
     } catch {
       await db.execute({ sql: 'DELETE FROM auth_tokens WHERE token_hash = ?', args: [tokenHash] });
       return NextResponse.json({ error: 'Invio email non riuscito.' }, { status: 503 });
