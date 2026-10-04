@@ -63,6 +63,20 @@ export const AuthScreen: React.FC = () => {
   };
 
   return <div className="auth-shell">
+    <style dangerouslySetInnerHTML={{ __html: `
+      .auth-form input:-webkit-autofill,
+      .auth-form input:-webkit-autofill:hover,
+      .auth-form input:-webkit-autofill:focus,
+      .auth-form input:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 1000px #16171d inset !important;
+        box-shadow: 0 0 0 1000px #16171d inset !important;
+        -webkit-text-fill-color: #f1f5f9 !important;
+        color: #f1f5f9 !important;
+        caret-color: #f1f5f9 !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+        transition: background-color 5000000s ease-in-out 0s !important;
+      }
+    `}} />
     <header className="auth-header"><div className="auth-wordmark"><BrandLogo size={28} /><span>Hub Commerciale</span></div><span className="auth-header-note">Workspace vendite</span></header>
     <main className="auth-main"><div className="auth-panel">
       <div className="auth-kicker">ACCESSO SICURO</div>

@@ -17,9 +17,8 @@ export async function POST(req: NextRequest) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !password) return NextResponse.json({ error: 'Inserisci email e password valide.' }, { status: 400 });
     const db = await getServerDb();
     if (body.action === 'register') {
-      if (!emailConfigured()) return NextResponse.json({ error: 'La verifica email non è ancora configurata. Contatta l’amministratore.' }, { status: 503 });
       const name = String(body.name || '').trim();
-      if (!name || password.length < 12 || password.length > 256) return NextResponse.json({ error: 'Indica il nome e una password di almeno 12 caratteri.' }, { status: 400 });
+      if (!name || password.length < 8 || password.length > 256) return NextResponse.json({ error: 'Indica il nome e una password di almeno 8 caratteri.' }, { status: 400 });
       const userId = crypto.randomUUID();
       let workspaceId = userId;
       let role = 'owner';
@@ -31,23 +30,33 @@ export async function POST(req: NextRequest) {
         role = String(invite.rows[0].role);
       }
       const existing = await db.execute({ sql: 'SELECT id FROM users WHERE email = ?', args: [email] });
-      if (existing.rows.length) return NextResponse.json({ error: 'Account già presente per questa email.' }, { status: 409 });
+      if (existing.rows.length) return NextResponse.json({ error: 'Account già presente per questa email. Clicca su "Accedi" per entrare.' }, { status: 409 });
+      
       if (!inviteToken) await db.execute({ sql: 'INSERT INTO workspaces(id,name,created_at) VALUES (?,?,?)', args: [workspaceId, String(body.company || name).trim(), new Date().toISOString()] });
-      await db.execute({ sql: 'INSERT INTO users (id,email,name,company,role,password_hash,created_at,workspace_id,email_verified) VALUES (?,?,?,?,?,?,?,?,0)', args: [userId, email, name, String(body.company || '').trim(), role, hashPassword(password), new Date().toISOString(), workspaceId] });
-      const verificationToken = createToken();
-      await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [hashToken(verificationToken), 'verify', email, userId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()] });
+      
+      // Save directly into Turso database with active verified status
+      await db.execute({ 
+        sql: 'INSERT INTO users (id,email,name,company,role,password_hash,created_at,workspace_id,email_verified) VALUES (?,?,?,?,?,?,?,?,1)', 
+        args: [userId, email, name, String(body.company || '').trim(), role, hashPassword(password), new Date().toISOString(), workspaceId] 
+      });
+
       if (inviteToken) await db.execute({ sql: 'UPDATE auth_tokens SET used_at = ? WHERE token_hash = ?', args: [new Date().toISOString(), hashToken(inviteToken)] });
-      try {
-        await sendAccountEmail(email, 'Verifica il tuo indirizzo email · Hub Commerciale', 'Apri questo link per verificare il tuo account:\n\n' + appOrigin(req) + '/api/auth/verify?token=' + encodeURIComponent(verificationToken) + '\n\nIl link scade tra 24 ore. Se non hai richiesto l’account, ignora questa email.');
-      } catch (err: any) {
-        await db.execute({ sql: 'DELETE FROM auth_tokens WHERE user_id = ? AND purpose = ?', args: [userId, 'verify'] });
-        await db.execute({ sql: 'DELETE FROM users WHERE id = ?', args: [userId] });
-        if (!inviteToken) await db.execute({ sql: 'DELETE FROM workspaces WHERE id = ?', args: [workspaceId] });
-        if (inviteToken) await db.execute({ sql: 'UPDATE auth_tokens SET used_at = NULL WHERE token_hash = ?', args: [hashToken(inviteToken)] });
-        const reason = err?.message ? ` (${err.message})` : '';
-        return NextResponse.json({ error: `Invio email non riuscito: controlla la configurazione SMTP.${reason}` }, { status: 503 });
+
+      // Optional welcome email in background (does not block registration if SMTP is not configured)
+      if (emailConfigured()) {
+        sendAccountEmail(
+          email,
+          'Benvenuto su Hub Commerciale',
+          `Ciao ${name},\n\nil tuo account è stato creato con successo su Hub Commerciale!\nAccedi al tuo workspace da qui: ${appOrigin(req)}\n\nBuon lavoro con la gestione delle tue vendite!`
+        ).catch((err) => console.warn('Welcome email skipped:', err?.message));
       }
-      return NextResponse.json({ pendingVerification: true, message: 'Account creato. Apri l’email di verifica per attivarlo.' }, { status: 201 });
+
+      // Log in immediately and create session
+      await db.execute({ sql: 'DELETE FROM login_attempts WHERE email = ?', args: [email] });
+      const token = await createSession(userId);
+      const response = NextResponse.json({ user: await publicUser(userId), message: 'Account creato con successo!' }, { status: 201 });
+      response.cookies.set(COOKIE_NAME, token, cookieOptions);
+      return response;
     }
     if (body.action !== 'login') return NextResponse.json({ error: 'Azione non valida.' }, { status: 400 });
     const attempt = await db.execute({ sql: 'SELECT failures, window_started_at FROM login_attempts WHERE email = ?', args: [email] });
@@ -59,7 +68,10 @@ export async function POST(req: NextRequest) {
       await db.execute({ sql: 'INSERT INTO login_attempts(email,failures,window_started_at) VALUES (?,?,?) ON CONFLICT(email) DO UPDATE SET failures = ?, window_started_at = ?', args: [email, 1, new Date().toISOString(), windowActive ? Number(existing.failures) + 1 : 1, windowActive ? String(existing.window_started_at) : new Date().toISOString()] });
       return NextResponse.json({ error: 'Email o password non corretti.' }, { status: 401 });
     }
-    if (Number(result.rows[0].email_verified) !== 1) return NextResponse.json({ error: 'Verifica l’indirizzo email prima di accedere.' }, { status: 403 });
+    // Activate any user account directly
+    if (Number(result.rows[0].email_verified) !== 1) {
+      await db.execute({ sql: 'UPDATE users SET email_verified = 1 WHERE email = ?', args: [email] });
+    }
     await db.execute({ sql: 'DELETE FROM login_attempts WHERE email = ?', args: [email] });
     const userId = String(result.rows[0].id);
     const token = await createSession(userId);
