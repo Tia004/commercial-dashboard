@@ -836,9 +836,43 @@ textarea:-webkit-autofill:focus {
 .auth-submit { min-height:42px; padding:0 13px; margin-top:3px; display:flex; align-items:center; justify-content:space-between; border-radius:8px; background:var(--primary); color:var(--on-primary); font-size:12px; font-weight:700; }
 .auth-submit:disabled,.settings-content button:disabled { opacity:.5; cursor:not-allowed; }
 .auth-passkey { min-height:40px; width:100%; border:1px solid var(--outline-variant); border-radius:8px; margin-top:12px; display:flex; justify-content:center; align-items:center; gap:8px; font-size:12px; }
-.auth-passkey .material-symbols-outlined { font-size:18px; }
-.auth-text-button { margin-top:19px; color:var(--on-surface-variant); font-size:11px; }
-.auth-text-button:hover { color:var(--on-surface); }
+.auth-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.auth-action-separator {
+  color: var(--outline-variant);
+  font-size: 13px;
+  line-height: 1;
+  user-select: none;
+  opacity: 0.7;
+}
+.auth-text-button {
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  color: var(--on-surface-variant);
+  font-size: 11.5px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+.auth-text-button:hover:not(:disabled) {
+  color: var(--on-surface);
+  text-decoration: underline;
+}
+.auth-text-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .auth-footnote { margin-top:25px; padding-top:18px; border-top:1px solid var(--outline-variant); display:flex; align-items:center; gap:8px; font-size:10px; color:var(--on-surface-variant); line-height:1.4; }
 .auth-message { margin:0 0 16px; padding:10px 13px; border-radius:9px; font-size:12px; line-height:1.45; display:flex; align-items:center; gap:9px; font-weight:500; }
 .auth-message.success { color:var(--success-text); border:1px solid var(--success-border); background:var(--success-surface); }

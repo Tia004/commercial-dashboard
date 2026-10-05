@@ -127,13 +127,15 @@ export const AuthScreen: React.FC = () => {
           >
             {busy ? 'Invio in corso…' : 'Invia di nuovo email di verifica'}
           </button>
-          <button
-            type="button"
-            className="auth-text-button"
-            onClick={() => { setMode('login'); setError(''); setNotice(''); }}
-          >
-            Torna alla schermata di accesso
-          </button>
+          <div className="auth-footer-actions">
+            <button
+              type="button"
+              className="auth-text-button"
+              onClick={() => { setMode('login'); setError(''); setNotice(''); }}
+            >
+              ← Torna alla schermata di accesso
+            </button>
+          </div>
         </div>
       ) : (
         <form onSubmit={submit} className="auth-form">
@@ -154,8 +156,48 @@ export const AuthScreen: React.FC = () => {
         </form>
       )}
       {mode === 'login' && isPasskeySupported && <button className="auth-passkey" disabled={busy || !email} onClick={usePasskey}><span className="material-symbols-outlined">fingerprint</span> Accedi con passkey</button>}
-      {mode === 'login' ? <button className="auth-text-button" onClick={() => { setMode('request-reset'); setError(''); setNotice(''); }}>Password dimenticata?</button> : mode === 'request-reset' || mode === 'confirm-reset' ? <button className="auth-text-button" onClick={() => { setMode('login'); setError(''); setNotice(''); }}>Torna all’accesso</button> : null}
-      {mode === 'login' && <button className="auth-text-button auth-resend" disabled={!email || busy} onClick={async () => { setError(''); setNotice(''); const response = await fetch('/api/auth/resend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) }); const data = await response.json(); if (response.ok) setNotice(data.message); else setError(data.error || 'Invio non riuscito.'); }}>Invia di nuovo la verifica email</button>}
+      {mode === 'login' && (
+        <div className="auth-footer-actions">
+          <button
+            type="button"
+            className="auth-text-button"
+            onClick={() => { setMode('request-reset'); setError(''); setNotice(''); }}
+          >
+            Password dimenticata?
+          </button>
+          <span className="auth-action-separator" aria-hidden="true">·</span>
+          <button
+            type="button"
+            className="auth-text-button auth-resend"
+            disabled={!email || busy}
+            onClick={async () => {
+              setError('');
+              setNotice('');
+              const response = await fetch('/api/auth/resend', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+              });
+              const data = await response.json();
+              if (response.ok) setNotice(data.message);
+              else setError(data.error || 'Invio non riuscito.');
+            }}
+          >
+            Invia di nuovo la verifica email
+          </button>
+        </div>
+      )}
+      {(mode === 'request-reset' || mode === 'confirm-reset') && (
+        <div className="auth-footer-actions">
+          <button
+            type="button"
+            className="auth-text-button"
+            onClick={() => { setMode('login'); setError(''); setNotice(''); }}
+          >
+            ← Torna all’accesso
+          </button>
+        </div>
+      )}
       <div className="auth-footnote"><span className="material-symbols-outlined">lock</span> I dati del workspace sono protetti da accesso autenticato.</div>
     </div></main>
     <footer className="auth-footer">Hub Commerciale <span>·</span> Workspace vendite multi-brand</footer>
