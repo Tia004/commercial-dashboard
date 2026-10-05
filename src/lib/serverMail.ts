@@ -27,12 +27,17 @@ export function appOrigin(req?: Request) {
   return 'https://commercial-dashboard-silk.vercel.app';
 }
 
+function cleanEnv(val?: string): string {
+  if (!val) return '';
+  return val.trim().replace(/^["']|["']$/g, '').trim();
+}
+
 export function isRealSmtpConfigured() {
-  if (process.env.RESEND_API_KEY?.trim()) return true;
-  if (process.env.BREVO_API_KEY?.trim()) return true;
-  const pass = (process.env.SMTP_PASSWORD || process.env.SMTP_PASS || '').trim();
-  const user = (process.env.SMTP_USER || '').trim();
-  const host = (process.env.SMTP_HOST || '').trim();
+  if (cleanEnv(process.env.RESEND_API_KEY)) return true;
+  if (cleanEnv(process.env.BREVO_API_KEY)) return true;
+  const pass = cleanEnv(process.env.SMTP_PASSWORD || process.env.SMTP_PASS);
+  const user = cleanEnv(process.env.SMTP_USER);
+  const host = cleanEnv(process.env.SMTP_HOST);
   return !!(host && process.env.SMTP_PORT && user && pass);
 }
 
@@ -220,13 +225,13 @@ export async function sendAccountEmail(
     throw new Error('Parametri SMTP mancanti (verifica SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS)');
   }
 
-  const port = Number(process.env.SMTP_PORT || 587);
+  const port = Number(cleanEnv(process.env.SMTP_PORT) || 587);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('SMTP_PORT non valido (usa 587)');
-  const pass = (process.env.SMTP_PASSWORD || process.env.SMTP_PASS || '').trim();
-  const user = (process.env.SMTP_USER || '').trim();
-  const host = (process.env.SMTP_HOST || 'smtp-relay.brevo.com').trim();
+  const pass = cleanEnv(process.env.SMTP_PASSWORD || process.env.SMTP_PASS);
+  const user = cleanEnv(process.env.SMTP_USER);
+  const host = cleanEnv(process.env.SMTP_HOST || 'smtp-relay.brevo.com');
 
-  let from = (process.env.SMTP_FROM || '').trim();
+  let from = cleanEnv(process.env.SMTP_FROM);
   if (!from) {
     if (user.endsWith('@smtp-brevo.com')) {
       throw new Error('Configura SMTP_FROM su Vercel con l’email con cui sei registrato su Brevo (es. "Hub Commerciale <tua_email>"). Il codice di accesso @smtp-brevo.com non è un mittente valido.');
@@ -235,10 +240,10 @@ export async function sendAccountEmail(
   }
 
   // 1. Resend REST API (Instant delivery < 1s)
-  const resendApiKey = (process.env.RESEND_API_KEY || '').trim();
+  const resendApiKey = cleanEnv(process.env.RESEND_API_KEY);
   if (resendApiKey) {
     try {
-      let resendFrom = (process.env.RESEND_FROM || '').trim();
+      let resendFrom = cleanEnv(process.env.RESEND_FROM);
       if (!resendFrom) {
         // If SMTP_FROM contains a public webmail domain (e.g. @gmail.com, @yahoo, etc.),
         // Resend will reject with 403 Forbidden because public domains cannot be custom verified.

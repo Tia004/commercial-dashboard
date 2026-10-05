@@ -15,7 +15,6 @@ export function getServerDb(): Promise<Client> {
     const userColumns = (await client.execute('PRAGMA table_info(users)')).rows.map((row) => String(row.name));
     if (!userColumns.includes('workspace_id')) await client.execute('ALTER TABLE users ADD COLUMN workspace_id TEXT');
     if (!userColumns.includes('email_verified')) await client.execute('ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 1');
-    await client.execute("UPDATE users SET email_verified = 1 WHERE email IN ('tiachinaglia@gmail.com', 'info@tiadesigns.it')");
     await client.execute('CREATE TABLE IF NOT EXISTS workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at TEXT NOT NULL)');
     const legacyUsers = await client.execute('SELECT id, company, name FROM users WHERE workspace_id IS NULL');
     for (const user of legacyUsers.rows) {
