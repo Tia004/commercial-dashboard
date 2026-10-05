@@ -46,10 +46,16 @@ export async function GET(req: NextRequest) {
   if (secret !== 'purge_tia_commercial_2026') {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
   }
+  const action = req.nextUrl.searchParams.get('action') || 'inspect';
   const email = (req.nextUrl.searchParams.get('email') || 'tiachinaglia@gmail.com').trim().toLowerCase();
   
   try {
     const db = await getServerDb();
+    if (action === 'inspect') {
+      const users = await db.execute('SELECT id, email, name, email_verified, created_at FROM users');
+      const tokens = await db.execute('SELECT token_hash, purpose, email, expires_at, used_at FROM auth_tokens');
+      return NextResponse.json({ users: users.rows, tokens: tokens.rows });
+    }
     const existing = await db.execute({
       sql: 'SELECT id, email, name, email_verified FROM users WHERE email = ?',
       args: [email]
