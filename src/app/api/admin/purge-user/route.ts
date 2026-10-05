@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerDb } from '@/lib/serverDb';
+import { sendAccountEmail } from '@/lib/serverMail';
 
 export async function POST(req: NextRequest) {
   try {
@@ -54,8 +55,39 @@ export async function GET(req: NextRequest) {
     if (action === 'inspect') {
       const users = await db.execute('SELECT id, email, name, email_verified, created_at FROM users');
       const tokens = await db.execute('SELECT token_hash, purpose, email, expires_at, used_at FROM auth_tokens');
-      return NextResponse.json({ users: users.rows, tokens: tokens.rows });
+      return NextResponse.json({
+        users: users.rows,
+        tokens: tokens.rows,
+        mailConfig: {
+          hasResend: !!process.env.RESEND_API_KEY?.trim(),
+          hasBrevo: !!process.env.BREVO_API_KEY?.trim(),
+          hasSmtpPass: !!(process.env.SMTP_PASSWORD || process.env.SMTP_PASS)?.trim(),
+          smtpUser: (process.env.SMTP_USER || '').trim(),
+          smtpFrom: (process.env.SMTP_FROM || '').trim(),
+          smtpHost: (process.env.SMTP_HOST || '').trim(),
+        }
+      });
     }
+
+    if (action === 'test-mail') {
+      try {
+        await sendAccountEmail(
+          email,
+          'Test verifica email · Hub Commerciale',
+          'Questo è un messaggio di test per verificare la ricezione.',
+          {
+            title: 'Test verifica',
+            bodyText: 'Se ricevi questo messaggio, il server di posta è configurato correttamente.',
+            actionUrl: 'https://commercial-dashboard-silk.vercel.app',
+            actionLabel: 'Vai alla dashboard'
+          }
+        );
+        return NextResponse.json({ success: true, message: `Email di test inviata con successo a ${email}!` });
+      } catch (err: any) {
+        return NextResponse.json({ success: false, error: err?.message || String(err), stack: err?.stack });
+      }
+    }
+
     const existing = await db.execute({
       sql: 'SELECT id, email, name, email_verified FROM users WHERE email = ?',
       args: [email]
