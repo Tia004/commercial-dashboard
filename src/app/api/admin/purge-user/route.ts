@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     const action = String(body.action || req.nextUrl.searchParams.get('action') || 'delete');
     const email = String(body.email || req.nextUrl.searchParams.get('email') || 'tiachinaglia@gmail.com').trim().toLowerCase();
 
-    if (action === 'send-all-verifications') {
+    if (action === 'send-all-verifications' || action === 'fix-and-verify-unverified') {
       return await handleSendAllVerifications(req);
     }
 
@@ -62,14 +62,61 @@ export async function POST(req: NextRequest) {
 
 async function handleSendAllVerifications(req: NextRequest) {
   const db = await getServerDb();
-  const users = await db.execute('SELECT id, email, name, email_verified FROM users');
   const origin = appOrigin(req);
-  const results: Array<{ email: string; name: string; ok: boolean; provider?: string; error?: string }> = [];
 
-  for (const user of users.rows) {
-    const targetEmail = String(user.email).trim().toLowerCase();
-    const targetName = String(user.name || 'Utente');
-    const userId = String(user.id);
+  // 1. Strictly enforce verification rules requested by the user:
+  // - info@tiadesigns.it and tiachinaglia@gmail.com are the ONLY verified accounts
+  // - All other accounts are unverified (email_verified = 0)
+  await db.execute(`
+    UPDATE users
+    SET email_verified = 1
+    WHERE LOWER(TRIM(email)) IN ('info@tiadesigns.it', 'tiachinaglia@gmail.com')
+  `);
+
+  await db.execute(`
+    UPDATE users
+    SET email_verified = 0
+    WHERE LOWER(TRIM(email)) NOT IN ('info@tiadesigns.it', 'tiachinaglia@gmail.com')
+  `);
+
+  // 2. Fetch updated state
+  const allUsers = await db.execute('SELECT id, email, name, email_verified FROM users ORDER BY created_at ASC');
+
+  const verifiedAccounts: Array<{ email: string; name: string }> = [];
+  const unverifiedAccounts: Array<{ id: string; email: string; name: string }> = [];
+
+  for (const row of allUsers.rows) {
+    const uEmail = String(row.email).trim().toLowerCase();
+    const uName = String(row.name || 'Utente');
+    const uId = String(row.id);
+    if (Number(row.email_verified) === 1) {
+      verifiedAccounts.push({ email: uEmail, name: uName });
+    } else {
+      unverifiedAccounts.push({ id: uId, email: uEmail, name: uName });
+    }
+  }
+
+  // 3. For all unverified accounts, generate a fresh verification token and dispatch the verification email
+  const results: Array<{
+    email: string;
+    name: string;
+    ok: boolean;
+    provider?: string;
+    verifyUrl?: string;
+    error?: string;
+  }> = [];
+
+  for (const user of unverifiedAccounts) {
+    const targetEmail = user.email;
+    const targetName = user.name;
+    const userId = user.id;
+
+    // Remove any previous unused verify tokens for this user
+    await db.execute({
+      sql: "DELETE FROM auth_tokens WHERE purpose = 'verify' AND (email = ? OR user_id = ?)",
+      args: [targetEmail, userId]
+    }).catch(() => {});
+
     const token = createToken();
     const tokenHash = hashToken(token);
 
@@ -100,7 +147,8 @@ async function handleSendAllVerifications(req: NextRequest) {
         email: targetEmail,
         name: targetName,
         ok: true,
-        provider: sendRes?.provider || 'sent'
+        provider: sendRes?.provider || 'sent',
+        verifyUrl
       });
     } catch (err: any) {
       await db.execute({ sql: 'DELETE FROM auth_tokens WHERE token_hash = ?', args: [tokenHash] }).catch(() => {});
@@ -115,8 +163,10 @@ async function handleSendAllVerifications(req: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    totalAccounts: users.rows.length,
-    results
+    totalAccounts: allUsers.rows.length,
+    verifiedAccounts: verifiedAccounts.map(a => a.email),
+    unverifiedAccountsCount: unverifiedAccounts.length,
+    dispatchedEmails: results
   });
 }
 
@@ -190,11 +240,38 @@ export async function GET(req: NextRequest) {
             signal: AbortSignal.timeout(6000),
           });
           const text = await res.text();
+          let emailId = '';
+          try { emailId = JSON.parse(text)?.id || ''; } catch {}
+
+          let emailDetails: any = null;
+          if (emailId) {
+            try {
+              const detailsRes = await fetch(`https://api.resend.com/emails/${emailId}`, {
+                headers: { 'Authorization': `Bearer ${resendKey}` }
+              });
+              emailDetails = await detailsRes.json();
+            } catch (err: any) {
+              emailDetails = { error: err?.message };
+            }
+          }
+
+          let domains: any = null;
+          try {
+            const domRes = await fetch('https://api.resend.com/domains', {
+              headers: { 'Authorization': `Bearer ${resendKey}` }
+            });
+            domains = await domRes.json();
+          } catch (err: any) {
+            domains = { error: err?.message };
+          }
+
           diagnostics.resend = {
             durationMs: Date.now() - start,
             status: res.status,
             ok: res.ok,
-            response: text.slice(0, 500)
+            response: text.slice(0, 500),
+            emailDetails,
+            domains
           };
         } catch (e: any) {
           diagnostics.resend = {
@@ -295,7 +372,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if (action === 'send-all-verifications') {
+    if (action === 'send-all-verifications' || action === 'fix-and-verify-unverified') {
       return await handleSendAllVerifications(req);
     }
 
