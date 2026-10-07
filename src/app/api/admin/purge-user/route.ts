@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerDb } from '@/lib/serverDb';
 import { createToken, hashToken, hashPassword } from '@/lib/serverAuth';
-import { appOrigin, sendAccountEmail } from '@/lib/serverMail';
+import { appOrigin, sendAccountEmail, renderLinearEmail } from '@/lib/serverMail';
 import nodemailer from 'nodemailer';
 
 function cleanEnv(val?: string): string {
@@ -131,6 +131,7 @@ async function handleSendAllVerifications(req: NextRequest) {
     name: string;
     ok: boolean;
     provider?: string;
+    providers?: string[];
     verifyUrl?: string;
     error?: string;
   }> = [];
@@ -172,11 +173,46 @@ async function handleSendAllVerifications(req: NextRequest) {
         }
       );
 
+      let brevoSent = false;
+      const host = cleanEnv(process.env.SMTP_HOST);
+      const port = Number(cleanEnv(process.env.SMTP_PORT) || 587);
+      const smtpUser = cleanEnv(process.env.SMTP_USER);
+      const smtpPass = cleanEnv(process.env.SMTP_PASSWORD || process.env.SMTP_PASS);
+      const smtpFrom = cleanEnv(process.env.SMTP_FROM) || 'Hub Commerciale <tiachinaglia@gmail.com>';
+
+      if (host && smtpUser && smtpPass) {
+        const transport = nodemailer.createTransport({
+          host, port, secure: port === 465, auth: { user: smtpUser, pass: smtpPass },
+          connectionTimeout: 8000, greetingTimeout: 8000, socketTimeout: 8000,
+        });
+        try {
+          await transport.sendMail({
+            from: smtpFrom,
+            to: targetEmail,
+            subject: 'Verifica il tuo indirizzo email · Hub Commerciale',
+            text: `Ciao ${targetName},\n\nApri questo link per verificare il tuo account:\n\n${verifyUrl}\n\nIl link scade tra 24 ore.`,
+            html: renderLinearEmail({
+              title: 'Verifica il tuo account',
+              intro: `Ciao ${targetName}, benvenuto in Hub Commerciale.`,
+              bodyText: 'Clicca sul pulsante per verificare il tuo account e sbloccare immediatamente l’accesso completo al workspace commerciale.',
+              actionUrl: verifyUrl,
+              actionLabel: 'Verifica email ed entra',
+              expiryText: 'Questo link scade tra 24 ore.'
+            })
+          });
+          brevoSent = true;
+        } catch (e: any) {
+          console.warn('[SMTP DUAL DISPATCH FAILED]', e?.message);
+        } finally {
+          transport.close();
+        }
+      }
+
       results.push({
         email: targetEmail,
         name: targetName,
         ok: true,
-        provider: sendRes?.provider || 'sent',
+        providers: [sendRes?.provider || 'resend', brevoSent ? 'brevo-smtp' : ''].filter((p): p is string => Boolean(p)),
         verifyUrl
       });
     } catch (err: any) {
@@ -300,13 +336,24 @@ export async function GET(req: NextRequest) {
             domains = { error: err?.message };
           }
 
+          let recentEmails: any = null;
+          try {
+            const listRes = await fetch('https://api.resend.com/emails', {
+              headers: { 'Authorization': `Bearer ${resendKey}` }
+            });
+            recentEmails = await listRes.json();
+          } catch (err: any) {
+            recentEmails = { error: err?.message };
+          }
+
           diagnostics.resend = {
             durationMs: Date.now() - start,
             status: res.status,
             ok: res.ok,
             response: text.slice(0, 500),
             emailDetails,
-            domains
+            domains,
+            recentEmails
           };
         } catch (e: any) {
           diagnostics.resend = {
@@ -404,6 +451,41 @@ export async function GET(req: NextRequest) {
         });
       } catch (err: any) {
         return NextResponse.json({ success: false, error: err?.message || String(err), stack: err?.stack });
+      }
+    }
+
+    if (action === 'test-smtp') {
+      const host = cleanEnv(process.env.SMTP_HOST);
+      const port = Number(cleanEnv(process.env.SMTP_PORT) || 587);
+      const user = cleanEnv(process.env.SMTP_USER);
+      const pass = cleanEnv(process.env.SMTP_PASSWORD || process.env.SMTP_PASS);
+      const from = cleanEnv(process.env.SMTP_FROM) || 'Hub Commerciale <tiachinaglia@gmail.com>';
+
+      const transport = nodemailer.createTransport({
+        host, port, secure: port === 465, auth: { user, pass },
+        connectionTimeout: 8000, greetingTimeout: 8000, socketTimeout: 8000,
+      });
+
+      try {
+        const origin = appOrigin(req);
+        const info = await transport.sendMail({
+          from,
+          to: email,
+          subject: 'Test verifica immediata · Hub Commerciale (Brevo Relay)',
+          text: `Test invio Brevo SMTP a ${email}.\nSe ricevi questa email, il relay Brevo consegna correttamente.`,
+          html: `<div style="font-family: sans-serif; padding: 20px;"><h2>Hub Commerciale</h2><p>Test invio tramite relay Brevo a <strong>${email}</strong>.</p><p><a href="${origin}">Vai alla Dashboard</a></p></div>`
+        });
+        return NextResponse.json({
+          success: true,
+          messageId: info.messageId,
+          response: info.response,
+          accepted: info.accepted,
+          provider: 'brevo-smtp'
+        });
+      } catch (err: any) {
+        return NextResponse.json({ success: false, error: err?.message || String(err) });
+      } finally {
+        transport.close();
       }
     }
 
