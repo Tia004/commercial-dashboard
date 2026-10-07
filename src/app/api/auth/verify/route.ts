@@ -23,7 +23,10 @@ export async function GET(req: NextRequest) {
     const userId = String(result.rows[0].user_id);
     const consumed = await db.execute({ sql: 'UPDATE auth_tokens SET used_at = ? WHERE token_hash = ? AND used_at IS NULL', args: [new Date().toISOString(), hashToken(token)] });
     if (!consumed.rowsAffected) return destination('invalid');
-    await db.execute({ sql: 'UPDATE users SET email_verified = 1 WHERE id = ?', args: [userId] });
+    await db.batch([
+      { sql: 'UPDATE users SET email_verified = 1 WHERE id = ?', args: [userId] },
+      { sql: 'UPDATE auth_tokens SET used_at = ? WHERE user_id = ? AND purpose = ? AND used_at IS NULL', args: [new Date().toISOString(), userId, 'verify'] },
+    ], 'write');
     const sessionToken = await createSession(userId);
     return destination('verified', sessionToken);
   } catch { return destination('invalid'); }

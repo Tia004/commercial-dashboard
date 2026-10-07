@@ -106,7 +106,7 @@ export const AuthScreen: React.FC = () => {
             <ul style={{ margin: '6px 0 0 16px', padding: 0 }}>
               <li>Controlla nella cartella <strong>Spam</strong> o <strong>Posta Indesiderata</strong>.</li>
               <li>Su Gmail, controlla nella scheda <strong>Promozioni</strong>.</li>
-              <li>Il mittente è <em>Hub Commerciale &lt;onboarding@resend.dev&gt;</em>.</li>
+              <li>Il mittente è <em>Hub Commerciale</em>.</li>
             </ul>
           </div>
           <button

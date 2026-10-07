@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getServerDb, getClientIp, checkRateLimit, purgeExpiredUnverifiedAccounts } from '@/lib/serverDb';
+import { getServerDb, getClientIp, checkRateLimit } from '@/lib/serverDb';
 import { COOKIE_NAME, cookieOptions, createSession, createToken, getSessionUser, hashPassword, hashToken, publicUser, verifyPassword } from '@/lib/serverAuth';
 import { appOrigin, emailConfigured, sendAccountEmail } from '@/lib/serverMail';
 
@@ -29,8 +29,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Troppi tentativi di registrazione da questo indirizzo IP. Riprova tra 1 ora.' }, { status: 429 });
       }
 
-      // 3. Purge expired unverified accounts older than 24h to keep Turso db pristine
-      void purgeExpiredUnverifiedAccounts(db);
 
       const name = String(body.name || '').trim();
       if (!name || password.length < 8 || password.length > 256) return NextResponse.json({ error: 'Indica il nome e una password di almeno 8 caratteri.' }, { status: 400 });
@@ -56,11 +54,9 @@ export async function POST(req: NextRequest) {
           args: [name, hashPassword(password), String(body.company || '').trim(), existingUserId]
         });
         const verificationToken = createToken();
-        await db.execute({ sql: 'DELETE FROM auth_tokens WHERE user_id = ? AND purpose = ?', args: [existingUserId, 'verify'] });
         await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [hashToken(verificationToken), 'verify', email, existingUserId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()] });
         try {
           const verifyUrl = `${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}`;
-          console.log(`[AUTH VERIFY LINK FOR ${email}]: ${verifyUrl}`);
           await sendAccountEmail(
             email,
             'Verifica il tuo indirizzo email · Hub Commerciale',
@@ -75,8 +71,9 @@ export async function POST(req: NextRequest) {
             }
           );
         } catch (err: any) {
-          const reason = err?.message ? ` (${err.message})` : '';
-          return NextResponse.json({ error: `Invio email non riuscito: controlla la configurazione SMTP.${reason}` }, { status: 503 });
+          await db.execute({ sql: 'DELETE FROM auth_tokens WHERE token_hash = ?', args: [hashToken(verificationToken)] });
+          console.error('[AUTH EMAIL FAILED]', err);
+          return NextResponse.json({ error: 'Invio email non riuscito. Riprova tra poco o contatta l’assistenza.' }, { status: 503 });
         }
         return NextResponse.json({ pendingVerification: true, message: 'Account aggiornato! Ti abbiamo inviato un’email di verifica: clicca sul link per attivarlo.' }, { status: 201 });
       }
@@ -97,10 +94,9 @@ export async function POST(req: NextRequest) {
       await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [hashToken(verificationToken), 'verify', email, userId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()] });
       if (inviteToken) await db.execute({ sql: 'UPDATE auth_tokens SET used_at = ? WHERE token_hash = ?', args: [new Date().toISOString(), hashToken(inviteToken)] });
 
-      // Send verification link via Brevo SMTP
+      // Wait for provider acceptance before reporting success.
       try {
         const verifyUrl = `${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}`;
-        console.log(`[AUTH VERIFY LINK FOR ${email}]: ${verifyUrl}`);
         await sendAccountEmail(
           email,
           'Verifica il tuo indirizzo email · Hub Commerciale',
@@ -120,8 +116,8 @@ export async function POST(req: NextRequest) {
         await db.execute({ sql: 'DELETE FROM users WHERE id = ?', args: [userId] });
         if (!inviteToken) await db.execute({ sql: 'DELETE FROM workspaces WHERE id = ?', args: [workspaceId] });
         if (inviteToken) await db.execute({ sql: 'UPDATE auth_tokens SET used_at = NULL WHERE token_hash = ?', args: [hashToken(inviteToken)] });
-        const reason = err?.message ? ` (${err.message})` : '';
-        return NextResponse.json({ error: `Invio email non riuscito: controlla la configurazione SMTP.${reason}` }, { status: 503 });
+        console.error('[AUTH EMAIL FAILED]', err);
+        return NextResponse.json({ error: 'Invio email non riuscito. Riprova tra poco o contatta l’assistenza.' }, { status: 503 });
       }
 
       return NextResponse.json({ pendingVerification: true, message: 'Account creato! Ti abbiamo inviato un’email di verifica: clicca sul link per attivarlo.' }, { status: 201 });

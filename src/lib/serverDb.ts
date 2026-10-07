@@ -66,9 +66,7 @@ export async function checkRateLimit(db: Client, ip: string, action: string, max
 
 export async function purgeExpiredUnverifiedAccounts(db: Client) {
   try {
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     await db.execute({ sql: 'DELETE FROM auth_tokens WHERE expires_at < ?', args: [new Date().toISOString()] });
-    await db.execute({ sql: 'DELETE FROM users WHERE email_verified = 0 AND created_at < ?', args: [cutoff] });
   } catch (e) {
     console.warn('Purge skipped:', e);
   }

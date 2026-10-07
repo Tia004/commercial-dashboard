@@ -1,8 +1,9 @@
 import nodemailer from 'nodemailer';
+import { randomUUID } from 'node:crypto';
 
 export function appOrigin(req?: Request) {
-  if (process.env.APP_ORIGIN) {
-    const raw = process.env.APP_ORIGIN.trim();
+  if (process.env.APP_ORIGIN || process.env.NEXT_PUBLIC_APP_URL) {
+    const raw = cleanEnv(process.env.APP_ORIGIN || process.env.NEXT_PUBLIC_APP_URL);
     const url = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
     return url.origin;
   }
@@ -36,6 +37,7 @@ export function isRealSmtpConfigured() {
   if (cleanEnv(process.env.RESEND_API_KEY)) return true;
   if (cleanEnv(process.env.BREVO_API_KEY)) return true;
   const pass = cleanEnv(process.env.SMTP_PASSWORD || process.env.SMTP_PASS);
+  if (pass.startsWith('xkeysib-')) return true;
   const user = cleanEnv(process.env.SMTP_USER);
   const host = cleanEnv(process.env.SMTP_HOST);
   return !!(host && process.env.SMTP_PORT && user && pass);
@@ -225,114 +227,107 @@ export async function sendAccountEmail(
     throw new Error('Parametri SMTP mancanti (verifica SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS)');
   }
 
-  const port = Number(cleanEnv(process.env.SMTP_PORT) || 587);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('SMTP_PORT non valido (usa 587)');
   const pass = cleanEnv(process.env.SMTP_PASSWORD || process.env.SMTP_PASS);
   const user = cleanEnv(process.env.SMTP_USER);
-  const host = cleanEnv(process.env.SMTP_HOST || 'smtp-relay.brevo.com');
-
-  let from = cleanEnv(process.env.SMTP_FROM);
+  const host = cleanEnv(process.env.SMTP_HOST);
+  const smtpConfigured = !!(host && process.env.SMTP_PORT && user && pass);
+  let from = cleanEnv(process.env.SMTP_FROM) ||
+    (user.includes('@') && !user.endsWith('@smtp-brevo.com') ? `Hub Commerciale <${user}>` : '');
   if (!from) {
-    if (user.endsWith('@smtp-brevo.com')) {
-      throw new Error('Configura SMTP_FROM su Vercel con l’email con cui sei registrato su Brevo (es. "Hub Commerciale <tua_email>"). Il codice di accesso @smtp-brevo.com non è un mittente valido.');
+    from = 'Hub Commerciale <tiachinaglia@gmail.com>';
+  }
+
+  const resendApiKey = cleanEnv(process.env.RESEND_API_KEY);
+  const brevoApiKey = cleanEnv(process.env.BREVO_API_KEY) || (pass.startsWith('xkeysib-') ? pass : '');
+
+  // Select optimal Resend sender: custom RESEND_FROM, or verified domain, or official onboarding sender
+  let resendFrom = cleanEnv(process.env.RESEND_FROM);
+  if (!resendFrom) {
+    if (from && !/@(gmail|yahoo|hotmail|outlook|icloud|libero|live|aol|smtp-brevo)\./i.test(from)) {
+      resendFrom = from;
+    } else {
+      resendFrom = 'Hub Commerciale <onboarding@resend.dev>';
     }
-    from = user.includes('@') ? `"Hub Commerciale" <${user}>` : user;
+  }
+
+  const failures: string[] = [];
+  const requestId = randomUUID();
+
+  async function submit(provider: string, url: string, headers: Record<string, string>, payload: object) {
+    const response = await fetch(url, {
+      method: 'POST', headers, body: JSON.stringify(payload), signal: AbortSignal.timeout(6000),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const detail = typeof data === 'object' ? (data.message || data.code || JSON.stringify(data)) : String(data);
+      throw new Error(`${provider} HTTP ${response.status}: ${detail || 'richiesta rifiutata'}`);
+    }
+    const id = data.id || data.messageId;
+    if (!id) throw new Error(`${provider}: conferma di invio mancante`);
+    console.info('[ACCOUNT EMAIL ACCEPTED]', { provider, id, to });
+    return { provider, id: String(id) };
   }
 
   // 1. Resend REST API (Instant delivery < 1s)
-  const resendApiKey = cleanEnv(process.env.RESEND_API_KEY);
   if (resendApiKey) {
     try {
-      let resendFrom = cleanEnv(process.env.RESEND_FROM);
-      if (!resendFrom) {
-        // If SMTP_FROM contains a public webmail domain (e.g. @gmail.com, @yahoo, etc.),
-        // Resend will reject with 403 Forbidden because public domains cannot be custom verified.
-        // Fall back to Resend's official onboarding test sender so the account owner receives it instantly.
-        if (!from || /@(gmail|yahoo|hotmail|outlook|icloud|libero|live|aol)\./i.test(from)) {
-          resendFrom = 'Hub Commerciale <onboarding@resend.dev>';
-        } else {
-          resendFrom = from;
-        }
-      }
-
-      console.log(`[RESEND ATTEMPT] Invio email a: ${to} con mittente: ${resendFrom}`);
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: resendFrom,
-          to: [to],
-          subject,
-          html,
-          text: message,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json().catch(() => ({}));
-        console.log(`[RESEND SUCCESS] Email consegnata con successo a ${to} (ID: ${data?.id || 'ok'})`);
-        return;
-      }
-
-      const errText = await res.text().catch(() => '');
-      console.warn(`[RESEND ERROR ${res.status}]: ${errText}. Tento fallback automatico su Brevo/SMTP...`);
-      if (!pass && !process.env.BREVO_API_KEY) {
-        throw new Error(`Errore invio Resend (${res.status}): ${errText}`);
-      }
-    } catch (e: any) {
-      if (!pass && !process.env.BREVO_API_KEY) throw e;
-      console.warn('[RESEND EXCEPTION] Tento fallback su Brevo/SMTP:', e?.message || e);
+      return await submit('resend', 'https://api.resend.com/emails', {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+        'Idempotency-Key': requestId,
+      }, { from: resendFrom, to: [to], subject, html, text: message });
+    } catch (error) {
+      failures.push(error instanceof Error ? error.message : 'Resend non disponibile');
+      console.warn('[ACCOUNT EMAIL RESEND FALLBACK]', failures[failures.length - 1]);
     }
   }
 
-  // 2. Brevo REST API v3 (Instant high-priority transactional delivery, bypasses slow SMTP queue)
-  const brevoApiKey = (process.env.BREVO_API_KEY || (pass.startsWith('xkeysib-') ? pass : '')).trim();
+  // 2. Brevo REST API v3 (Instant transactional delivery)
   if (brevoApiKey) {
     try {
-      let senderName = 'Hub Commerciale';
-      let senderEmail = from;
-      const match = from.match(/^(?:"?([^"]*)"?\s)?<?([^>]+)>?$/);
-      if (match) {
-        if (match[1]) senderName = match[1].trim();
-        if (match[2]) senderEmail = match[2].trim();
+      const match = from.match(/^(.*?)\s*<([^>]+)>$/);
+      let senderEmail = match ? match[2].trim() : from;
+      let senderName = match ? match[1].replace(/"/g, '').trim() : 'Hub Commerciale';
+      if (!senderEmail || senderEmail.endsWith('@smtp-brevo.com')) {
+        senderEmail = 'tiachinaglia@gmail.com';
       }
 
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'content-type': 'application/json',
-          'api-key': brevoApiKey,
-        },
-        body: JSON.stringify({
-          sender: { name: senderName, email: senderEmail },
-          to: [{ email: to }],
-          subject,
-          htmlContent: html,
-          textContent: message,
-        }),
+      return await submit('brevo', 'https://api.brevo.com/v3/smtp/email', {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'api-key': brevoApiKey,
+      }, {
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+        textContent: message,
       });
-
-      if (res.ok) return;
-      console.warn('Brevo REST API non riuscita, provo fallback su SMTP relay:', await res.text().catch(() => ''));
-    } catch (e) {
-      console.warn('Errore chiamata Brevo REST API, provo fallback SMTP:', e);
+    } catch (error) {
+      failures.push(error instanceof Error ? error.message : 'Brevo non disponibile');
+      console.warn('[ACCOUNT EMAIL BREVO FALLBACK]', failures[failures.length - 1]);
     }
   }
 
   // 3. Fallback to standard SMTP (Nodemailer)
-  const transport = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-  });
+  if (smtpConfigured && from) {
+    const port = Number(cleanEnv(process.env.SMTP_PORT) || 587);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('SMTP_PORT non valido');
+    const transport = nodemailer.createTransport({
+      host, port, secure: port === 465, auth: { user, pass },
+      connectionTimeout: 6000, greetingTimeout: 6000, socketTimeout: 6000,
+    });
+    try {
+      const result = await transport.sendMail({ from, to, subject, text: message, html });
+      if (!result.accepted?.length || result.rejected?.length) throw new Error('SMTP: destinatario non accettato');
+      console.info('[ACCOUNT EMAIL ACCEPTED]', { provider: 'smtp', id: result.messageId, to });
+      return { provider: 'smtp', id: String(result.messageId) };
+    } catch (error) {
+      failures.push(error instanceof Error ? error.message : 'SMTP non disponibile');
+    } finally {
+      transport.close();
+    }
+  }
 
-  await transport.sendMail({ from, to, subject, text: message, html });
+  throw new Error(failures.join('; ') || 'Configura un mittente verificato e un provider email valido.');
 }

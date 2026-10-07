@@ -41,3 +41,13 @@ npm run build
 ```
 
 Prima di offrire il prodotto a una realtà esterna, completare i punti di sicurezza e onboarding sopra indicati, configurare il database persistente e verificare il deployment con account reali di test.
+
+## Invio email di autenticazione
+
+Le richieste attendono la conferma di accettazione del provider prima di indicare l'invio riuscito. Le API Resend e Brevo hanno un timeout di 5 secondi e usano SMTP come fallback se configurato. La consegna nella casella del destinatario dipende dal provider e dal server ricevente: non è possibile garantirla istantaneamente.
+
+Per Resend configurare `RESEND_API_KEY` e `RESEND_FROM` con un dominio verificato. Il mittente `onboarding@resend.dev` è riservato ai test e non viene selezionato automaticamente. Per Brevo REST configurare `BREVO_API_KEY` e `SMTP_FROM` con un mittente autorizzato; una chiave SMTP non è una chiave REST. Con le sole credenziali SMTP viene usato direttamente il relay configurato.
+
+Ogni richiesta di reinvio consentita dal limite antispam crea un nuovo link e invia subito l'email. I link precedenti restano validi fino alla scadenza o alla verifica dell'account, che li invalida tutti. Un invio fallito elimina soltanto il nuovo link. Gli account in attesa di verifica non vengono cancellati automaticamente dopo 24 ore.
+
+Test del flusso email: `node --test tests/account-email.test.cjs`.

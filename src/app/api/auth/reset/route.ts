@@ -29,11 +29,9 @@ export async function POST(req: NextRequest) {
 
       if (!isVerified) {
         const verificationToken = createToken();
-        await db.execute({ sql: 'DELETE FROM auth_tokens WHERE user_id = ? AND purpose = ?', args: [userId, 'verify'] });
         await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [hashToken(verificationToken), 'verify', targetEmail, userId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()] });
         try {
           const verifyUrl = `${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}`;
-          console.log(`[AUTH RESEND VERIFY FOR ${targetEmail}]: ${verifyUrl}`);
           await sendAccountEmail(
             targetEmail,
             'Verifica il tuo indirizzo email · Hub Commerciale',
@@ -48,8 +46,9 @@ export async function POST(req: NextRequest) {
             }
           );
         } catch (err: any) {
-          const reason = err?.message ? ` (${err.message})` : '';
-          return NextResponse.json({ error: `Invio email non riuscito: controlla la configurazione SMTP.${reason}` }, { status: 503 });
+          await db.execute({ sql: 'DELETE FROM auth_tokens WHERE token_hash = ?', args: [hashToken(verificationToken)] });
+          console.error('[AUTH EMAIL FAILED]', err);
+          return NextResponse.json({ error: 'Invio email non riuscito. Riprova tra poco o contatta l’assistenza.' }, { status: 503 });
         }
         return NextResponse.json({ ok: true, message: 'L’account non era ancora verificato: ti abbiamo inviato un’email con il link per attivarlo ed entrare.' });
       }
@@ -62,7 +61,6 @@ export async function POST(req: NextRequest) {
       await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [tokenHash, 'reset', targetEmail, userId, new Date(Date.now() + 60 * 60 * 1000).toISOString()] });
       try {
         const resetUrl = `${appOrigin(req)}/?reset=${encodeURIComponent(token)}`;
-        console.log(`[AUTH RESET LINK FOR ${targetEmail}]: ${resetUrl}`);
         await sendAccountEmail(
           targetEmail,
           'Reimposta la password · Hub Commerciale',
