@@ -210,7 +210,7 @@ export const NextStepModal: React.FC = () => {
             </button>}
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white dark:bg-indigo-500 dark:hover:bg-indigo-600 dark:text-white font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]">check</span>
               <span>Salva Prossimo Step</span>

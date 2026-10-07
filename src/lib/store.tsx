@@ -145,6 +145,13 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       if (savedTheme) {
         setThemeState(savedTheme);
         document.documentElement.setAttribute('data-theme', savedTheme);
+        if (savedTheme === 'light') {
+          document.documentElement.classList.remove('dark');
+        } else {
+          document.documentElement.classList.add('dark');
+        }
+      } else {
+        document.documentElement.classList.add('dark');
       }
 
       const savedApiKey = localStorage.getItem(LOCAL_STORAGE_KEY_GEMINI_KEY);
@@ -210,6 +217,11 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const setTheme = (newTheme: 'light' | 'slate' | 'oled') => {
     setThemeState(newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
+    if (newTheme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+    }
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY_THEME, newTheme);
     } catch (e) {}

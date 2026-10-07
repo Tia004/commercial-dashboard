@@ -393,7 +393,7 @@ export const CalendarView: React.FC = () => {
           {/* Primary Action Button */}
           <button
             onClick={() => openNewTaskModal()}
-            className="flex items-center gap-1.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant/40 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-xs cursor-pointer whitespace-nowrap"
           >
             <span className="material-symbols-outlined text-[15px]">add</span>
             <span>Nuova Attività</span>

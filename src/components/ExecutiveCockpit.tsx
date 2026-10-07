@@ -332,7 +332,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
       <section className="bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-outline-variant/30 flex flex-col gap-3.5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-200/40 dark:border-indigo-400/20 flex items-center justify-center shadow-xs">
               <span className="material-symbols-outlined text-[19px]">today</span>
             </div>
             <div>
@@ -421,7 +421,7 @@ export const ExecutiveCockpit: React.FC<ExecutiveCockpitProps> = ({ onNavigateTo
               )}
               <button
                 onClick={() => setIsNewDealModalOpen(true)}
-                className="px-3.5 py-2 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 font-bold text-xs uppercase tracking-wider shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white dark:bg-indigo-500 dark:hover:bg-indigo-600 dark:text-white font-bold text-xs uppercase tracking-wider shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[15px]">add</span>
                 <span>Inserisci Prima Opportunità</span>

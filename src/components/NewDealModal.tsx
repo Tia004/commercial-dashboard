@@ -410,7 +410,7 @@ export const NewDealModal: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white dark:bg-indigo-500 dark:hover:bg-indigo-600 dark:text-white font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]">add_circle</span>
               <span>Crea Trattativa nel CRM</span>

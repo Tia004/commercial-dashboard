@@ -101,7 +101,7 @@ export const OpportunitiesList: React.FC = () => {
             <h1 className="font-headline font-bold text-lg md:text-xl text-on-surface tracking-tight">
               Registro Opportunità Commerciali
             </h1>
-            <span className="px-2 py-0.5 rounded-full bg-surface-container tabular-nums text-[11px] font-semibold text-primary">
+            <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/60 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-400/25 tabular-nums text-[11px] font-semibold">
               {filteredDeals.length} Risultati
             </span>
           </div>
@@ -113,7 +113,7 @@ export const OpportunitiesList: React.FC = () => {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-surface-container-highest hover:bg-surface-container-high text-on-surface text-xs font-semibold border border-outline-variant/30 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-semibold border border-outline-variant/40 transition-colors cursor-pointer"
           >
             <span className="material-symbols-outlined text-[15px]">download</span>
             <span>Esporta CSV</span>
@@ -121,9 +121,9 @@ export const OpportunitiesList: React.FC = () => {
 
           <button
             onClick={() => setIsNewDealModalOpen(true)}
-            className="flex items-center gap-1.5 bg-primary text-on-primary px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant/40 transition-colors shadow-xs cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[15px]">add</span>
+            <span className="material-symbols-outlined text-[15px] text-primary">add</span>
             <span>Nuova Opportunità</span>
           </button>
         </div>
@@ -139,10 +139,10 @@ export const OpportunitiesList: React.FC = () => {
             <button
               key={st}
               onClick={() => setStageFilter(st)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                 stageFilter === st
-                  ? 'bg-primary text-on-primary font-semibold shadow-sm'
-                  : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+                  ? 'bg-indigo-50 border border-indigo-200 text-indigo-700 font-semibold shadow-xs dark:bg-indigo-500/15 dark:border-indigo-400/30 dark:text-indigo-200 [data-theme=oled]:bg-indigo-500/20'
+                  : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface border border-outline-variant/30'
               }`}
             >
               {st === 'all' ? 'Tutti gli stati' : st}
@@ -170,10 +170,10 @@ export const OpportunitiesList: React.FC = () => {
       </div>
 
       {/* Table view */}
-      <div className="resend-card rounded-2xl border border-zinc-200 dark:border-white/[0.08] shadow-sm overflow-hidden bg-white dark:bg-[#0e0f13]">
+      <div className="resend-card rounded-2xl border border-zinc-200/80 dark:border-white/[0.08] shadow-sm overflow-hidden bg-white dark:bg-[#0e0f13] [data-theme=oled]:bg-black">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-zinc-50 dark:bg-[#121317] border-b border-zinc-200 dark:border-white/[0.06] text-zinc-500 dark:text-zinc-400 uppercase text-[10px] tracking-wider font-bold">
+            <thead className="bg-[#f8f9fb] dark:bg-[#121317] [data-theme=oled]:bg-black border-b border-zinc-200/80 dark:border-white/[0.06] text-zinc-500 dark:text-zinc-400 uppercase text-[10px] tracking-wider font-bold">
               <tr>
                 <th className="py-3 px-4">Cliente & Azienda</th>
                 <th className="py-3 px-3">Brand</th>

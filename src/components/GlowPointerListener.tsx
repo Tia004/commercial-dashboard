@@ -8,7 +8,7 @@ export function GlowPointerListener() {
     let ticking = false;
 
     const selector =
-      '.bg-surface-container-lowest, .bg-surface-container-low, .settings-card, .auth-panel, .theme-choice, .app-card, .resend-card, .kpi-card, .focus-queues, .focus-results, section.bg-surface-container-lowest';
+      '.bg-surface-container-lowest, .bg-surface-container-low, .settings-card, .auth-panel, .theme-choice, .app-card, .resend-card, .linear-card, .kpi-card, .focus-queues, .focus-results, .cockpit-card, .modal-card, .deal-card, .stat-card, [data-glow="true"]';
 
     const handlePointerMove = (e: PointerEvent) => {
       const target = (e.target as HTMLElement)?.closest(selector) as HTMLElement | null;
