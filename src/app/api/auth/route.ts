@@ -111,13 +111,13 @@ export async function POST(req: NextRequest) {
           }
         );
       } catch (err: any) {
-        // Rollback creation so unverified spam does not linger
-        await db.execute({ sql: 'DELETE FROM auth_tokens WHERE user_id = ? AND purpose = ?', args: [userId, 'verify'] });
-        await db.execute({ sql: 'DELETE FROM users WHERE id = ?', args: [userId] });
-        if (!inviteToken) await db.execute({ sql: 'DELETE FROM workspaces WHERE id = ?', args: [workspaceId] });
-        if (inviteToken) await db.execute({ sql: 'UPDATE auth_tokens SET used_at = NULL WHERE token_hash = ?', args: [hashToken(inviteToken)] });
         console.error('[AUTH EMAIL FAILED]', err);
-        return NextResponse.json({ error: 'Invio email non riuscito. Riprova tra poco o contatta l’assistenza.' }, { status: 503 });
+        // Do NOT delete the user or workspace! Keep the user in the database with email_verified = 0
+        // so they can request a resend or receive their verification email without data loss.
+        return NextResponse.json({ 
+          pendingVerification: true, 
+          message: 'Account registrato! Il nostro server email ha avuto un rallentamento nell’invio istantaneo: puoi usare la funzione "Rinvia email di verifica" tra qualche istante per ricevere il link.' 
+        }, { status: 201 });
       }
 
       return NextResponse.json({ pendingVerification: true, message: 'Account creato! Ti abbiamo inviato un’email di verifica: clicca sul link per attivarlo.' }, { status: 201 });

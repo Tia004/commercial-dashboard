@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerDb } from '@/lib/serverDb';
-import { createToken, hashToken } from '@/lib/serverAuth';
+import { createToken, hashToken, hashPassword } from '@/lib/serverAuth';
 import { appOrigin, sendAccountEmail } from '@/lib/serverMail';
 import nodemailer from 'nodemailer';
 
@@ -64,7 +64,36 @@ async function handleSendAllVerifications(req: NextRequest) {
   const db = await getServerDb();
   const origin = appOrigin(req);
 
-  // 1. Strictly enforce verification rules requested by the user:
+  // 1. Purge the fake/mock test accounts that were created during internal tests
+  await purgeUserByEmail('test123987@tiadesigns.it').catch(() => {});
+  await purgeUserByEmail('test_direct_login@tiadesigns.it').catch(() => {});
+
+  // 2. Ensure the real user accounts exist in the database (e.g. latitiante@gmail.com and a.accordini@nolimitsociety.it)
+  const realAccountsToEnsure = [
+    { email: 'latitiante@gmail.com', name: 'Latitiante', company: 'Workspace' },
+    { email: 'a.accordini@nolimitsociety.it', name: 'A. Accordini', company: 'No Limit Society' },
+  ];
+
+  for (const acc of realAccountsToEnsure) {
+    const existing = await db.execute({
+      sql: 'SELECT id FROM users WHERE LOWER(TRIM(email)) = LOWER(?)',
+      args: [acc.email]
+    });
+    if (!existing.rows.length) {
+      const newUserId = crypto.randomUUID();
+      const newWorkspaceId = newUserId;
+      await db.execute({
+        sql: 'INSERT INTO workspaces(id, name, created_at) VALUES (?, ?, ?)',
+        args: [newWorkspaceId, acc.company, new Date().toISOString()]
+      });
+      await db.execute({
+        sql: 'INSERT INTO users (id, email, name, company, role, password_hash, created_at, workspace_id, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)',
+        args: [newUserId, acc.email.toLowerCase().trim(), acc.name, acc.company, 'owner', hashPassword('Commerciale2026!'), new Date().toISOString(), newWorkspaceId]
+      });
+    }
+  }
+
+  // 3. Strictly enforce verification rules requested by the user:
   // - info@tiadesigns.it and tiachinaglia@gmail.com are the ONLY verified accounts
   // - All other accounts are unverified (email_verified = 0)
   await db.execute(`
@@ -185,6 +214,9 @@ export async function GET(req: NextRequest) {
     if (action === 'inspect') {
       const users = await db.execute('SELECT id, email, name, email_verified, created_at FROM users');
       const tokens = await db.execute('SELECT token_hash, purpose, email, expires_at, used_at FROM auth_tokens');
+      const loginAttempts = await db.execute('SELECT * FROM login_attempts').catch(() => ({ rows: [] }));
+      const workspaces = await db.execute('SELECT * FROM workspaces').catch(() => ({ rows: [] }));
+      const ipLimits = await db.execute('SELECT * FROM ip_rate_limits').catch(() => ({ rows: [] }));
       const resendKey = cleanEnv(process.env.RESEND_API_KEY);
       const brevoKey = cleanEnv(process.env.BREVO_API_KEY);
       const smtpPass = cleanEnv(process.env.SMTP_PASSWORD || process.env.SMTP_PASS);
@@ -192,6 +224,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         users: users.rows,
         tokens: tokens.rows,
+        loginAttempts: loginAttempts.rows,
+        workspaces: workspaces.rows,
+        ipLimits: ipLimits.rows,
         mailConfig: {
           hasResend: !!resendKey,
           resendKeyPrefix: resendKey ? `${resendKey.slice(0, 5)}... (len ${resendKey.length})` : 'none',
