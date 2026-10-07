@@ -489,6 +489,80 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    if (action === 'resend-existing-tokens') {
+      const resendKey = cleanEnv(process.env.RESEND_API_KEY);
+      if (!resendKey) {
+        return NextResponse.json({ error: 'RESEND_API_KEY mancante' }, { status: 500 });
+      }
+
+      const activeTargets = [
+        {
+          email: 'latitiante@gmail.com',
+          name: 'Latitiante',
+          verifyUrl: 'https://commercial-dashboard-silk.vercel.app/api/auth/verify?token=DoFeC2C6fszZyXKhdCaTzZITeaELU8bJ2DTJmk-poxk'
+        },
+        {
+          email: 'a.accordini@nolimitsociety.it',
+          name: 'A. Accordini',
+          verifyUrl: 'https://commercial-dashboard-silk.vercel.app/api/auth/verify?token=mRpE6FsKchCaD6814SKSYayVF2L_VfVwik8qt4eFdtY'
+        }
+      ];
+
+      const resendResults: any[] = [];
+      for (const target of activeTargets) {
+        const html = renderLinearEmail({
+          title: 'Verifica il tuo account',
+          intro: `Ciao ${target.name}, benvenuto in Hub Commerciale.`,
+          bodyText: 'Clicca sul pulsante qui sotto per verificare il tuo account e sbloccare immediatamente l’accesso completo al workspace commerciale.',
+          actionUrl: target.verifyUrl,
+          actionLabel: 'Verifica email ed entra',
+          expiryText: 'Questo link è attivo e scade tra 24 ore.'
+        });
+
+        try {
+          const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${resendKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: cleanEnv(process.env.RESEND_FROM) || 'Hub Commerciale <info@tiadesigns.it>',
+              to: [target.email],
+              subject: 'Verifica il tuo indirizzo email · Hub Commerciale',
+              html,
+              text: `Apri questo link per verificare il tuo account:\n\n${target.verifyUrl}\n\nIl link è attivo e scade tra 24 ore.`
+            }),
+            signal: AbortSignal.timeout(6000),
+          });
+          const text = await res.text();
+          let data: any = {};
+          try { data = JSON.parse(text); } catch {}
+          resendResults.push({
+            email: target.email,
+            status: res.status,
+            ok: res.ok,
+            id: data?.id,
+            verifyUrl: target.verifyUrl,
+            response: text.slice(0, 300)
+          });
+        } catch (e: any) {
+          resendResults.push({
+            email: target.email,
+            ok: false,
+            error: e?.message || String(e)
+          });
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        provider: 'resend',
+        note: 'I token e i link originali sono stati mantenuti al 100% validi e attivi senza alterare il database.',
+        resendResults
+      });
+    }
+
     if (action === 'send-all-verifications' || action === 'fix-and-verify-unverified') {
       return await handleSendAllVerifications(req);
     }
