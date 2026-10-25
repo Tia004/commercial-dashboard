@@ -4,6 +4,8 @@ import { getServerDb, getClientIp, checkRateLimit } from '@/lib/serverDb';
 import { COOKIE_NAME, cookieOptions, createSession, createToken, getSessionUser, hashPassword, hashToken, publicUser, verifyPassword } from '@/lib/serverAuth';
 import { appOrigin, emailConfigured, sendAccountEmail } from '@/lib/serverMail';
 
+export const maxDuration = 60;
+
 export async function GET() {
   try { return NextResponse.json({ user: await getSessionUser() }, { headers: { 'Cache-Control': 'no-store' } }); }
   catch { return NextResponse.json({ user: null, error: 'Database non configurato' }, { status: 503 }); }
@@ -14,7 +16,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const email = String(body.email || '').trim().toLowerCase();
     const password = String(body.password || '');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !password) return NextResponse.json({ error: 'Inserisci email e password valide.' }, { status: 400 });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || !password || password.length > 256) return NextResponse.json({ error: 'Inserisci email e password valide.' }, { status: 400 });
     const db = await getServerDb();
     if (body.action === 'register') {
       // 1. Anti-Bot Honeypot (if hidden field is filled, silently discard bot injection)
@@ -47,35 +49,7 @@ export async function POST(req: NextRequest) {
         if (Number(existing.rows[0].email_verified) === 1) {
           return NextResponse.json({ error: 'Account già registrato con questa email. Clicca su "Accedi" per entrare.' }, { status: 409 });
         }
-        // Account exists but is unverified: update details and resend verification email
-        const existingUserId = String(existing.rows[0].id);
-        await db.execute({
-          sql: 'UPDATE users SET name = ?, password_hash = ?, company = ? WHERE id = ?',
-          args: [name, hashPassword(password), String(body.company || '').trim(), existingUserId]
-        });
-        const verificationToken = createToken();
-        await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [hashToken(verificationToken), 'verify', email, existingUserId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()] });
-        try {
-          const verifyUrl = `${appOrigin(req)}/api/auth/verify?token=${encodeURIComponent(verificationToken)}`;
-          await sendAccountEmail(
-            email,
-            'Verifica il tuo indirizzo email · Hub Commerciale',
-            `Ciao ${name},\n\ngrazie per esserti registrato su Hub Commerciale!\n\nPer attivare il tuo account e accedere al workspace, apri questo link:\n\n${verifyUrl}\n\nIl link scade tra 24 ore.`,
-            {
-              title: 'Verifica il tuo indirizzo email',
-              intro: `Ciao ${name},`,
-              bodyText: 'Grazie per esserti registrato. Clicca sul pulsante qui sotto per confermare la tua email ed accedere al workspace.',
-              actionUrl: verifyUrl,
-              actionLabel: 'Verifica email',
-              expiryText: 'Questo link scade tra 24 ore.'
-            }
-          );
-        } catch (err: any) {
-          await db.execute({ sql: 'DELETE FROM auth_tokens WHERE token_hash = ?', args: [hashToken(verificationToken)] });
-          console.error('[AUTH EMAIL FAILED]', err);
-          return NextResponse.json({ error: 'Invio email non riuscito. Riprova tra poco o contatta l’assistenza.' }, { status: 503 });
-        }
-        return NextResponse.json({ pendingVerification: true, message: 'Account aggiornato! Ti abbiamo inviato un’email di verifica: clicca sul link per attivarlo.' }, { status: 201 });
+        return NextResponse.json({ pendingVerification: true, message: 'Esiste già un account da verificare per questa email. Usa “Rinvia email di verifica”. La password precedente rimane valida.' }, { status: 202 });
       }
 
       if (!emailConfigured()) {
@@ -90,6 +64,7 @@ export async function POST(req: NextRequest) {
         args: [userId, email, name, String(body.company || '').trim(), role, hashPassword(password), new Date().toISOString(), workspaceId] 
       });
 
+      await db.execute({ sql: 'INSERT OR IGNORE INTO workspace_memberships(user_id,workspace_id,role,created_at) VALUES (?,?,?,?)', args: [userId,workspaceId,role,new Date().toISOString()] });
       const verificationToken = createToken();
       await db.execute({ sql: 'INSERT INTO auth_tokens(token_hash,purpose,email,user_id,expires_at) VALUES (?,?,?,?,?)', args: [hashToken(verificationToken), 'verify', email, userId, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()] });
       if (inviteToken) await db.execute({ sql: 'UPDATE auth_tokens SET used_at = ? WHERE token_hash = ?', args: [new Date().toISOString(), hashToken(inviteToken)] });
@@ -123,19 +98,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ pendingVerification: true, message: 'Account creato! Ti abbiamo inviato un’email di verifica: clicca sul link per attivarlo.' }, { status: 201 });
     }
     if (body.action !== 'login') return NextResponse.json({ error: 'Azione non valida.' }, { status: 400 });
-    const attempt = await db.execute({ sql: 'SELECT failures, window_started_at FROM login_attempts WHERE email = ?', args: [email] });
+    if (!await checkRateLimit(db, getClientIp(req), 'login', 60, 1)) return NextResponse.json({ error: 'Troppi tentativi. Riprova tra un minuto.' }, { status: 429 });
+    const attempt = await db.execute({ sql: 'SELECT failures, window_started_at FROM login_attempts WHERE email = ?', args: [getClientIp(req) + ':' + email] });
     const existing = attempt.rows[0];
     const windowActive = existing && Date.now() - Date.parse(String(existing.window_started_at)) < 15 * 60 * 1000;
     if (windowActive && Number(existing.failures) >= 10) return NextResponse.json({ error: 'Troppi tentativi. Riprova tra 15 minuti.' }, { status: 429 });
     const result = await db.execute({ sql: 'SELECT id,password_hash,email_verified FROM users WHERE email = ?', args: [email] });
     if (!result.rows.length || !verifyPassword(password, String(result.rows[0].password_hash))) {
-      await db.execute({ sql: 'INSERT INTO login_attempts(email,failures,window_started_at) VALUES (?,?,?) ON CONFLICT(email) DO UPDATE SET failures = ?, window_started_at = ?', args: [email, 1, new Date().toISOString(), windowActive ? Number(existing.failures) + 1 : 1, windowActive ? String(existing.window_started_at) : new Date().toISOString()] });
+      await db.execute({ sql: 'INSERT INTO login_attempts(email,failures,window_started_at) VALUES (?,?,?) ON CONFLICT(email) DO UPDATE SET failures = ?, window_started_at = ?', args: [getClientIp(req) + ':' + email, 1, new Date().toISOString(), windowActive ? Number(existing.failures) + 1 : 1, windowActive ? String(existing.window_started_at) : new Date().toISOString()] });
       return NextResponse.json({ error: 'Email o password non corretti.' }, { status: 401 });
     }
     if (Number(result.rows[0].email_verified) !== 1) {
       return NextResponse.json({ error: 'Verifica prima la tua email cliccando sul link ricevuto nella tua casella di posta.' }, { status: 403 });
     }
-    await db.execute({ sql: 'DELETE FROM login_attempts WHERE email = ?', args: [email] });
+    await db.execute({ sql: 'DELETE FROM login_attempts WHERE email = ?', args: [getClientIp(req) + ':' + email] });
     const userId = String(result.rows[0].id);
     const token = await createSession(userId);
     const response = NextResponse.json({ user: await publicUser(userId) });

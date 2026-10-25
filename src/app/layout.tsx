@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './workspace.css';
+import 'leaflet/dist/leaflet.css';
 import { CRMProvider } from '@/lib/store';
 import { AuthProvider } from '@/lib/auth';
+import { ContactsProvider } from '@/lib/contacts';
 import { GlowPointerListener } from '@/components/GlowPointerListener';
 
 export const metadata: Metadata = {
@@ -20,7 +23,7 @@ export default function RootLayout({
       <body className="antialiased">
         <GlowPointerListener />
         <AuthProvider>
-          <CRMProvider>{children}</CRMProvider>
+          <CRMProvider><ContactsProvider>{children}</ContactsProvider></CRMProvider>
         </AuthProvider>
       </body>
     </html>

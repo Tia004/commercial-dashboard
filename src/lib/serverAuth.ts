@@ -12,20 +12,20 @@ export const hashPassword = (password: string) => {
 };
 export const verifyPassword = (password: string, stored: string) => {
   const [salt, expectedHex] = stored.split(':');
-  if (!salt || !expectedHex) return false;
+  if (!/^[a-f0-9]{32}$/.test(salt || '') || !/^[a-f0-9]{128}$/.test(expectedHex || '')) return false;
   const expected = Buffer.from(expectedHex, 'hex');
   const actual = scryptSync(password, salt, expected.length);
   return timingSafeEqual(expected, actual);
 };
-export async function createSession(userId: string) {
+export async function createSession(userId: string, workspaceId?: string) {
   const token = createToken();
   const db = await getServerDb();
-  await db.execute({ sql: 'INSERT INTO sessions (token_hash,user_id,expires_at) VALUES (?,?,?)', args: [hashToken(token), userId, new Date(Date.now() + cookieOptions.maxAge * 1000).toISOString()] });
+  await db.execute({ sql: 'INSERT INTO sessions (token_hash,user_id,expires_at,workspace_id) SELECT ?,id,?,COALESCE(?,workspace_id) FROM users WHERE id=?', args: [hashToken(token), new Date(Date.now() + cookieOptions.maxAge * 1000).toISOString(),workspaceId || null,userId] });
   return token;
 }
-export async function publicUser(userId: string) {
+export async function publicUser(userId: string, workspaceId?: string) {
   const db = await getServerDb();
-  const result = await db.execute({ sql: 'SELECT id,email,name,company,role,workspace_id,email_verified FROM users WHERE id = ?', args: [userId] });
+  const result = await db.execute({ sql: 'SELECT u.id,u.email,u.name,w.name AS company,m.role,m.workspace_id,u.email_verified FROM users u JOIN workspace_memberships m ON m.user_id=u.id AND m.workspace_id=COALESCE(?,u.workspace_id) JOIN workspaces w ON w.id=m.workspace_id WHERE u.id = ?', args: [workspaceId || null,userId] });
   if (!result.rows.length) return null;
   const row = result.rows[0];
   const keys = await db.execute({ sql: 'SELECT id,name,created_at FROM passkeys WHERE user_id = ? ORDER BY created_at DESC', args: [userId] });
@@ -35,7 +35,7 @@ export async function getSessionUser() {
   const token = (await cookies()).get(COOKIE_NAME)?.value;
   if (!token) return null;
   const db = await getServerDb();
-  const result = await db.execute({ sql: 'SELECT u.id FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ? AND u.email_verified = 1', args: [hashToken(token), new Date().toISOString()] });
+  const result = await db.execute({ sql: 'SELECT u.id,COALESCE(s.workspace_id,u.workspace_id) AS workspace_id FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ? AND u.email_verified = 1', args: [hashToken(token), new Date().toISOString()] });
   if (!result.rows.length) return null;
-  return publicUser(String(result.rows[0].id));
+  return publicUser(String(result.rows[0].id), String(result.rows[0].workspace_id));
 }

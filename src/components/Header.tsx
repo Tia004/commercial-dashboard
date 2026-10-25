@@ -2,11 +2,12 @@
 import React, { useMemo } from 'react';
 import { useCRM } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
+import { useContacts } from '@/lib/contacts';
 import { CustomDropdown, DropdownOption } from './CustomDropdown';
 
-interface Props { onMenu: () => void; onOpenSearch: () => void }
+interface Props { onMenu: () => void; onOpenSearch: () => void; onCreateContact: () => void; showRepFilter?: boolean; showBrandFilter?: boolean }
 
-export const Header: React.FC<Props> = ({ onMenu, onOpenSearch }) => {
+export const Header: React.FC<Props> = ({ onMenu, onOpenSearch, onCreateContact, showRepFilter = true, showBrandFilter = true }) => {
   const {
     brands,
     addBrand,
@@ -21,12 +22,13 @@ export const Header: React.FC<Props> = ({ onMenu, onOpenSearch }) => {
     openUserSettings,
   } = useCRM();
   const { user } = useAuth();
+  const { setSelectedId } = useContacts();
 
   const brandOptions: DropdownOption[] = useMemo(() => [
     { value: 'all', label: `Tutti i brand${brands.length ? ` (${brands.length})` : ''}`, icon: 'layers' },
     ...brands.map((b) => ({ value: b, label: b, icon: 'business' })),
-    { value: '__add_brand__', label: '+ Aggiungi brand…', isAction: true },
-  ], [brands]);
+    ...(user?.role === 'member' ? [] : [{ value: '__add_brand__', label: '+ Aggiungi brand…', isAction: true }]),
+  ], [brands, user?.role]);
 
   const repOptions: DropdownOption[] = useMemo(() => [
     { value: 'all', label: 'Tutto il team', icon: 'groups' },
@@ -49,7 +51,7 @@ export const Header: React.FC<Props> = ({ onMenu, onOpenSearch }) => {
       </button>
 
       <div className="header-actions">
-        <div className="w-[155px]">
+        {showBrandFilter && <div className="w-[155px]">
           <CustomDropdown
             ariaLabel="Filtra per brand"
             value={selectedBrand}
@@ -67,9 +69,9 @@ export const Header: React.FC<Props> = ({ onMenu, onOpenSearch }) => {
             options={brandOptions}
             size="sm"
           />
-        </div>
+        </div>}
 
-        <div className="w-[145px] rep-select">
+        {showRepFilter && <div className="w-[145px] rep-select">
           <CustomDropdown
             ariaLabel="Filtra per commerciale"
             value={selectedRep}
@@ -77,7 +79,7 @@ export const Header: React.FC<Props> = ({ onMenu, onOpenSearch }) => {
             options={repOptions}
             size="sm"
           />
-        </div>
+        </div>}
 
         {syncStatus === 'conflict' ? (
           <button className="sync-action" onClick={() => window.location.reload()}>
@@ -90,6 +92,7 @@ export const Header: React.FC<Props> = ({ onMenu, onOpenSearch }) => {
         ) : (
           <span
             className={`sync-indicator ${syncStatus}`}
+            role="img"
             title={syncStatus === 'saved' ? 'Dati salvati' : 'Sincronizzazione in corso'}
             aria-label={`Stato dati: ${syncStatus}`}
           />
@@ -97,10 +100,10 @@ export const Header: React.FC<Props> = ({ onMenu, onOpenSearch }) => {
 
         <button
           className="header-new cursor-pointer"
-          onClick={() => setIsNewDealModalOpen(true)}
+          onClick={() => { onCreateContact(); setSelectedId('__new__'); }}
         >
           <span className="material-symbols-outlined">add</span>
-          <span>Nuova opportunità</span>
+          <span>Nuovo contatto</span>
         </button>
 
         <button

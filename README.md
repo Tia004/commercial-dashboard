@@ -1,53 +1,83 @@
 # Hub Commerciale
 
-CRM multi-brand per NoLimits, Webissimo e Sapori. La dashboard gestisce opportunità, attività, prossimi passi, stand-by, analisi e dieci code Focus per il lavoro quotidiano.
+CRM aziendale con archivio Contatti, diario libero, collaborazione tra dispositivi e Copilota. Le viste Pipeline, Opportunità e Risultati restano disponibili per le trattative economiche.
 
-## Avvio locale
+## Avvio
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-In sviluppo il database viene creato in `data/commercial.sqlite` (ignorato da Git). Registra un account dall'interfaccia. I dati sono separati per ID account e salvati sul server. Se avevi dati nella versione precedente, usa **Impostazioni → Archivio dati → Importa dati locali precedenti** con un account ancora vuoto.
+Node.js 22 o successivo. In sviluppo viene creato `data/commercial.sqlite`. Senza provider email lo sviluppo simula l’invio; per prove automatiche impostare `MAIL_PREVIEW_FILE` su un percorso locale escluso da Git. Questa modalità non è disponibile in produzione.
 
-## Deploy Vercel
+## Variabili Vercel
 
-Prima del deploy imposta **entrambe** le variabili d'ambiente del database:
+| Variabile | Uso |
+| --- | --- |
+| `TURSO_DATABASE_URL` | URL del database persistente, obbligatorio in produzione |
+| `TURSO_AUTH_TOKEN` | Token del database Turso |
+| `APP_ORIGIN` | URL HTTPS pubblico e stabile, senza slash finale. È supportata anche `NEXT_PUBLIC_APP_URL` già presente nei vecchi deploy |
+| `RESEND_API_KEY`, `RESEND_FROM` | In alternativa a SMTP: chiave Resend e mittente con dominio verificato |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | In alternativa a Resend: relay e mittente autorizzato. Anche `SMTP_PASS` è supportata |
+| `BREVO_API_KEY`, `SMTP_FROM` | Opzione Brevo REST; richiede una chiave REST, diversa da una chiave SMTP |
+| `GEMINI_API_KEY` | Facoltativa: abilita i modelli generativi selezionabili in chat |
+| `AI_ALLOWED_MODELS` | Facoltativa: lista separata da virgole. Predefinita `gemini-2.5-flash,gemini-2.5-flash-lite` |
+| `NEXT_PUBLIC_MAP_TILE_URL` | Facoltativa: URL tile compatibile Leaflet. Predefinito OpenStreetMap, con attribuzione |
+| `MCP_API_TOKEN`, `MCP_OWNER_USER_ID` | Facoltative: abilitano l’integrazione HTTP per il workspace indicato |
 
-- `TURSO_DATABASE_URL`
-- `TURSO_AUTH_TOKEN`
+Non servono nuove chiavi per contatti, diario, inviti, presenza, assistente locale o sintesi vocale. Configurare almeno un provider email. Resend → Brevo → SMTP sono tentati in ordine quando configurati; nessun mittente personale viene aggiunto automaticamente. Il provider deve confermare l’accettazione prima che l’app segnali l’invio. SPF/DKIM, limiti del piano, spam e consegna finale dipendono dal provider e dal dominio.
 
-Senza database persistente il login in produzione risponde con un errore esplicito. Le password sono elaborate sul server con scrypt e sale casuale; le sessioni usano cookie HttpOnly, SameSite=Lax e Secure in produzione. Il login limita a 10 tentativi falliti per email ogni 15 minuti. L'accesso con passkey è disattivato fino alla verifica WebAuthn sul server. Per una distribuzione a clienti esterni servono ancora verifica email, recupero password e una policy di accesso del team.
+L’assistente locale funziona senza API e cerca/riepiloga il CRM. Gemini compare solo se la chiave e il modello sono effettivamente disponibili. Per evitare addebiti usare un progetto Google con fatturazione disattivata o lasciare vuota la chiave; il server non può verificare il piano di fatturazione della chiave. Il contesto CRM viene inviato a Gemini solo quando l’utente seleziona la casella dedicata. Le chat sono private per utente e workspace; i dispositivi dello stesso account condividono lo storico.
 
-## Integrazioni MCP
+## Uso del CRM
 
-Lo script STDIO usa lo stesso database e richiede `MCP_OWNER_USER_ID`, corrispondente all'ID visibile in Impostazioni → Account. Avvio: `npm run mcp`. Configura anche le variabili Turso nel processo MCP se il database non è locale.
+- Tre tipologie: **Contatto**, **Notizia**, **Cliente effettivo**.
+- Cinque situazioni indipendenti e attivabili senza moduli. **Gestisci** è riservata ai clienti effettivi.
+- Attività con un solo testo libero, data/ora server e storico dalla più recente. La modifica di una nota conserva le altre e registra internamente la revisione precedente.
+- Ricerca e filtri per tipologia, situazione, brand, città, provincia e zona. Archivio reversibile e CSV dei risultati filtrati.
+- La mappa mostra i contatti posizionati manualmente dalla scheda. Nessun geocoding automatico di indirizzi privati su servizi pubblici; link all’indirizzo e filtri funzionano anche senza coordinate.
+- Contatti e diario si aggiornano tra sessioni visibili ogni 5 secondi e al ritorno alla finestra. Le modifiche alla stessa anagrafica/nota vengono segnalate prima di sovrascrivere; note nuove e situazioni sono operazioni distinte.
+- La barra presenze indica sessione/dispositivo, numero, colore, pagina e ultimo campo focalizzato. Non legge il contenuto dei campi, non espone i cookie e non rileva una posizione geografica. Le sessioni inattive spariscono entro 60 secondi.
+- Il proprietario invita amministratori e commerciali nelle impostazioni. Anche chi ha già un account può accettare, mantenendo il workspace precedente. L’azienda attiva si sceglie in Account e sicurezza per la sessione corrente; viene ricordata come scelta iniziale per i nuovi accessi. Gli altri dispositivi mantengono il proprio workspace attivo.
+- All’ingresso si sceglie **Copilota** o **Workspace**. La preferenza è salvata sull’account; la scelta viene riproposta a ogni nuovo accesso alla pagina.
 
-L'endpoint `/api/mcp` è un'API JSON per integrazioni, **non** un trasporto MCP HTTP/SSE standard. In produzione richiede `MCP_API_TOKEN` nell'header `Authorization: Bearer …` e `MCP_OWNER_USER_ID`. Espone `get_commercial_kpis`, `list_opportunities` e `create_opportunity`. Se le variabili non sono configurate, rifiuta le richieste. Non inserire token Turso o MCP nel browser.
+## Accesso e sicurezza
+
+Password con scrypt e sale casuale; sessioni indipendenti di 14 giorni con cookie HttpOnly, SameSite=Lax, Secure in produzione. Limiti ai tentativi per IP/account. Gli errori temporanei non cancellano la sessione e il logout attende la revoca del cookie. La verifica email richiede un clic esplicito nell’app: gli scanner della posta non consumano il link. Il recupero password invalida i vecchi accessi e consuma il link una volta in transazione.
+
+L’autorizzazione viene controllata sul server tramite appartenenza al workspace. I commerciali possono aggiornare contatti, diario e trattative, ma non amministrare team, brand, eliminazioni delle trattative o backup completi. Le passkey già presenti nel progetto usano verifica WebAuthn server, challenge monouso, verifica utente e dominio atteso.
+
+Il vecchio endpoint diagnostico `/api/admin/purge-user` è stato rimosso. Non ripristinare versioni che lo contengono; applicare la protezione del percorso anche ai vecchi URL di deployment.
+
+## Backup, migrazione e recupero
+
+**Impostazioni workspace → Dati → Scarica backup** esporta contatti, diario, revisioni e archivio commerciale in JSON. Il CSV dei contatti è invece un export dei soli dati tabellari filtrati. I backup possono contenere informazioni riservate e vanno conservati nell’archivio aziendale autorizzato.
+
+La migrazione `20261025-collaboration-schema` aggiunge tabelle e indici senza cancellare `crm_data`. `20261025-memberships-data` assegna gli accessi esistenti e mantiene il workspace delle sessioni già aperte. Il primo caricamento Contatti importa in transazione le aziende delle opportunità precedenti e i relativi appunti/storici. Gli ID deterministici e il registro `workspace_backfills` impediscono duplicazioni. Le nuove opportunità create successivamente restano nelle viste commerciali: il nuovo archivio Contatti ha una gestione indipendente.
+
+Prima di una migrazione su un database esistente creare uno snapshot Turso. Per un incidente: conservare lo snapshot dello stato corrente, ripubblicare una versione sicura compatibile e ripristinare lo snapshot Turso in un database separato; verificare accesso, appartenenze, contatti e diario prima di cambiare le variabili del deployment. Non eliminare le nuove tabelle per fare rollback: contengono dati nuovi assenti nel vecchio archivio. Il JSON è disponibile anche per recuperi mirati da parte dell’amministratore del database; non esiste un import automatico del backup dall’interfaccia.
 
 ## Voce
 
-Il riepilogo vocale usa la sintesi del browser e le voci italiane installate sul dispositivo, senza API a pagamento. La qualità dipende dal sistema operativo e dalle voci disponibili. Il TTS cloud a pagamento è disattivato.
+La chat vocale usa il riconoscimento del browser, quando supportato e con autorizzazione al microfono. Le risposte utilizzano voce e velocità scelte nelle impostazioni. Il riepilogo dei numeri viene composto localmente, senza chiamate generative automatiche. Sintesi Edge neurale senza chiavi, con ripiego sulla sintesi del dispositivo se il servizio non risponde. È una dipendenza esterna senza garanzia di disponibilità; la qualità e il riconoscimento dipendono anche dal dispositivo. Il testo da leggere viene inviato al servizio di sintesi; la chat resta utilizzabile a tastiera.
 
-## Risorse grafiche
+## MCP
 
-I font Inter e Plus Jakarta Sans sono distribuiti con licenza SIL OFL; Material Symbols è distribuito con licenza Apache 2.0. I testi delle licenze sono in `public/fonts/`.
+`npm run mcp` avvia il server STDIO. `/api/mcp` è un’API JSON protetta da Bearer token, non un trasporto MCP HTTP/SSE standard. Espone KPI e opportunità delle viste commerciali. Senza entrambe le variabili MCP la scrittura HTTP rimane chiusa. Non inserire token nel browser.
 
 ## Verifica
 
 ```bash
+npm test
+npm run test:e2e
+npm run lint
 npm run build
+npm audit
 ```
 
-Prima di offrire il prodotto a una realtà esterna, completare i punti di sicurezza e onboarding sopra indicati, configurare il database persistente e verificare il deployment con account reali di test.
+I test E2E usano un database temporaneo e una casella email simulata, disattivano le credenziali esterne e non modificano dati/clienti reali. Chrome locale; in CI installare Chromium. Tracce e immagini sono in `artifacts/qa/`, escluse da Git. Il rapporto della consegna è in `docs/audit-2026-10-25.md`.
 
-## Invio email di autenticazione
+## Licenze
 
-Le richieste attendono la conferma di accettazione del provider prima di indicare l'invio riuscito. Le API Resend e Brevo hanno un timeout di 5 secondi e usano SMTP come fallback se configurato. La consegna nella casella del destinatario dipende dal provider e dal server ricevente: non è possibile garantirla istantaneamente.
-
-Per Resend configurare `RESEND_API_KEY` e `RESEND_FROM` con un dominio verificato. Il mittente `onboarding@resend.dev` è riservato ai test e non viene selezionato automaticamente. Per Brevo REST configurare `BREVO_API_KEY` e `SMTP_FROM` con un mittente autorizzato; una chiave SMTP non è una chiave REST. Con le sole credenziali SMTP viene usato direttamente il relay configurato.
-
-Ogni richiesta di reinvio consentita dal limite antispam crea un nuovo link e invia subito l'email. I link precedenti restano validi fino alla scadenza o alla verifica dell'account, che li invalida tutti. Un invio fallito elimina soltanto il nuovo link. Gli account in attesa di verifica non vengono cancellati automaticamente dopo 24 ore.
-
-Test del flusso email: `node --test tests/account-email.test.cjs`.
+Inter/Plus Jakarta Sans: SIL OFL. Material Symbols: Apache 2.0, licenze in `public/fonts/`. BorderGlow e DotGrid provengono da React Bits; licenza e attribuzione in `src/components/reactbits/LICENSE.md`. Leaflet e OpenStreetMap mantengono le attribuzioni previste.

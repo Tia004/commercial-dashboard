@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { getServerDb } from '@/lib/serverDb';
-import { COOKIE_NAME, cookieOptions, createSession, getSessionUser, publicUser } from '@/lib/serverAuth';
+import { COOKIE_NAME, cookieOptions, createSession, getSessionUser, publicUser, createToken } from '@/lib/serverAuth';
 import { appOrigin } from '@/lib/serverMail';
 
 const rp = () => ({ rpID: new URL(appOrigin()).hostname, expectedOrigin: appOrigin() });
-const challengeKey = (type: string, id: string) => type + ':' + id;
+const challengeKey = (type: string, id: string, ceremonyId: string) => type + ':' + id + ':' + ceremonyId;
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const db = await getServerDb();
     const { rpID, expectedOrigin } = rp();
+    if (['register-verify','login-verify'].includes(body.action) && !/^[A-Za-z0-9_-]{43}$/.test(String(body.ceremonyId || ''))) return NextResponse.json({ error: 'Richiesta scaduta. Avvia di nuovo l’accesso con passkey.' }, { status: 400 });
     if (body.action === 'register-options') {
       const user = await getSessionUser();
       if (!user) return NextResponse.json({ error: 'Accedi prima di creare una passkey.' }, { status: 401 });
@@ -22,13 +23,14 @@ export async function POST(req: NextRequest) {
         authenticatorSelection: { residentKey: 'preferred', userVerification: 'required' },
         excludeCredentials: existing.rows.map((row) => ({ id: String(row.id), transports: JSON.parse(String(row.transports)) })),
       });
-      await db.execute({ sql: 'INSERT INTO webauthn_challenges(key,challenge,expires_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET challenge=excluded.challenge,expires_at=excluded.expires_at', args: [challengeKey('reg', user.id), options.challenge, new Date(Date.now() + 5 * 60 * 1000).toISOString()] });
-      return NextResponse.json({ options });
+      const ceremonyId = createToken();
+      await db.execute({ sql: 'INSERT INTO webauthn_challenges(key,challenge,expires_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET challenge=excluded.challenge,expires_at=excluded.expires_at', args: [challengeKey('reg', user.id, ceremonyId), options.challenge, new Date(Date.now() + 5 * 60 * 1000).toISOString()] });
+      return NextResponse.json({ options, ceremonyId });
     }
     if (body.action === 'register-verify') {
       const user = await getSessionUser();
       if (!user) return NextResponse.json({ error: 'Accesso richiesto.' }, { status: 401 });
-      const key = challengeKey('reg', user.id);
+      const key = challengeKey('reg', user.id, body.ceremonyId);
       const challenge = await db.execute({ sql: 'SELECT challenge FROM webauthn_challenges WHERE key = ? AND expires_at > ?', args: [key, new Date().toISOString()] });
       if (!challenge.rows.length) return NextResponse.json({ error: 'Richiesta scaduta. Riprova.' }, { status: 400 });
       const consumed = await db.execute({ sql: 'DELETE FROM webauthn_challenges WHERE key = ? AND expires_at > ?', args: [key, new Date().toISOString()] });
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest) {
       if (!verified.verified || !verified.registrationInfo) return NextResponse.json({ error: 'Passkey non verificata.' }, { status: 400 });
       const { credential, credentialDeviceType, credentialBackedUp } = verified.registrationInfo;
       await db.execute({ sql: 'INSERT INTO passkeys(id,user_id,name,public_key,counter,transports,device_type,backed_up,created_at) VALUES (?,?,?,?,?,?,?,?,?)', args: [credential.id, user.id, String(body.name || 'Passkey').trim().slice(0, 64) || 'Passkey', Buffer.from(credential.publicKey).toString('base64url'), credential.counter, JSON.stringify(credential.transports || []), credentialDeviceType, credentialBackedUp ? 1 : 0, new Date().toISOString()] });
-      return NextResponse.json({ ok: true, user: await publicUser(user.id) });
+      return NextResponse.json({ ok: true, user: await publicUser(user.id, user.workspaceId) });
     }
     if (body.action === 'login-options') {
       const email = String(body.email || '').trim().toLowerCase();
@@ -48,15 +50,16 @@ export async function POST(req: NextRequest) {
       const keys = await db.execute({ sql: 'SELECT id,transports FROM passkeys WHERE user_id = ?', args: [userId] });
       if (!keys.rows.length) return NextResponse.json({ error: 'Nessuna passkey disponibile per questo account.' }, { status: 404 });
       const options = await generateAuthenticationOptions({ rpID, userVerification: 'required', allowCredentials: keys.rows.map((row) => ({ id: String(row.id), transports: JSON.parse(String(row.transports)) })) });
-      await db.execute({ sql: 'INSERT INTO webauthn_challenges(key,challenge,expires_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET challenge=excluded.challenge,expires_at=excluded.expires_at', args: [challengeKey('auth', userId), options.challenge, new Date(Date.now() + 5 * 60 * 1000).toISOString()] });
-      return NextResponse.json({ options });
+      const ceremonyId = createToken();
+      await db.execute({ sql: 'INSERT INTO webauthn_challenges(key,challenge,expires_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET challenge=excluded.challenge,expires_at=excluded.expires_at', args: [challengeKey('auth', userId, ceremonyId), options.challenge, new Date(Date.now() + 5 * 60 * 1000).toISOString()] });
+      return NextResponse.json({ options, ceremonyId });
     }
     if (body.action === 'login-verify') {
       const email = String(body.email || '').trim().toLowerCase();
       const result = await db.execute({ sql: 'SELECT id FROM users WHERE email = ? AND email_verified = 1', args: [email] });
       if (!result.rows.length) return NextResponse.json({ error: 'Passkey non valida.' }, { status: 401 });
       const userId = String(result.rows[0].id);
-      const key = challengeKey('auth', userId);
+      const key = challengeKey('auth', userId, body.ceremonyId);
       const challenge = await db.execute({ sql: 'SELECT challenge FROM webauthn_challenges WHERE key = ? AND expires_at > ?', args: [key, new Date().toISOString()] });
       if (!challenge.rows.length) return NextResponse.json({ error: 'Richiesta scaduta. Riprova.' }, { status: 400 });
       const consumed = await db.execute({ sql: 'DELETE FROM webauthn_challenges WHERE key = ? AND expires_at > ?', args: [key, new Date().toISOString()] });
@@ -87,6 +90,6 @@ export async function DELETE(req: NextRequest) {
     const body = await req.json();
     const db = await getServerDb();
     await db.execute({ sql: 'DELETE FROM passkeys WHERE id = ? AND user_id = ?', args: [String(body.id || ''), user.id] });
-    return NextResponse.json({ ok: true, user: await publicUser(user.id) });
+    return NextResponse.json({ ok: true, user: await publicUser(user.id, user.workspaceId) });
   } catch { return NextResponse.json({ error: 'Rimozione non riuscita.' }, { status: 503 }); }
 }

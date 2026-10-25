@@ -6,7 +6,8 @@ import { BrandLogo } from './BrandLogo';
 
 type Mode = 'login' | 'register' | 'request-reset' | 'confirm-reset' | 'verify-sent';
 export const AuthScreen: React.FC = () => {
-  const { loginWithPassword, registerUser, loginWithPasskey, isPasskeySupported } = useAuth();
+  const { loginWithPassword, registerUser, loginWithPasskey, isPasskeySupported, refreshSession } = useAuth();
+  const [verificationToken, setVerificationToken] = useState('');
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,12 +24,13 @@ export const AuthScreen: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('notice') === 'verified') setNotice('Email verificata con successo! Ora puoi accedere.');
     if (params.get('notice') === 'invalid') setError('Il link è scaduto o non è valido.');
+    if (params.get('verify')) setVerificationToken(params.get('verify') || '');
     const invite = params.get('invite');
     if (invite) {
       setInviteToken(invite);
       setMode('register');
       fetch('/api/team/invite?token=' + encodeURIComponent(invite)).then((r) => r.json()).then((data) => {
-        if (data.email) setEmail(data.email);
+        if (data.email) { setEmail(data.email); if (data.existingAccount) { setMode('login'); setNotice('Accedi per accettare l’invito a ' + data.company + '.'); } }
         else setError(data.error || 'Invito non valido.');
       }).catch(() => setError('Impossibile verificare l’invito.'));
     }
@@ -46,7 +48,7 @@ export const AuthScreen: React.FC = () => {
         const result = await registerUser(name, email, password, company, undefined, inviteToken, hpCode);
         if (!result.success) setError(result.error || 'Registrazione non riuscita.');
         else {
-          setNotice('');
+          setNotice(result.message || 'Account creato. Richiedi la tua email di verifica.');
           setPassword('');
           setMode('verify-sent');
         }
@@ -66,6 +68,8 @@ export const AuthScreen: React.FC = () => {
     if (!result.success) setError(result.error || 'Accesso con passkey non riuscito.');
     setBusy(false);
   };
+
+  if (verificationToken) return <div className="auth-shell"><main className="auth-main"><section className="auth-panel"><span className="auth-kicker">ATTIVA ACCOUNT</span><h1>Conferma la tua email</h1><p className="auth-subtitle">Un ultimo passaggio per entrare nel tuo workspace.</p>{error && <p className="auth-message error" role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}<button className="auth-submit" disabled={busy} onClick={async () => { setBusy(true);setError('');try { const response = await fetch('/api/auth/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: verificationToken }) }); const data = await response.json();if (!response.ok) throw Error(data.error);window.history.replaceState({}, '', '/');if (data.alreadyVerified) { setVerificationToken('');setNotice(data.message); } else await refreshSession(); } catch (err) { setError((err as Error).message || 'Verifica non disponibile. Riprova.'); } finally { setBusy(false); } }}>{busy ? 'Verifica…' : 'Conferma email ed entra'}</button><button className="auth-text-button" onClick={() => { setVerificationToken('');window.history.replaceState({}, '', '/'); }}>Torna all’accesso</button></section></main></div>;
 
   return <div className="auth-shell">
     <style dangerouslySetInnerHTML={{ __html: `
@@ -89,7 +93,7 @@ export const AuthScreen: React.FC = () => {
     <main className="auth-main"><div className="auth-panel">
       <div className="auth-kicker">ACCESSO SICURO</div>
       <h1>{mode === 'verify-sent' ? 'Controlla la tua email' : mode === 'register' ? 'Crea il tuo workspace' : mode === 'request-reset' ? 'Recupera l’accesso' : mode === 'confirm-reset' ? 'Nuova password' : 'Bentornato'}</h1>
-      <p className="auth-subtitle">{mode === 'verify-sent' ? 'Abbiamo inviato un link di verifica al tuo indirizzo.' : mode === 'register' ? inviteToken ? 'Completa l’invito per entrare nel team.' : 'Organizza opportunità, attività e team in un unico spazio.' : mode === 'request-reset' ? 'Ti invieremo un link per impostare una nuova password.' : mode === 'confirm-reset' ? 'Scegli una password di almeno 8 caratteri.' : 'Accedi al tuo spazio commerciale.'}</p>
+      <p className="auth-subtitle">{mode === 'verify-sent' ? 'Conferma l’indirizzo per attivare il tuo account.' : mode === 'register' ? inviteToken ? 'Completa l’invito per entrare nel team.' : 'Organizza opportunità, attività e team in un unico spazio.' : mode === 'request-reset' ? 'Ti invieremo un link per impostare una nuova password.' : mode === 'confirm-reset' ? 'Scegli una password di almeno 8 caratteri.' : 'Accedi al tuo spazio commerciale.'}</p>
       {(mode === 'login' || mode === 'register') && <div className="auth-switch"><button className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setError(''); }}>Accedi</button><button className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setError(''); }}>Registrati</button></div>}
       {notice && <div className="auth-message success" role="status"><span className="material-symbols-outlined">check_circle</span><span>{notice}</span></div>}
       {error && <div className="auth-message error" role="alert"><span className="material-symbols-outlined">error</span><span>{error}</span></div>}
@@ -99,7 +103,7 @@ export const AuthScreen: React.FC = () => {
             <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>mark_email_read</span>
           </div>
           <p style={{ fontSize: '13.5px', color: 'var(--text-secondary, #a1a1aa)', lineHeight: 1.6, marginBottom: '16px' }}>
-            Abbiamo inviato il link di verifica all’indirizzo <strong style={{ color: 'var(--text-primary, #ffffff)' }}>{email}</strong>. Clicca sul link nell’email per attivare il tuo workspace.
+            La verifica è richiesta per l’indirizzo <strong style={{ color: 'var(--text-primary, #ffffff)' }}>{email}</strong>. Clicca sul link nell’email per attivare il tuo workspace.
           </p>
           <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'var(--card-bg, rgba(255,255,255,0.03))', border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))', fontSize: '12px', color: 'var(--text-muted, #71717a)', lineHeight: 1.6, textAlign: 'left', marginBottom: '20px' }}>
             <strong style={{ color: 'var(--text-primary, #f4f4f5)' }}>💡 Non trovi l’email?</strong>

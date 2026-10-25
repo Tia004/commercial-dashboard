@@ -3,21 +3,10 @@ process.env.WS_NO_BUFFER_UTIL = '1';
 process.env.WS_NO_UTF_8_VALIDATE = '1';
 
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
+import { getSessionUser } from '@/lib/serverAuth';
+import { getServerDb, checkRateLimit } from '@/lib/serverDb';
+export const maxDuration = 60;
 import { Communicate } from 'edge-tts-universal';
-
-function getGeminiApiKey(): string {
-  const envKey = (process.env.GEMINI_API_KEY || '').trim();
-  if (envKey) return envKey;
-  try {
-    const localPath = '/Users/tia/Jarvis/config/api_keys.json';
-    if (fs.existsSync(localPath)) {
-      const data = JSON.parse(fs.readFileSync(localPath, 'utf8'));
-      if (data?.gemini_api_key) return String(data.gemini_api_key).trim();
-    }
-  } catch {}
-  return '';
-}
 
 // Mapping of neural voices to Microsoft Edge HD Italian voices
 const NEURAL_VOICE_MAP: Record<string, string> = {
@@ -34,10 +23,14 @@ const NEURAL_VOICE_MAP: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getSessionUser();
+    if (!user) return NextResponse.json({ error: 'Accesso richiesto.' }, { status: 401 });
+    const db = await getServerDb();
+    if (!await checkRateLimit(db,user.id,'tts',15,1)) return NextResponse.json({ error: 'Attendi un minuto prima di generare altro audio.' }, { status: 429 });
     const body = await req.json().catch(() => ({}));
     let textToSpeak = String(body.text || '').trim();
-    if (textToSpeak.length > 2000) {
-      textToSpeak = textToSpeak.slice(0, 2000);
+    if (textToSpeak.length > 8000) {
+      textToSpeak = textToSpeak.slice(0, 8000);
     }
     const voice = String(body.voice || 'Aoede').trim();
     const rawRate = String(body.rate || '+0%').trim();
@@ -54,53 +47,6 @@ export async function POST(req: NextRequest) {
       const brandsList = Array.isArray(ctx.brands) && ctx.brands.length ? ctx.brands.join(', ') : 'i tuoi brand';
       const urgentDeals = Array.isArray(ctx.urgentDeals) && ctx.urgentDeals.length ? ctx.urgentDeals.join('; ') : '';
 
-      const apiKey = getGeminiApiKey();
-      if (apiKey) {
-        const prompt = `Sei il copilota commerciale intelligente di Hub Commerciale, un assistente vendite esecutivo, brillante, energico e motivazionale.
-Genera un riepilogo audio esecutivo brevissimo, carico di grinta e motivazione positiva per la giornata di vendite.
-
-Dati reali del workspace di oggi:
-- Valore pipeline attiva: €${pipelineTotal}
-- Trattative aperte in gestione: ${openDealsCount}
-- Attività prioritarie oggi: ${todayTasksCount}
-${urgentDeals ? `- Trattative calde: ${urgentDeals}` : ''}
-- Brand attivi: ${brandsList}
-
-Regole ferree:
-1. Lunghezza: MASSIMO 45-55 parole (circa 18-22 secondi a voce).
-2. Struttura:
-   - Apertura fulminea con grinta positiva e focus sui risultati.
-   - Sintesi chiara dei numeri e dell'azione n.1 da chiudere oggi.
-   - Chiusura carismatica e determinata ("Andiamo a chiudere!" o simile).
-3. Stile: Naturale, colloquiale, da ascoltare a voce alta. Nessun asterisco, nessun elenco puntato, niente emoji, scrivi i numeri in parole o cifre semplici. Solo in lingua italiana.`;
-
-        try {
-          const textModelUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-          const textRes = await fetch(textModelUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 600,
-                thinkingConfig: { thinkingBudget: 0 },
-              },
-            }),
-          });
-
-          if (textRes.ok) {
-            const textData = await textRes.json();
-            const candidateText = textData.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (candidateText) {
-              textToSpeak = candidateText.replace(/[*_#]/g, '').replace(/\s+/g, ' ').trim();
-            }
-          }
-        } catch (err) {
-          console.warn('Briefing text generation error:', err);
-        }
-      }
-
       if (!textToSpeak) {
         textToSpeak = `Forza team! Oggi abbiamo una pipeline attiva di ${pipelineTotal} euro con ${openDealsCount} trattative aperte e ${todayTasksCount} priorità da completare. Focus massimo sui clienti caldi e andiamo a chiudere!`;
       }
@@ -110,6 +56,7 @@ Regole ferree:
     const edgeVoice = NEURAL_VOICE_MAP[voice] || 'it-IT-IsabellaNeural';
     const comm = new Communicate(textToSpeak, {
       voice: edgeVoice,
+      connectionTimeout: 8000,
       rate: rate.startsWith('+') || rate.startsWith('-') ? rate : '+0%',
       pitch: pitch.startsWith('+') || pitch.startsWith('-') ? pitch : '+0Hz',
     });
@@ -141,7 +88,7 @@ Regole ferree:
   } catch (err: any) {
     console.error('TTS endpoint error:', err);
     return NextResponse.json(
-      { error: err?.message || 'Errore durante la generazione dell’audio neurale.' },
+      { error: 'Audio temporaneamente non disponibile. Usa la voce del dispositivo.' },
       { status: 500 }
     );
   }

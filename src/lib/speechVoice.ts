@@ -60,6 +60,7 @@ const LOCAL_STORAGE_VOICE_KEY = 'hubc_crm_neural_voice_v2';
 const LOCAL_STORAGE_SPEED_KEY = 'hubc_crm_voice_speed_v2';
 
 // Global audio element reference for cloud neural playback
+let currentSpeechRequest: AbortController | null = null;
 let currentAudioElement: HTMLAudioElement | null = null;
 let currentAudioUrl: string | null = null;
 let isAudioActive = false;
@@ -93,6 +94,7 @@ export function isSpeechPlaying(): boolean {
  */
 export function stopAllAudio(): void {
   isAudioActive = false;
+  currentSpeechRequest?.abort(); currentSpeechRequest = null;
 
   if (currentAudioElement) {
     try {
@@ -139,17 +141,19 @@ export async function playAiBriefing(params: {
 }): Promise<void> {
   stopAllAudio();
 
+  const controller = new AbortController(); currentSpeechRequest = controller;
   const chosenVoice = params.voice || getSavedVoice();
   params.onGenerating?.();
 
   try {
     const res = await fetch('/api/tts', {
-      method: 'POST',
+      method: 'POST', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(18000)]),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         generateBriefing: !params.text,
         text: params.text || '',
         voice: chosenVoice,
+        rate: ((getSavedVoiceSpeed() - 1) >= 0 ? '+' : '') + Math.round((getSavedVoiceSpeed() - 1) * 100) + '%',
         crmContext: params.crmContext || {},
       }),
     });
@@ -181,6 +185,7 @@ export async function playAiBriefing(params: {
       const audioUrl = URL.createObjectURL(blob);
       currentAudioUrl = audioUrl;
 
+      if (controller.signal.aborted) { URL.revokeObjectURL(audioUrl); return; }
       const audio = new Audio(audioUrl);
       currentAudioElement = audio;
       isAudioActive = true;
@@ -212,10 +217,21 @@ export async function playAiBriefing(params: {
     const data = await res.json().catch(() => ({}));
     throw new Error(data?.error || 'Sintesi vocale neurale non riuscita');
   } catch (err: any) {
-    console.warn('playAiBriefing error:', err);
+    if (controller.signal.aborted) return;
     isAudioActive = false;
-    params.onError?.(err instanceof Error ? err : new Error(String(err)));
-    params.onEnd?.();
+    const fallbackText = params.text || 'Il riepilogo audio non è disponibile. Consulta i dati nella dashboard.';
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(cleanTextForSpeech(fallbackText));
+      utterance.lang = 'it-IT'; utterance.rate = getSavedVoiceSpeed();
+      const italian = window.speechSynthesis.getVoices().filter((voice) => voice.lang.startsWith('it'));
+      if (italian[0]) utterance.voice = italian[0];
+      utterance.onstart = () => { isAudioActive = true; params.onStart?.(); };
+      utterance.onend = () => { isAudioActive = false; params.onEnd?.(); };
+      utterance.onerror = () => { isAudioActive = false; params.onError?.(new Error('Voce non disponibile sul dispositivo.')); };
+      window.speechSynthesis.speak(utterance);
+      return;
+    }
+    params.onError?.(new Error('Sintesi vocale non disponibile su questo dispositivo.'));
   }
 }
 
@@ -290,7 +306,7 @@ export function getSavedVoiceSpeed(): number {
   if (typeof window === 'undefined') return 1.0;
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_SPEED_KEY);
-    return saved ? parseFloat(saved) : 1.0;
+    const speed = Number(saved || 1); return Number.isFinite(speed) ? Math.min(1.5, Math.max(0.5, speed)) : 1;
   } catch (e) {
     return 1.0;
   }

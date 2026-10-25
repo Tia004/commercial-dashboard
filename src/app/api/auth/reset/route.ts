@@ -3,6 +3,7 @@ import { getServerDb, getClientIp, checkRateLimit } from '@/lib/serverDb';
 import { createToken, hashPassword, hashToken } from '@/lib/serverAuth';
 import { appOrigin, emailConfigured, sendAccountEmail } from '@/lib/serverMail';
 
+export const maxDuration = 60;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Troppe richieste di recupero. Attendi qualche minuto prima di riprovare.' }, { status: 429 });
       }
 
-      const generic = { ok: true, message: 'Ti abbiamo inviato un’email con il link per reimpostare la password. Controlla la posta in arrivo (anche cartella Spam).' };
+      const generic = { ok: true, message: 'Se l’indirizzo è registrato, riceverai il link per recuperare l’accesso. Controlla anche la cartella Spam.' };
       const user = await db.execute({ sql: 'SELECT id, name, email, email_verified FROM users WHERE LOWER(email) = LOWER(?)', args: [email] });
       if (!user.rows.length) return NextResponse.json(generic);
 
@@ -77,8 +78,7 @@ export async function POST(req: NextRequest) {
         );
       } catch (err: any) {
         await db.execute({ sql: 'DELETE FROM auth_tokens WHERE token_hash = ?', args: [tokenHash] });
-        const reason = err?.message ? ` (${err.message})` : '';
-        return NextResponse.json({ error: `Invio email non riuscito: controlla la configurazione SMTP.${reason}` }, { status: 503 });
+        return NextResponse.json({ error: 'Invio email non riuscito. Riprova o contatta l’amministratore.' }, { status: 503 });
       }
       return NextResponse.json(generic);
     }
@@ -86,14 +86,17 @@ export async function POST(req: NextRequest) {
       const tokenHash = hashToken(String(body.token || ''));
       const password = String(body.password || '');
       if (password.length < 8 || password.length > 256) return NextResponse.json({ error: 'Usa una password di almeno 8 caratteri.' }, { status: 400 });
-      const result = await db.execute({ sql: 'SELECT user_id FROM auth_tokens WHERE token_hash = ? AND purpose = ? AND used_at IS NULL AND expires_at > ?', args: [tokenHash, 'reset', new Date().toISOString()] });
-      if (!result.rows.length) return NextResponse.json({ error: 'Link non valido o scaduto.' }, { status: 400 });
-      const userId = String(result.rows[0].user_id);
-      const consumed = await db.execute({ sql: 'UPDATE auth_tokens SET used_at = ? WHERE token_hash = ? AND used_at IS NULL', args: [new Date().toISOString(), tokenHash] });
-      if (!consumed.rowsAffected) return NextResponse.json({ error: 'Link già utilizzato.' }, { status: 400 });
-      // Mark password updated and email verified
-      await db.execute({ sql: 'UPDATE users SET password_hash = ?, email_verified = 1 WHERE id = ?', args: [hashPassword(password), userId] });
-      await db.execute({ sql: 'DELETE FROM sessions WHERE user_id = ?', args: [userId] });
+      const passwordHash = hashPassword(password);
+      const tx = await db.transaction('write');
+      try {
+        const result = await tx.execute({ sql: 'SELECT user_id FROM auth_tokens WHERE token_hash = ? AND purpose = ? AND used_at IS NULL AND expires_at > ?', args: [tokenHash, 'reset', new Date().toISOString()] });
+        if (!result.rows.length) { await tx.rollback(); return NextResponse.json({ error: 'Link non valido o scaduto.' }, { status: 400 }); }
+        const userId = String(result.rows[0].user_id);
+        await tx.execute({ sql: 'UPDATE users SET password_hash = ?, email_verified = 1 WHERE id = ?', args: [passwordHash,userId] });
+        await tx.execute({ sql: 'UPDATE auth_tokens SET used_at = ? WHERE user_id = ? AND purpose IN (?,?) AND used_at IS NULL', args: [new Date().toISOString(),userId,'reset','verify'] });
+        await tx.execute({ sql: 'DELETE FROM sessions WHERE user_id = ?', args: [userId] });
+        await tx.commit();
+      } catch (error) { await tx.rollback(); throw error; } finally { tx.close(); }
       return NextResponse.json({ ok: true, message: 'Password aggiornata con successo! Ora puoi accedere.' });
     }
     return NextResponse.json({ error: 'Azione non valida.' }, { status: 400 });

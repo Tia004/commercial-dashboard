@@ -27,6 +27,10 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.*
+!.env.example
+/data/mail-preview.jsonl
+/artifacts/qa/
 /data/*.sqlite*
 
 # vercel

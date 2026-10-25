@@ -4,6 +4,7 @@ import { italianDateKey } from '@/lib/date';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './auth';
+import { mergeWorkspace, emptyWorkspace, type WorkspaceData } from './workspaceMerge';
 import {
   Opportunity,
   CommercialTask,
@@ -101,7 +102,7 @@ const LOCAL_STORAGE_KEY_THEME = 'hubc_crm_theme_v1';
 const LOCAL_STORAGE_KEY_GEMINI_KEY = 'hubc_crm_gemini_key_v1';
 
 export function CRMProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, refreshSession } = useAuth();
   const userId = user?.id;
   const [dataReady, setDataReady] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'loading' | 'saved' | 'saving' | 'error' | 'conflict'>('loading');
@@ -164,53 +165,86 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // The CRM archive belongs to the authenticated account and is stored server-side.
+  const liveDataRef = useRef<WorkspaceData>(emptyWorkspace());
+  liveDataRef.current = { opportunities, tasks, brands, salesReps };
+  const saveBusyRef = useRef(false);
+  const applyArchive = (data: WorkspaceData) => {
+    liveDataRef.current = data;
+    setOpportunities(data.opportunities as Opportunity[]); setTasks(data.tasks as CommercialTask[]);
+    setBrands(data.brands); setSalesReps(data.salesReps as SalesRep[]);
+  };
+
   useEffect(() => {
-    activeUserRef.current = userId;
-    blockedRef.current = false;
-    setDataReady(false);
-    if (!userId) { revisionRef.current = 0; lastSavedPayloadRef.current = ''; setOpportunities([]); setTasks([]); setBrands([]); setSalesReps([]); return; }
+    activeUserRef.current = userId ? userId + ':' + user?.workspaceId : undefined; blockedRef.current = false; setDataReady(false); setSelectedBrand('all'); setSelectedRep('all');
+    if (!userId) { revisionRef.current = 0; lastSavedPayloadRef.current = ''; applyArchive(emptyWorkspace()); return; }
     let cancelled = false;
     setSyncStatus('loading');
-    fetch('/api/crm', { cache: 'no-store' }).then(async (r) => { if (!r.ok) throw new Error('load'); return r.json(); })
-      .then(({ data, revision }) => {
-        if (cancelled) return;
-        const initialUserBrands: Brand[] = Array.isArray(data?.brands) && data.brands.length > 0
-          ? data.brands
-          : (user?.company?.trim() ? [user.company.trim()] : []);
-        revisionRef.current = Number(revision || 0);
-        lastSavedPayloadRef.current = JSON.stringify({ opportunities: data?.opportunities || [], tasks: data?.tasks || [], brands: initialUserBrands, salesReps: data?.salesReps || [] });
-        setOpportunities(data?.opportunities || []);
-        setTasks(data?.tasks || []);
-        setBrands(initialUserBrands);
-        setSalesReps(data?.salesReps || []);
-        setDataReady(true);
-        setSyncStatus('saved');
-      }).catch(() => { if (!cancelled) setSyncStatus('error'); });
-    return () => { cancelled = true; };
-  }, [userId, user?.company]);
+    const load = async () => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const response = await fetch('/api/crm', { cache: 'no-store', signal: AbortSignal.timeout(10000) });
+          if (response.status === 401) { void refreshSession(); return; }
+          if (!response.ok) throw Error();
+          const result = await response.json(); if (cancelled) return;
+          if (result.workspaceId !== user?.workspaceId) { void refreshSession(); return; }
+          const data = result.data || emptyWorkspace();
+          revisionRef.current = Number(result.revision || 0); lastSavedPayloadRef.current = JSON.stringify(data);
+          applyArchive(data); setDataReady(true); setSyncStatus('saved'); return;
+        } catch { if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 300 * (attempt + 1))); }
+      }
+      if (!cancelled) setSyncStatus('error');
+    };
+    void load(); return () => { cancelled = true; };
+  }, [userId, user?.workspaceId, refreshSession]);
+
+  useEffect(() => {
+    if (!userId || !dataReady || saveBusyRef.current || blockedRef.current) return;
+    const payload = JSON.stringify(liveDataRef.current);
+    if (payload === lastSavedPayloadRef.current) return;
+    setSyncStatus('saving');
+    const timer = window.setTimeout(async () => {
+      if (activeUserRef.current !== userId + ':' + user?.workspaceId) return;
+      saveBusyRef.current = true;
+      const sent = liveDataRef.current;
+      const baseData = lastSavedPayloadRef.current ? JSON.parse(lastSavedPayloadRef.current) : emptyWorkspace();
+      try {
+        const response = await fetch('/api/crm', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...sent, workspaceId: user?.workspaceId, baseData, baseRevision: revisionRef.current }), signal: AbortSignal.timeout(15000) });
+        if (response.status === 401) { void refreshSession(); throw Error(); }
+        const result = await response.json();
+        if (result.code === 'workspace_changed') { void refreshSession(); throw Error(); }
+        if (!response.ok && response.status !== 409) throw Error();
+        if (activeUserRef.current !== userId + ':' + user?.workspaceId) return;
+        const remote = result.data || sent;
+        const merged = mergeWorkspace(sent, liveDataRef.current, remote);
+        revisionRef.current = result.revision; lastSavedPayloadRef.current = JSON.stringify(remote);
+        applyArchive(merged); setSyncStatus('saved');
+      } catch { if (activeUserRef.current === userId + ':' + user?.workspaceId) { blockedRef.current = true; setSyncStatus('error'); } }
+      finally { saveBusyRef.current = false; setRetryEpoch((value) => value + 1); }
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [userId, user?.workspaceId, dataReady, opportunities, tasks, brands, salesReps, retryEpoch, refreshSession]);
 
   useEffect(() => {
     if (!userId || !dataReady) return;
-    const payload = JSON.stringify({ opportunities, tasks, brands, salesReps });
-    if (payload === lastSavedPayloadRef.current || blockedRef.current) return;
-    const timer = window.setTimeout(() => {
-      setSyncStatus('saving');
-      saveQueueRef.current = saveQueueRef.current.then(async () => {
-        if (blockedRef.current || activeUserRef.current !== userId || payload === lastSavedPayloadRef.current) return;
-        try {
-          const response = await fetch('/api/crm', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...JSON.parse(payload), baseRevision: revisionRef.current }) });
-          if (response.status === 409) { blockedRef.current = true; setSyncStatus('conflict'); return; }
-          if (!response.ok) throw new Error('save');
-          const result = await response.json();
-          revisionRef.current = result.revision;
-          lastSavedPayloadRef.current = payload;
-          setSyncStatus('saved');
-        } catch { blockedRef.current = true; setSyncStatus('error'); }
-      });
-    }, 650);
-    return () => window.clearTimeout(timer);
-  }, [userId, dataReady, opportunities, tasks, brands, salesReps, retryEpoch]);
+    let cancelled = false;
+    const poll = async () => {
+      if (saveBusyRef.current || document.visibilityState !== 'visible') return;
+      try {
+        const response = await fetch('/api/crm', { cache: 'no-store', signal: AbortSignal.timeout(10000) });
+        if (response.status === 401) { void refreshSession(); return; }
+        if (!response.ok) return;
+        const result = await response.json(); if (result.workspaceId !== user?.workspaceId) { void refreshSession(); return; } if (cancelled || saveBusyRef.current || Number(result.revision) === revisionRef.current) return;
+        const remote = result.data || emptyWorkspace();
+        const base = lastSavedPayloadRef.current ? JSON.parse(lastSavedPayloadRef.current) : emptyWorkspace();
+        const merged = mergeWorkspace(base, liveDataRef.current, remote);
+        revisionRef.current = Number(result.revision); lastSavedPayloadRef.current = JSON.stringify(remote);
+        applyArchive(merged); blockedRef.current = false; setSyncStatus('saved');
+      } catch { /* Keep the local draft while offline. */ }
+    };
+    const interval = window.setInterval(() => void poll(), 4000);
+    window.addEventListener('focus', poll);
+    return () => { cancelled = true; window.clearInterval(interval); window.removeEventListener('focus', poll); };
+  }, [userId, user?.workspaceId, dataReady, refreshSession]);
 
   const retrySave = () => { blockedRef.current = false; setRetryEpoch((value) => value + 1); };
 

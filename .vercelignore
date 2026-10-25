@@ -1,0 +1,10 @@
+.git/
+.agents/
+node_modules/
+.next/
+.env*
+artifacts/
+tests/
+data/
+playwright.config.ts
+stitch_omnihub_ai_sales_crm/

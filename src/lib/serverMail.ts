@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { appendFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 
 export function appOrigin(req?: Request) {
@@ -8,13 +9,6 @@ export function appOrigin(req?: Request) {
     return url.origin;
   }
 
-  // Automatically detect host from incoming HTTP request headers
-  if (req) {
-    const proto = req.headers.get('x-forwarded-proto') || 'https';
-    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
-    if (host) return `${proto}://${host}`;
-  }
-
   // Automatically detect Vercel production URL or deployment URL
   const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
   if (vercel) {
@@ -22,7 +16,7 @@ export function appOrigin(req?: Request) {
   }
 
   if (process.env.NODE_ENV === 'development') {
-    return 'http://localhost:3000';
+    return req ? new URL(req.url).origin : 'http://localhost:3000';
   }
 
   return 'https://commercial-dashboard-silk.vercel.app';
@@ -59,7 +53,9 @@ export interface LinearEmailOptions {
   footnote?: string;
 }
 
-export function renderLinearEmail(opts: LinearEmailOptions): string {
+export function renderLinearEmail(input: LinearEmailOptions): string {
+  const escape = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#39;');
+  const opts = Object.fromEntries(Object.entries(input).map(([key, value]) => [key, typeof value === 'string' ? escape(value) : value])) as LinearEmailOptions;
   const title = opts.title || 'Notifica account';
   const actionLabel = opts.actionLabel || 'Continua';
   const footnote = opts.footnote || 'Se non hai effettuato tu questa richiesta, puoi ignorare questo messaggio in sicurezza. Il tuo account rimane protetto.';
@@ -212,16 +208,8 @@ export async function sendAccountEmail(
 
   if (!isRealSmtpConfigured()) {
     if (process.env.NODE_ENV === 'development') {
-      console.log('\n┌─────────────────────────────────────────────────────────────────────────────┐');
-      console.log('│ 📨 [SIMULATORE EMAIL LOCALE - SVILUPPO (LINEAR AESTHETIC)]                 │');
-      console.log(`│ A: ${to.padEnd(73).slice(0, 73)}│`);
-      console.log(`│ Oggetto: ${subject.padEnd(67).slice(0, 67)}│`);
-      console.log('├─────────────────────────────────────────────────────────────────────────────┤');
-      const lines = message.split('\n');
-      for (const line of lines) {
-        console.log(`│ ${line.padEnd(75).slice(0, 75)} │`);
-      }
-      console.log('└─────────────────────────────────────────────────────────────────────────────┘\n');
+      if (process.env.MAIL_PREVIEW_FILE) await appendFile(process.env.MAIL_PREVIEW_FILE, JSON.stringify({ to, subject, message, html }) + '\n', { mode: 0o600 });
+      console.info('[ACCOUNT EMAIL PREVIEW]', { subject });
       return;
     }
     throw new Error('Parametri SMTP mancanti (verifica SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS)');
@@ -234,7 +222,7 @@ export async function sendAccountEmail(
   let from = cleanEnv(process.env.SMTP_FROM) ||
     (user.includes('@') && !user.endsWith('@smtp-brevo.com') ? `Hub Commerciale <${user}>` : '');
   if (!from) {
-    from = 'Hub Commerciale <tiachinaglia@gmail.com>';
+    from = '';
   }
 
   const resendApiKey = cleanEnv(process.env.RESEND_API_KEY);
@@ -246,7 +234,7 @@ export async function sendAccountEmail(
     if (from && !/@(gmail|yahoo|hotmail|outlook|icloud|libero|live|aol|smtp-brevo)\./i.test(from)) {
       resendFrom = from;
     } else {
-      resendFrom = 'Hub Commerciale <onboarding@resend.dev>';
+      resendFrom = '';
     }
   }
 
@@ -269,7 +257,7 @@ export async function sendAccountEmail(
   }
 
   // 1. Resend REST API (Instant delivery < 1s)
-  if (resendApiKey) {
+  if (resendApiKey && resendFrom) {
     try {
       return await submit('resend', 'https://api.resend.com/emails', {
         Authorization: `Bearer ${resendApiKey}`,
@@ -289,7 +277,7 @@ export async function sendAccountEmail(
       let senderEmail = match ? match[2].trim() : from;
       let senderName = match ? match[1].replace(/"/g, '').trim() : 'Hub Commerciale';
       if (!senderEmail || senderEmail.endsWith('@smtp-brevo.com')) {
-        senderEmail = 'tiachinaglia@gmail.com';
+        throw new Error('Configura SMTP_FROM con un mittente verificato.');
       }
 
       return await submit('brevo', 'https://api.brevo.com/v3/smtp/email', {
@@ -314,7 +302,7 @@ export async function sendAccountEmail(
     const port = Number(cleanEnv(process.env.SMTP_PORT) || 587);
     if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('SMTP_PORT non valido');
     const transport = nodemailer.createTransport({
-      host, port, secure: port === 465, auth: { user, pass },
+      host, port, secure: port === 465, requireTLS: port !== 465, auth: { user, pass },
       connectionTimeout: 6000, greetingTimeout: 6000, socketTimeout: 6000,
     });
     try {

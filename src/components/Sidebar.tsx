@@ -2,10 +2,13 @@
 import React from 'react';
 import { useCRM } from '@/lib/store';
 import { BrandLogo } from './BrandLogo';
-export type ActiveTab = 'cockpit' | 'focus' | 'kanban' | 'opportunities' | 'calendar' | 'standby' | 'analytics';
+export type ActiveTab = 'cockpit' | 'contacts' | 'chat' | 'sales' | 'focus' | 'kanban' | 'opportunities' | 'calendar' | 'standby' | 'analytics';
 interface Props { activeTab: ActiveTab; setActiveTab: (tab: ActiveTab) => void; mobileOpen: boolean; onClose: () => void }
 const items: { tab: ActiveTab; icon: string; label: string }[] = [
   { tab: 'cockpit', icon: 'space_dashboard', label: 'Panoramica' },
+  { tab: 'contacts', icon: 'contacts', label: 'Contatti' },
+  { tab: 'chat', icon: 'auto_awesome', label: 'Copilota' },
+  { tab: 'sales', icon: 'monitoring', label: 'Risultati' },
   { tab: 'focus', icon: 'filter_list', label: 'Focus' },
   { tab: 'kanban', icon: 'view_kanban', label: 'Pipeline' },
   { tab: 'opportunities', icon: 'work_outline', label: 'Opportunità' },

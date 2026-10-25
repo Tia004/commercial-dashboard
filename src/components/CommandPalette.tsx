@@ -1,10 +1,14 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useCRM } from '@/lib/store';
+import { useContacts } from '@/lib/contacts';
 import type { ActiveTab } from './Sidebar';
 
 const destinations: { tab: ActiveTab; label: string; icon: string }[] = [
   { tab: 'cockpit', label: 'Panoramica', icon: 'space_dashboard' },
+  { tab: 'contacts', label: 'Contatti', icon: 'contacts' },
+  { tab: 'chat', label: 'Copilota AI', icon: 'auto_awesome' },
+  { tab: 'sales', label: 'Risultati', icon: 'monitoring' },
   { tab: 'focus', label: 'Focus commerciale', icon: 'filter_list' },
   { tab: 'kanban', label: 'Pipeline', icon: 'view_kanban' },
   { tab: 'opportunities', label: 'Opportunità', icon: 'work_outline' },
@@ -14,6 +18,7 @@ const destinations: { tab: ActiveTab; label: string; icon: string }[] = [
 ];
 export const CommandPalette: React.FC<{ open: boolean; onClose: () => void; onNavigate: (tab: ActiveTab) => void }> = ({ open, onClose, onNavigate }) => {
   const { opportunities, tasks, setSelectedDeal, setIsNewDealModalOpen, setIsSettingsModalOpen } = useCRM();
+  const { contacts, setSelectedId } = useContacts();
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
   useEffect(() => { if (open) { setQuery(''); setIndex(0); } }, [open]);
@@ -21,14 +26,16 @@ export const CommandPalette: React.FC<{ open: boolean; onClose: () => void; onNa
     const q = query.trim().toLocaleLowerCase('it-IT');
     const result: { key: string; label: string; detail: string; icon: string; action: () => void }[] = [];
     for (const item of destinations) if (!q || item.label.toLowerCase().includes(q)) result.push({ key: item.tab, label: item.label, detail: 'Vista', icon: item.icon, action: () => onNavigate(item.tab) });
+    if (!q || 'nuovo contatto'.includes(q)) result.push({ key: 'new-contact', label: 'Nuovo contatto', detail: 'Azione', icon: 'person_add', action: () => { onNavigate('contacts'); setSelectedId('__new__'); } });
     if (!q || 'nuova opportunità'.includes(q)) result.push({ key: 'new', label: 'Nuova opportunità', detail: 'Azione', icon: 'add', action: () => setIsNewDealModalOpen(true) });
     if (!q || 'impostazioni'.includes(q)) result.push({ key: 'settings', label: 'Impostazioni', detail: 'Azione', icon: 'settings', action: () => setIsSettingsModalOpen(true) });
     if (q) {
+      for (const contact of contacts.filter((item) => !item.archived && [item.company,item.person,item.city,item.email].some((value) => value.toLowerCase().includes(q))).slice(0,8)) result.push({ key: 'contact-'+contact.id,label:contact.company,detail:contact.type+' · '+contact.city,icon:'contacts',action:()=>setSelectedId(contact.id) });
       for (const deal of opportunities.filter((deal) => [deal.name, deal.company, deal.service, deal.id].some((value) => String(value || '').toLowerCase().includes(q))).slice(0, 8)) result.push({ key: deal.id, label: deal.company || deal.name, detail: deal.name + ' · ' + deal.brand, icon: 'work_outline', action: () => setSelectedDeal(deal) });
       for (const task of tasks.filter((task) => task.status !== 'Completata' && [task.title, task.client].some((value) => String(value || '').toLowerCase().includes(q))).slice(0, 5)) result.push({ key: task.id, label: task.title, detail: task.client + ' · ' + task.date, icon: 'event_note', action: () => { const deal = opportunities.find((item) => item.id === task.dealId); if (deal) setSelectedDeal(deal); else onNavigate('calendar'); } });
     }
     return result;
-  }, [query, opportunities, tasks, onNavigate, setSelectedDeal, setIsNewDealModalOpen, setIsSettingsModalOpen]);
+  }, [query, contacts, setSelectedId, opportunities, tasks, onNavigate, setSelectedDeal, setIsNewDealModalOpen, setIsSettingsModalOpen]);
   if (!open) return null;
   const activate = (at: number) => { entries[at]?.action(); onClose(); };
   return <div className="command-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
