@@ -27,7 +27,7 @@ export async function POST(req:NextRequest){
     if(!text||text.length>8000)return NextResponse.json({error:'Scrivi un messaggio di massimo 8.000 caratteri.'},{status:400});
     if(!/^[a-f\d-]{36}$/i.test(String(body.requestId||'')))return NextResponse.json({error:'Richiesta non valida.'},{status:400});
     const model=String(body.model||'workspace-local');
-    if(!(await availableModels()).some((item)=>item.id===model))return NextResponse.json({error:'Modello non disponibile. Aggiorna la selezione.'},{status:400});
+    if(model!=='workspace-local'&&!(await availableModels()).some((item)=>item.id===model))return NextResponse.json({error:'Modello non disponibile. Aggiorna la selezione.'},{status:400});
     let threadId=String(body.threadId||'');
     const now=new Date().toISOString();
     if(threadId){
