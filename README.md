@@ -76,7 +76,7 @@ npm run build
 npm audit
 ```
 
-I test E2E usano un database temporaneo e una casella email simulata, disattivano le credenziali esterne e non modificano dati/clienti reali. Chrome locale; in CI installare Chromium. Tracce e immagini sono in `artifacts/qa/`, escluse da Git. Il rapporto della consegna è in `docs/audit-2026-10-25.md`.
+I test E2E usano un database temporaneo e una casella email simulata, disattivano le credenziali esterne e non modificano dati/clienti reali. Chrome locale e Chrome già presente nel runner Ubuntu 24.04 in CI, senza download del browser a ogni verifica. Tracce e immagini sono in `artifacts/qa/`, escluse da Git. Il rapporto della consegna è in `docs/audit-2026-10-25.md`.
 
 ## Licenze
 

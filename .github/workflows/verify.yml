@@ -3,13 +3,17 @@ on:
   push:
     branches: [main]
   pull_request:
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       CI: 'true'
       NEXT_TELEMETRY_DISABLED: '1'
+      PLAYWRIGHT_CHANNEL: chrome
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,7 +21,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: google-chrome --version
       - run: npm test
       - run: npm run lint
       - run: npm run test:e2e
