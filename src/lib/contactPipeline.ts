@@ -5,12 +5,18 @@ import { italianDateKey } from './date';
 import { getServerDb } from './serverDb';
 import { contactFromRow } from './contactRepository';
 
+type PipelineSnapshot = { data: { opportunities: Opportunity[]; [key:string]:unknown }; changed: boolean };
+const emptyPipeline = () => ({ opportunities: [], tasks: [], brands: [], salesReps: [] });
+async function savePipeline(tx:Transaction,workspaceId:string,data:PipelineSnapshot['data']) {
+  await tx.execute({ sql: 'INSERT INTO crm_data(user_id,payload,updated_at,revision) VALUES (?,?,?,1) ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at,revision=crm_data.revision+1', args: [workspaceId,JSON.stringify(data),new Date().toISOString()] });
+}
+
 // Contact writes and their pipeline link share the same transaction/revision.
-export async function syncContactPipeline(tx: Transaction, workspaceId: string, contact: Contact, author: string): Promise<string[]> {
+export async function syncContactPipeline(tx: Transaction, workspaceId: string, contact: Contact, author: string, snapshot?: PipelineSnapshot): Promise<string[]> {
   const ids = contact.legacyDealIds || [];
   if (contact.type !== 'Notizia' && !ids.length) return ids;
-  const saved = await tx.execute({ sql: 'SELECT payload,revision FROM crm_data WHERE user_id=?', args: [workspaceId] });
-  const data = saved.rows.length ? JSON.parse(String(saved.rows[0].payload)) : { opportunities: [], tasks: [], brands: [], salesReps: [] };
+  const saved = snapshot ? null : await tx.execute({ sql: 'SELECT payload,revision FROM crm_data WHERE user_id=?', args: [workspaceId] });
+  const data = snapshot?.data || (saved?.rows.length ? JSON.parse(String(saved.rows[0].payload)) : emptyPipeline());
   const opportunities: Opportunity[] = data.opportunities || [];
   let linked = opportunities.filter(deal => deal.contactId === contact.id || ids.includes(deal.id));
   if (!linked.length && !ids.length && contact.type==='Notizia') linked=opportunities.filter(deal=>!deal.contactId && deal.company.trim().toLocaleLowerCase('it-IT')===contact.company.trim().toLocaleLowerCase('it-IT') && (!contact.brand || !deal.brand || deal.brand===contact.brand));
@@ -35,7 +41,7 @@ export async function syncContactPipeline(tx: Transaction, workspaceId: string, 
   }
   if (changed) {
     data.opportunities = opportunities;
-    await tx.execute({ sql: 'INSERT INTO crm_data(user_id,payload,updated_at,revision) VALUES (?,?,?,1) ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at,revision=crm_data.revision+1', args: [workspaceId, JSON.stringify(data), now] });
+    if(snapshot) snapshot.changed=true; else await savePipeline(tx,workspaceId,data);
   }
   return linked.map(deal => deal.id);
 }
@@ -48,13 +54,16 @@ export async function ensureContactPipeline(workspaceId: string, author: string)
   try {
     if (!(await tx.execute({ sql: 'SELECT id FROM schema_migrations WHERE id=?', args: [marker] })).rows.length) {
       const rows = await tx.execute({ sql: "SELECT * FROM contacts WHERE workspace_id=? AND (json_extract(data,'$.type')='Notizia' OR json_array_length(json_extract(data,'$.legacyDealIds'))>0)", args: [workspaceId] });
+      const saved=await tx.execute({sql:'SELECT payload FROM crm_data WHERE user_id=?',args:[workspaceId]});
+      const snapshot:PipelineSnapshot={data:saved.rows.length?JSON.parse(String(saved.rows[0].payload)):emptyPipeline(),changed:false};
       for (const row of rows.rows) {
-        const contact = contactFromRow(row); const ids = await syncContactPipeline(tx, workspaceId, contact, author);
+        const contact = contactFromRow(row); const ids = await syncContactPipeline(tx, workspaceId, contact, author, snapshot);
         if (JSON.stringify(ids) !== JSON.stringify(contact.legacyDealIds || [])) {
           const data = JSON.parse(String(row.data)); data.legacyDealIds = ids;
           await tx.execute({ sql: 'UPDATE contacts SET data=?,revision=revision+1 WHERE id=? AND workspace_id=?', args: [JSON.stringify(data), contact.id, workspaceId] });
         }
       }
+      if(snapshot.changed)await savePipeline(tx,workspaceId,snapshot.data);
       await tx.execute({ sql: 'INSERT INTO schema_migrations(id,applied_at) VALUES (?,?)', args: [marker, new Date().toISOString()] });
     }
     await tx.commit();
