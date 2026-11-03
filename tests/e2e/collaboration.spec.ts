@@ -170,3 +170,78 @@ await page.getByRole('button',{name:'Chiudi scheda contatto',exact:true}).click(
 
  expect(errors).toEqual([]);await context.close();
 });
+
+test('long contact diaries scroll with the mouse and keyboard while keeping activity creation usable',async({browser})=>{
+ const response=await owner.post('/api/contacts',{data:contactData('Contatto QA — storico esteso')});expect(response.status()).toBe(201);const contact=(await response.json()).contact;
+ const texts=Array.from({length:12},(_,index)=>`Attività ${String(index+1).padStart(2,'0')} — ${'Resoconto di prova: aggiornamento della conversazione e informazioni utili per il team. '.repeat(8)}`);
+ for(const text of texts)expect((await owner.post('/api/contacts/'+contact.id+'/activities',{data:{id:randomUUID(),text}})).status()).toBe(201);
+ const context=await browser.newContext({storageState:await owner.storageState(),viewport:{width:1440,height:900}});const page=await context.newPage();const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+ try{
+  await page.goto('/');await page.getByRole('button',{name:'Entra nel workspace'}).click();await expect(page.getByRole('heading',{name:'Da dove vuoi iniziare?'})).toBeHidden();
+  await page.getByRole('button',{name:'Apri '+contact.company,exact:true}).click();await expect(page.locator('.activity-history article')).toHaveCount(12);
+  const composer=page.locator('.activity-composer');const diary=page.locator('.contact-diary');const body=page.locator('.contact-detail-body');
+  for(const viewport of [{width:1440,height:900},{width:768,height:700},{width:375,height:812}]){
+   await page.setViewportSize(viewport);
+   const scroller=viewport.width<=760?body:diary;
+   await scroller.evaluate(element=>{element.scrollTop=0;});
+   await expect.poll(()=>composer.evaluate(element=>element.getBoundingClientRect().height)).toBeGreaterThan(150);
+   await expect.poll(()=>scroller.evaluate(element=>element.scrollHeight-element.clientHeight)).toBeGreaterThan(300);
+   await scroller.hover();await page.mouse.wheel(0,550);
+   await expect.poll(()=>scroller.evaluate(element=>element.scrollTop)).toBeGreaterThan(100);
+   await scroller.evaluate(element=>{element.scrollTop=element.scrollHeight;});await expect(page.getByText(texts[0],{exact:true})).toBeInViewport();
+   await page.screenshot({path:`artifacts/qa/contact-diary-long-${viewport.width}.png`,fullPage:true});
+   await page.getByRole('textbox',{name:'Nuova attività',exact:true}).scrollIntoViewIfNeeded();await expect(page.getByRole('button',{name:'Aggiungi attività',exact:true})).toBeInViewport();
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+  }
+  await page.setViewportSize({width:1440,height:900});
+  await diary.focus();await page.keyboard.press('Control+End');await expect(page.getByText(texts[0],{exact:true})).toBeInViewport();
+  await page.keyboard.press('Control+Home');await expect(page.getByRole('textbox',{name:'Nuova attività',exact:true})).toBeInViewport();
+  const newText='Nuova attività aggiunta dopo uno storico esteso.';
+  await page.getByRole('textbox',{name:'Nuova attività',exact:true}).fill(newText);await page.getByRole('button',{name:'Aggiungi attività',exact:true}).click();await expect(page.locator('.activity-history article')).toHaveCount(13);await expect(page.getByText(newText,{exact:true})).toBeVisible();
+  await expect(page.locator('.activity-composer')).toBeInViewport();
+  expect((await (await owner.get('/api/contacts/'+contact.id+'/activities')).json()).activities).toHaveLength(13);
+  expect(errors).toEqual([]);
+ }finally{await context.close();}
+});
+
+test('Notizie join the pipeline once, keep existing deal progress and share the same contact link',async({browser})=>{
+ const create=await owner.post('/api/contacts',{data:{...contactData('Notizia QA — pipeline collegata'),type:'Notizia'}});expect(create.status()).toBe(201);const contact=(await create.json()).contact;
+ expect(contact.legacyDealIds).toHaveLength(1);
+ let archive=(await (await owner.get('/api/crm')).json());let deal=archive.data.opportunities.find((item:any)=>item.contactId===contact.id);expect(deal.stage).toBe('Nuovo lead');expect(deal.company).toBe(contact.company);
+ const previous=structuredClone(archive.data);archive.data.opportunities=archive.data.opportunities.map((item:any)=>item.id===deal.id?{...item,stage:'Trattativa',value:1500}:item);
+ expect((await owner.put('/api/crm',{data:{...archive.data,workspaceId:ownerWorkspace,baseRevision:archive.revision,baseData:previous}})).status()).toBe(200);
+ const repeated=await owner.patch('/api/contacts/'+contact.id,{data:{type:'Notizia',person:'Referente aggiornato',phone:'+39 333 1234567'}});expect(repeated.status()).toBe(200);
+ const updated=(await (await second.get('/api/crm')).json()).data.opportunities.filter((item:any)=>item.contactId===contact.id);expect(updated).toHaveLength(1);expect(updated[0].stage).toBe('Trattativa');expect(updated[0].value).toBe(1500);expect(updated[0].name).toBe('Referente aggiornato');
+ const ordinary=(await (await owner.post('/api/contacts',{data:contactData('Contatto QA — da qualificare')})).json()).contact;
+ expect(ordinary.legacyDealIds).toHaveLength(0);expect((await owner.patch('/api/contacts/'+ordinary.id,{data:{type:'Notizia'}})).status()).toBe(200);
+ expect((await (await owner.get('/api/crm')).json()).data.opportunities.filter((item:any)=>item.contactId===ordinary.id)).toHaveLength(1);
+ const context=await browser.newContext({storageState:await owner.storageState(),viewport:{width:1440,height:900}});const page=await context.newPage();
+ try{await page.goto('/');await page.getByRole('button',{name:'Entra nel workspace'}).click();await expect(page.getByRole('heading',{name:'Da dove vuoi iniziare?'})).toBeHidden();await page.getByRole('button',{name:'Apri '+contact.company,exact:true}).click();await expect(page.getByRole('button',{name:'Apri trattativa',exact:true})).toBeEnabled({timeout:10000});await page.getByRole('button',{name:'Apri trattativa',exact:true}).click();await page.getByRole('button',{name:'Apri scheda contatto',exact:true}).click();await expect(page.getByRole('heading',{name:contact.company,exact:true})).toBeVisible();await page.getByRole('button',{name:'Chiudi scheda contatto',exact:true}).click();await page.locator('.sidebar-nav .nav-item').filter({has:page.getByText('Pipeline',{exact:true})}).click();await expect(page.getByText(contact.company,{exact:true})).toBeVisible();}finally{await context.close();}
+
+});
+
+test('contact attachments persist, download unchanged, enforce workspace access and are included in backups',async({browser})=>{
+ const contact=(await (await owner.post('/api/contacts',{data:contactData('Contatto QA — allegati')})).json()).contact;
+ const pdf=Buffer.from('%PDF-1.4\nDocumento di prova del contatto.\n%%EOF');const fileId=randomUUID();
+ const upload=await owner.post('/api/contacts/'+contact.id+'/files',{multipart:{workspaceId:ownerWorkspace,id:fileId,file:{name:'Resoconto chiamata.pdf',mimeType:'application/pdf',buffer:pdf}}});expect(upload.status()).toBe(201);
+ const download=await second.get('/api/contacts/'+contact.id+'/files/'+fileId);expect(download.status()).toBe(200);expect(await download.body()).toEqual(pdf);expect(download.headers()['content-disposition']).toContain('attachment;');expect(download.headers()['x-content-type-options']).toBe('nosniff');
+ const same=await owner.post('/api/contacts/'+contact.id+'/files',{multipart:{workspaceId:ownerWorkspace,id:fileId,file:{name:'Resoconto chiamata.pdf',mimeType:'application/pdf',buffer:pdf}}});expect(same.status()).toBe(200);expect((await (await owner.get('/api/contacts/'+contact.id+'/files')).json()).files).toHaveLength(1);
+ expect([401,404]).toContain((await outsider.get('/api/contacts/'+contact.id+'/files/'+fileId)).status());
+ const unrelated=await request.newContext({baseURL});let login=await unrelated.post('/api/auth',{data:{action:'login',email:outsiderEmail,password:'NewPassword!2026'}});if(login.status()===401)login=await unrelated.post('/api/auth',{data:{action:'login',email:outsiderEmail,password}});expect(login.status()).toBe(200);
+ expect((await unrelated.get('/api/contacts/'+contact.id+'/files/'+fileId)).status()).toBe(404);expect((await unrelated.delete('/api/contacts/'+contact.id+'/files/'+fileId)).status()).toBe(404);
+ const memberships=(await (await unrelated.get('/api/team/workspace')).json()).workspaces;
+ if(!memberships.some((item:any)=>item.id===ownerWorkspace)){expect((await owner.post('/api/team',{data:{email:outsiderEmail,role:'member'}})).status()).toBe(200);expect((await unrelated.post('/api/team/invite',{data:{token:emailToken(outsiderEmail,'invite')}})).status()).toBe(200);}else expect((await unrelated.post('/api/team/workspace',{data:{workspaceId:ownerWorkspace}})).status()).toBe(200);
+ expect((await unrelated.get('/api/contacts/'+contact.id+'/files/'+fileId)).status()).toBe(200);expect((await unrelated.delete('/api/contacts/'+contact.id+'/files/'+fileId)).status()).toBe(404);await unrelated.dispose();
+ const invalid=await owner.post('/api/contacts/'+contact.id+'/files',{multipart:{workspaceId:ownerWorkspace,id:randomUUID(),file:{name:'falso.pdf',mimeType:'application/pdf',buffer:Buffer.from('<script>alert(1)</script>')}}});expect(invalid.status()).toBe(400);
+ const oversized=await owner.post('/api/contacts/'+contact.id+'/files',{multipart:{workspaceId:ownerWorkspace,id:randomUUID(),file:{name:'grande.txt',mimeType:'text/plain',buffer:Buffer.alloc(2*1024*1024+1,65)}}});expect(oversized.status()).toBe(413);
+ const backup=await (await owner.get('/api/contacts/export')).json();expect(backup.files.find((item:any)=>item.id===fileId).contentBase64).toBe(pdf.toString('base64'));
+ const context=await browser.newContext({storageState:await owner.storageState(),viewport:{width:1440,height:900}});const page=await context.newPage();
+ try{
+  await page.goto('/');await page.getByRole('button',{name:'Entra nel workspace'}).click();await expect(page.getByRole('heading',{name:'Da dove vuoi iniziare?'})).toBeHidden();await page.getByRole('button',{name:'Apri '+contact.company,exact:true}).click();
+  await page.getByRole('button',{name:'Vai agli allegati'}).click();await expect(page.getByRole('heading',{name:'Allegati',exact:true})).toBeInViewport();
+  await page.getByLabel('Scegli un documento o una registrazione').setInputFiles({name:'Appunti.txt',mimeType:'text/plain',buffer:Buffer.from('Appunti della chiamata di prova.')});await page.getByRole('button',{name:'Carica allegato',exact:true}).click();await expect(page.getByRole('link').filter({hasText:'Appunti.txt'})).toBeVisible();
+  const downloaded=page.waitForEvent('download');await page.getByRole('link').filter({hasText:'Appunti.txt'}).click();expect((await downloaded).suggestedFilename()).toBe('Appunti.txt');
+  await page.setViewportSize({width:375,height:812});await page.getByRole('heading',{name:'Allegati',exact:true}).scrollIntoViewIfNeeded();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();await page.screenshot({path:'artifacts/qa/contact-files-mobile.png',fullPage:true});
+ }finally{await context.close();}
+ expect((await owner.delete('/api/contacts/'+contact.id+'/files/'+fileId)).status()).toBe(200);expect((await owner.get('/api/contacts/'+contact.id+'/files/'+fileId)).status()).toBe(404);
+});

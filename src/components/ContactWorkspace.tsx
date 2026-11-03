@@ -1,5 +1,6 @@
 'use client';
 import dynamic from 'next/dynamic';
+import { ContactAttachments } from './ContactAttachments';
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useCRM } from '@/lib/store';
@@ -57,6 +58,7 @@ export function ContactWorkspace({ overview = false }: { overview?: boolean }) {
 
 export function ContactDetail() {
   const {user,refreshSession}=useAuth();
+  const { opportunities,setSelectedDeal }=useCRM();
   const { selectedId, setSelectedId, contacts, updateContact, refresh } = useContacts();
   const contact = contacts.find((item) => item.id === selectedId);
   const [activities, setActivities] = useState<ContactActivity[]>([]);
@@ -89,7 +91,7 @@ export function ContactDetail() {
     window.addEventListener('beforeunload', protect); return () => window.removeEventListener('beforeunload', protect);
   }, [draft, activityEdit, editing]);
   if (!contact) return null;
-  const close = () => { if ((draft.trim() || activityEdit || editing) && !window.confirm('Ci sono modifiche non salvate. Vuoi chiudere la scheda?')) return; setSelectedId(null); };
+  const close = () => { if ((draft.trim() || activityEdit || editing) && !window.confirm('Ci sono modifiche non salvate. Vuoi chiudere la scheda?')) return false; setSelectedId(null); return true; };
   const apply = async (patch: Record<string, unknown>) => { setError(''); const result = await updateContact(contact.id, patch); if (result.error) setError(result.error); return result; };
   const writeActivity = async (method: string, body: object) => {
     setBusy(true); setError('');
@@ -101,16 +103,19 @@ export function ContactDetail() {
       if (method === 'POST') { setDraft(''); setDraftId(crypto.randomUUID()); } else setActivityEdit(null);
     } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   };
+  const linkedDeal=opportunities.find(deal=>deal.contactId===contact.id||contact.legacyDealIds?.includes(deal.id));
   const address = [contact.address,contact.postalCode,contact.city,contact.province].filter(Boolean).join(', ');
   return <div className="contact-overlay"><section className="contact-detail" role="dialog" aria-modal="true" aria-labelledby="contact-title">
     <div className="contact-dialog-head"><div><span className="section-eyebrow">SCHEDA AZIENDA</span><h2 id="contact-title">{contact.company}</h2><p>{contact.person || 'Referente da indicare'}</p></div><button aria-label="Chiudi scheda contatto" onClick={close}><span className="material-symbols-outlined">close</span></button></div>
     <div className="contact-detail-body"><aside className="contact-profile">
       <label className="contact-field">Tipologia<select value={contact.type} onChange={(event) => void apply({ type: event.target.value })}>{CONTACT_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
+      {!!contact.legacyDealIds?.length&&<div className="contact-pipeline-link"><small>Collegata alla pipeline commerciale</small><button className="quiet-button" disabled={!linkedDeal} onClick={()=>{if(linkedDeal&&close())setSelectedDeal(linkedDeal);}}><span className="material-symbols-outlined" aria-hidden="true">view_kanban</span>{linkedDeal?'Apri trattativa':'Sincronizzazione…'}</button></div>}
       <div className="contact-quick-actions"><span className="section-eyebrow">SITUAZIONE OPERATIVA</span>{CONTACT_STATUSES.filter((status) => status !== 'Gestisci' || contact.type === 'Cliente effettivo').map((status) => <button key={status} aria-pressed={contact.statuses.includes(status)} className={contact.statuses.includes(status) ? 'active' : ''} onClick={() => void apply({ action: 'toggle-status', status })}><span className="material-symbols-outlined">{contact.statuses.includes(status) ? 'check_circle' : 'add_circle'}</span>{status}</button>)}</div>
       <div className="contact-profile-info"><div className="contact-section-label"><h3>Anagrafica</h3><button onClick={() => { setForm(contact);setEditRevision(contact.revision);setEditing(true); }}>Modifica</button></div>{contact.phone && <a href={'tel:' + contact.phone.replace(/[^\d+]/g,'')}><span className="material-symbols-outlined">call</span>{contact.phone}</a>}{contact.email && <a href={'mailto:' + contact.email}><span className="material-symbols-outlined">mail</span>{contact.email}</a>}{address && <a href={'https://www.openstreetmap.org/search?query=' + encodeURIComponent(address)} target="_blank" rel="noreferrer"><span className="material-symbols-outlined">location_on</span>{address}</a>}{contact.zone && <p>Zona · {contact.zone}</p>}{contact.brand && <p>Brand · {contact.brand}</p>}{!contact.phone && !contact.email && !address && <p>Aggiungi recapiti e indirizzo dall’anagrafica.</p>}</div>
+      <button className="quiet-button" onClick={()=>document.getElementById('contact-files-title')?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})}><span className="material-symbols-outlined">attach_file</span>Vai agli allegati</button>
       <button className="quiet-button" onClick={() => setPlacing(!placing)}><span className="material-symbols-outlined">pin_drop</span>{Number.isFinite(contact.latitude) ? 'Aggiorna punto mappa' : 'Posiziona sulla mappa'}</button>
       <button className="quiet-button contact-archive" onClick={() => void apply({ archived: !contact.archived })}><span className="material-symbols-outlined">{contact.archived ? 'unarchive' : 'archive'}</span>{contact.archived ? 'Ripristina contatto' : 'Archivia contatto'}</button>
-    </aside><div className="contact-diary">
+    </aside><div className="contact-diary" role="region" aria-label="Attività del contatto" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&['Home','End'].includes(event.key)){event.preventDefault();event.currentTarget.scrollTop=event.key==='Home'?0:event.currentTarget.scrollHeight;}}}>
       {error && <div className="inline-error" role="alert">{error}<button onClick={() => { void loadActivities(contact.id); void refresh(); }}>Aggiorna</button></div>}
       {placing && <div className="contact-map-picker"><div className="contact-section-label"><h3>Clicca sulla posizione dell’azienda</h3><button onClick={() => setPlacing(false)}>Chiudi mappa</button></div><ContactsMap contacts={[contact]} onPlace={async (latitude,longitude) => { const result=await apply({latitude,longitude});if (!result.error) setPlacing(false); }} /><p>Usa zoom e trascinamento per trovare la zona. Il punto viene salvato nel workspace.</p></div>}
       {editing ? <form className="contact-edit-form" onSubmit={async (event) => { event.preventDefault(); const result = await apply({ ...Object.fromEntries(fields.map((field) => [field.key, form[field.key] || ''])), baseRevision: editRevision }); if (!result.error) setEditing(false); }}><div className="contact-section-label"><h3>Modifica anagrafica</h3><button type="button" onClick={() => setEditing(false)}>Annulla</button></div><div className="contact-form-grid">{fields.map((field) => <label key={field.key}>{field.label}<input type={field.type || 'text'} required={field.key === 'company'} value={String(form[field.key] || '')} onChange={(event) => setForm({ ...form, [field.key]: event.target.value })} /></label>)}</div><button className="primary-button">Salva anagrafica</button></form> : <>
@@ -118,6 +123,7 @@ export function ContactDetail() {
       <form className="activity-composer" onSubmit={(event) => { event.preventDefault(); void writeActivity('POST', { id: draftId, text: draft }); }}><textarea aria-label="Nuova attività" placeholder="Cosa è successo con questa azienda?" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={20000} rows={4} data-presence-focus="Nuova attività" /><div><span>Diario condiviso con il team</span><button className="primary-button" disabled={busy || !draft.trim()}>{busy ? 'Salvataggio…' : 'Aggiungi attività'}</button></div></form>
       {loadingActivities ? <p role="status">Caricamento storico…</p> : !activities.length ? <div className="diary-empty"><span className="material-symbols-outlined">notes</span><h4>La prima conversazione comincia qui</h4><p>Ogni nota resterà nello storico dell’azienda.</p></div> : <div className="activity-history">{activities.map((activity) => <article key={activity.id}><div className="activity-meta"><span><time dateTime={activity.createdAt}>{dateTime(activity.createdAt)}</time><small>{activity.authorName}{activity.revision > 1 ? ' · modificata' : ''}</small></span><button onClick={() => { setActivityEdit(activity);setEditText(activity.text); }} aria-label={'Modifica attività del ' + dateTime(activity.createdAt)}><span className="material-symbols-outlined">edit</span></button></div>{activityEdit?.id === activity.id ? <form onSubmit={(event) => { event.preventDefault(); void writeActivity('PATCH', { activityId: activity.id, text: editText, baseRevision: activityEdit.revision }); }}><textarea aria-label="Modifica testo attività" value={editText} onChange={(event) => setEditText(event.target.value)} rows={4} maxLength={20000} /><div className="activity-edit-actions"><button type="button" className="quiet-button" onClick={() => setActivityEdit(null)}>Annulla</button><button className="primary-button" disabled={busy || !editText.trim()}>Salva modifica</button></div></form> : <p className="activity-text">{activity.text}</p>}</article>)}</div>}
       </>}
+      <ContactAttachments key={contact.id} contactId={contact.id} />
     </div></div>
   </section></div>;
 }

@@ -3,6 +3,7 @@
 import { italianDateAfterDays } from '@/lib/date';
 
 import React, { useState } from 'react';
+import { useContacts } from '@/lib/contacts';
 import { useCRM } from '@/lib/store';
 import { Opportunity, DealStage, ActivityType } from '@/types/crm';
 import { CustomDropdown, DropdownOption } from './CustomDropdown';
@@ -18,6 +19,7 @@ export const DealModal: React.FC = () => {
     snoozeDeal,
   } = useCRM();
 
+  const {contacts,setSelectedId}=useContacts();
   const [activeTab, setActiveTab] = useState<'timeline' | 'edit' | 'quote'>('timeline');
   const [newLogTitle, setNewLogTitle] = useState('');
   const [newLogDesc, setNewLogDesc] = useState('');
@@ -57,6 +59,7 @@ export const DealModal: React.FC = () => {
 
   if (!selectedDeal) return null;
 
+  const linkedContact=contacts.find(contact=>contact.id===selectedDeal.contactId||contact.legacyDealIds?.includes(selectedDeal.id));
   const stages: DealStage[] = [
     'Nuovo lead',
     'Conoscenza',
@@ -136,6 +139,7 @@ export const DealModal: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3 self-end md:self-auto">
+            {linkedContact&&<button className="quiet-button" onClick={()=>{setSelectedDeal(null);setSelectedId(linkedContact.id);}}>Apri scheda contatto</button>}
             <div className="text-right tabular-nums">
               <span className="text-xl font-bold text-primary block leading-tight">
                 € {selectedDeal.value.toLocaleString()}

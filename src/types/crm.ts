@@ -64,6 +64,7 @@ export interface CommercialTask {
 }
 
 export interface Opportunity {
+  contactId?: string;
   id: string;
   name: string; // Nome e cognome
   company: string; // Azienda

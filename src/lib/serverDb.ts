@@ -1,4 +1,5 @@
 import { createClient, type Client } from '@libsql/client';
+import { migrateContactFiles } from './migrations/20261103-contact-files';
 import { migrateCollaboration, backfillMemberships } from './migrations/20261025-collaboration';
 
 let client: Client | null = null;
@@ -13,8 +14,8 @@ export function getServerDb(): Promise<Client> {
     if (!url) throw new Error('Database non configurato: imposta TURSO_DATABASE_URL e TURSO_AUTH_TOKEN.');
     client = createClient({ url, authToken });
     try {
-      const version = await client.execute("SELECT count(*) AS ready FROM schema_migrations WHERE id IN ('20261025-collaboration-schema','20261025-memberships-data')");
-      if (Number(version.rows[0].ready) === 2) return client;
+      const version = await client.execute("SELECT count(*) AS ready FROM schema_migrations WHERE id IN ('20261025-collaboration-schema','20261025-memberships-data','20261103-contact-files')");
+      if (Number(version.rows[0].ready) === 3) return client;
     } catch (error) {
       if (!/no such table: (?:main\.)?schema_migrations/i.test(String((error as Error).message))) throw error;
     }
@@ -40,6 +41,7 @@ export function getServerDb(): Promise<Client> {
     await schema.execute('CREATE TABLE IF NOT EXISTS webauthn_challenges (key TEXT PRIMARY KEY, challenge TEXT NOT NULL, expires_at TEXT NOT NULL)');
     await schema.execute('CREATE TABLE IF NOT EXISTS ip_rate_limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL, window_started_at TEXT NOT NULL)');
     await migrateCollaboration(schema);
+    await migrateContactFiles(schema);
     await schema.commit();
     } catch (error) { await schema.rollback(); throw error; } finally { schema.close(); }
     const backfill = await client.transaction('write');

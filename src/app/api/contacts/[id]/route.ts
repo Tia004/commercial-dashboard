@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/serverAuth';
 import { getServerDb } from '@/lib/serverDb';
+import { syncContactPipeline } from '@/lib/contactPipeline';
 import { contactFromRow, validateContact } from '@/lib/contactRepository';
 import { CONTACT_STATUSES } from '@/types/contacts';
 type Context = { params: Promise<{ id: string }> };
@@ -28,6 +29,7 @@ async function handlePATCH(req: NextRequest, context: Context) {
     }
     const merged = { ...old, ...patch };
     if (merged.type !== 'Cliente effettivo') merged.statuses = merged.statuses.filter((status) => status !== 'Gestisci');
+    merged.legacyDealIds = await syncContactPipeline(tx,user.workspaceId,merged,user.name);
     const { id: _id, revision: _revision, createdAt: _created, updatedAt: _updated, ...data } = merged;
     const now = new Date().toISOString();
     await tx.execute({ sql: 'UPDATE contacts SET data = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND workspace_id = ?', args: [JSON.stringify(data), now, id, user.workspaceId] });

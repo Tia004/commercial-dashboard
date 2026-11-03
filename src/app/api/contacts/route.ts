@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/serverAuth';
 import { getServerDb } from '@/lib/serverDb';
+import { syncContactPipeline, ensureContactPipeline } from '@/lib/contactPipeline';
+import type { Contact } from '@/types/contacts';
 import { contactFromRow, ensureWorkspaceContacts, validateContact } from '@/lib/contactRepository';
 
 export async function GET() {
@@ -8,6 +10,7 @@ export async function GET() {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Accesso richiesto.' }, { status: 401 });
     await ensureWorkspaceContacts(user.workspaceId);
+    await ensureContactPipeline(user.workspaceId,user.name);
     const db = await getServerDb();
     const result = await db.execute({ sql: 'SELECT * FROM contacts WHERE workspace_id = ? ORDER BY updated_at DESC', args: [user.workspaceId] });
     return NextResponse.json({ workspaceId: user.workspaceId, contacts: result.rows.map(contactFromRow) }, { headers: { 'Cache-Control': 'no-store' } });
@@ -25,13 +28,19 @@ export async function POST(req: NextRequest) {
     await ensureWorkspaceContacts(user.workspaceId);
     const db = await getServerDb();
     const id = typeof body.id === 'string' && /^[\da-f-]{36}$/i.test(body.id) ? body.id : crypto.randomUUID();
-    const existing = await db.execute({ sql: 'SELECT * FROM contacts WHERE id = ? AND workspace_id = ?', args: [id, user.workspaceId] });
-    if (existing.rows.length) return NextResponse.json({ contact: contactFromRow(existing.rows[0]) });
-    const duplicates = await db.execute({ sql: "SELECT id FROM contacts WHERE workspace_id = ? AND lower(json_extract(data,'$.company')) = lower(?) AND lower(json_extract(data,'$.city')) = lower(?) AND json_extract(data,'$.archived') = 0", args: [user.workspaceId, String(data.company), String(data.city)] });
-    if (duplicates.rows.length) return NextResponse.json({ error: 'Questa azienda è già in archivio.', existingId: String(duplicates.rows[0].id) }, { status: 409 });
-    if (data.type !== 'Cliente effettivo') data.statuses = data.statuses?.filter((status) => status !== 'Gestisci');
-    const now = new Date().toISOString();
-    await db.execute({ sql: 'INSERT INTO contacts(id,workspace_id,data,created_at,updated_at) VALUES (?,?,?,?,?)', args: [id, user.workspaceId, JSON.stringify(data), now, now] });
-    return NextResponse.json({ contact: { ...data, id, revision: 1, createdAt: now, updatedAt: now } }, { status: 201 });
+    const tx = await db.transaction('write');
+    try {
+      const existing = await tx.execute({ sql: 'SELECT * FROM contacts WHERE id = ? AND workspace_id = ?', args: [id, user.workspaceId] });
+      if (existing.rows.length) { await tx.commit(); return NextResponse.json({ contact: contactFromRow(existing.rows[0]) }); }
+      const duplicates = await tx.execute({ sql: "SELECT id FROM contacts WHERE workspace_id = ? AND lower(json_extract(data,'$.company')) = lower(?) AND lower(json_extract(data,'$.city')) = lower(?) AND json_extract(data,'$.archived') = 0", args: [user.workspaceId, String(data.company), String(data.city)] });
+      if (duplicates.rows.length) { await tx.rollback(); return NextResponse.json({ error: 'Questa azienda è già in archivio.', existingId: String(duplicates.rows[0].id) }, { status: 409 }); }
+      if (data.type !== 'Cliente effettivo') data.statuses = data.statuses?.filter((status) => status !== 'Gestisci');
+      const now = new Date().toISOString();
+      const linkedIds = await syncContactPipeline(tx,user.workspaceId,{ ...data,id,revision:1,createdAt:now,updatedAt:now } as Contact,user.name);
+      const stored = { ...data,legacyDealIds:linkedIds };
+      await tx.execute({ sql: 'INSERT INTO contacts(id,workspace_id,data,created_at,updated_at) VALUES (?,?,?,?,?)', args: [id,user.workspaceId,JSON.stringify(stored),now,now] });
+      await tx.commit();
+      return NextResponse.json({ contact: { ...stored,id,revision:1,createdAt:now,updatedAt:now } }, { status:201 });
+    } catch (error) { await tx.rollback(); throw error; } finally { tx.close(); }
   } catch { return NextResponse.json({ error: 'Salvataggio non riuscito. Riprova.' }, { status: 503 }); }
 }
