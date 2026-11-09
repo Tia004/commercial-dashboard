@@ -74,9 +74,11 @@ export function ContactDetail() {
   const [placing,setPlacing]=useState(false);
   const [loadingActivities, setLoadingActivities] = useState(false);
   const activeContact = useRef(selectedId); activeContact.current = selectedId;
+  const activityRequest = useRef(0);
   const loadActivities = async (id: string) => {
-    try { const response = await fetch('/api/contacts/' + id + '/activities', { cache: 'no-store', signal: AbortSignal.timeout(15000) }); if (!response.ok) throw Error('Storico non disponibile.'); const data = await response.json(); if (activeContact.current === id) setActivities((current) => data.activities.map((remote: ContactActivity) => { const local = current.find((item) => item.id === remote.id); return local && local.revision > remote.revision ? local : remote; })); }
-    catch { if (activeContact.current === id) setError('Impossibile aggiornare lo storico. Riprova.'); } finally { if (activeContact.current === id) setLoadingActivities(false); }
+    const request = ++activityRequest.current;
+    try { const response = await fetch('/api/contacts/' + id + '/activities', { cache: 'no-store', signal: AbortSignal.timeout(15000) }); if (!response.ok) throw Error('Storico non disponibile.'); const data = await response.json(); if (activeContact.current === id && activityRequest.current === request) setActivities((current) => data.activities.map((remote: ContactActivity) => { const local = current.find((item) => item.id === remote.id); return local && local.revision > remote.revision ? local : remote; })); }
+    catch { if (activeContact.current === id && activityRequest.current === request) setError('Impossibile aggiornare lo storico. Riprova.'); } finally { if (activeContact.current === id && activityRequest.current === request) setLoadingActivities(false); }
   };
   useEffect(() => {
     setActivities([]); setDraft(''); setDraftId(crypto.randomUUID()); setEditing(false); setPlacing(false); setActivityEdit(null); setError('');
@@ -99,8 +101,9 @@ export function ContactDetail() {
       const response = await fetch('/api/contacts/' + contact.id + '/activities', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({...body,workspaceId:user?.workspaceId}) });
       const result = await response.json(); if (result.code === 'workspace_changed') void refreshSession(); if (!response.ok) throw Error(result.error || 'Attività non salvata.');
       if (activeContact.current !== contact.id) return;
+      ++activityRequest.current; setLoadingActivities(false);
       setActivities((current) => [result.activity, ...current.filter((item) => item.id !== result.activity.id)].sort((a,b) => b.createdAt.localeCompare(a.createdAt)));
-      if (method === 'POST') { setDraft(''); setDraftId(crypto.randomUUID()); } else setActivityEdit(null);
+      if (method === 'POST') { setDraft((current) => current === (body as {text?: string}).text ? '' : current); setDraftId(crypto.randomUUID()); } else setActivityEdit(null);
     } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   };
   const linkedDeal=opportunities.find(deal=>deal.contactId===contact.id||contact.legacyDealIds?.includes(deal.id));
